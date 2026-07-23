@@ -20,8 +20,9 @@ export default function ManifestLookupPage() {
 
   return (
     <div style={{ maxWidth: "600px", margin: "40px auto", fontFamily: "sans-serif" }}>
-      <p>
+      <p style={{ display: "flex", justifyContent: "space-between" }}>
         <Link href="/settings" style={{ color: "#0070f3" }}>← Settings</Link>
+        <Link href="/manifests/new" style={{ color: "#0070f3" }}>+ Create new manifest</Link>
       </p>
       <h1>Look up a manifest</h1>
       <p style={{ color: "#666" }}>

@@ -22,6 +22,8 @@
 import type {
   AuthTokenResponse,
   CachedToken,
+  Manifest,
+  NewManifestInput,
   RcrainfoCredentials,
   RcrainfoEnvironment,
   SiteDetails,
@@ -128,6 +130,13 @@ export class RcrainfoClient {
     return this.request<SiteDetails>(`/site-details/${encodeURIComponent(siteId)}`);
   }
 
+  /** GET /emanifest/manifest/{manifestTrackingNumber} — full manifest record. */
+  async getManifest(manifestTrackingNumber: string): Promise<Manifest> {
+    return this.request<Manifest>(
+      `/emanifest/manifest/${encodeURIComponent(manifestTrackingNumber)}`
+    );
+  }
+
   /**
    * GET /emanifest/manifest-tracking-numbers/{siteId}
    *
@@ -143,6 +152,41 @@ export class RcrainfoClient {
     return this.request<string[]>(
       `/emanifest/manifest-tracking-numbers/${encodeURIComponent(siteId)}`
     );
+  }
+
+  /**
+   * POST /emanifest/manifest/save
+   *
+   * Confirmed the endpoint shape via Swagger: multipart form-data with a
+   * `manifest` field (JSON-stringified) and an optional `attachment` file.
+   * NOT yet confirmed live — the exact set of required fields inside the
+   * manifest JSON is unknown; expect to iterate based on validation errors
+   * from the first few attempts.
+   */
+  async saveManifest(manifest: NewManifestInput, attachment?: Blob): Promise<Manifest> {
+    const token = await this.getToken();
+    const form = new FormData();
+    form.append("manifest", JSON.stringify(manifest));
+    if (attachment) {
+      form.append("attachment", attachment);
+    }
+
+    const res = await fetch(`${this.baseUrl}/emanifest/manifest/save`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` }, // do NOT set Content-Type — fetch sets the multipart boundary automatically
+      body: form,
+    });
+
+    if (!res.ok) {
+      const body = await safeJson(res);
+      throw new RcrainfoApiError(
+        `RCRAInfo manifest save failed -> ${res.status}`,
+        res.status,
+        body
+      );
+    }
+
+    return (await res.json()) as Manifest;
   }
 }
 

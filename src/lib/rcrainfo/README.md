@@ -54,12 +54,38 @@ many developers learning the API — this response is very likely a mix of
 everyone's test data, not anything specific to ManifestMate. Don't treat
 this as clean data to build/demo the UI against.
 
-## Suggested next step
+## Manifest read/write (new)
 
-Create your own test manifest via the API's manifest-creation endpoint (not
-yet explored this session) so you have one known, traceable MTN to build
-and test the read/query flow against — rather than sifting through shared
-sandbox noise.
+- **`getManifest(mtn)`** — `GET /emanifest/manifest/{mtn}`. Returns the full
+  manifest record. Confirmed the schema shape via Swagger's example
+  response this session (not yet called live against a real MTN).
+- **`saveManifest(manifest, attachment?)`** — `POST /emanifest/manifest/save`.
+  Confirmed the *endpoint shape* via Swagger (multipart form-data: a
+  `manifest` field containing JSON-stringified manifest data, plus an
+  optional file attachment) — **not yet confirmed live**. The required
+  fields inside that JSON aren't documented by Swagger's schema, so
+  `manifest-fixtures.ts` provides a starting payload built from
+  `VAD000532119` (known-good, confirmed-registered) as both generator and
+  designated facility, with one placeholder waste line.
+
+### Before your first `saveManifest()` test
+
+1. Replace the placeholder transporter (`VATRANSPORTERTEST`) in
+   `manifest-fixtures.ts` with a real, registered site ID — check the
+   `[All] e-Manifest Lookup Services` section in Swagger for a way to search
+   registered sites, or ask in the preprod sandbox docs for a known test
+   transporter ID.
+2. Confirm valid waste codes and unit-of-measurement codes against Swagger's
+   lookup endpoints (e.g. `retrieveContainerTypes` under
+   `[All] e-Manifest Lookup Services` — there are likely sibling endpoints
+   for unit-of-measurement and waste codes worth checking before assuming
+   `"P"` and `"D001"` are valid).
+3. Expect the first save attempt to fail with a validation error — that
+   error body is the most reliable source of truth for what's actually
+   required, more reliable than Swagger's example schema. Iterate the
+   fixture based on it.
+
+
 
 ## Known dependency: auth bug fix
 

@@ -128,3 +128,88 @@ export class RcrainfoApiError extends Error {
     this.name = "RcrainfoApiError";
   }
 }
+
+/* -------------------------------------------------------------------------
+ * Manifest (8700-22) types
+ *
+ * The full RCRAInfo Manifest schema (confirmed via GET
+ * /emanifest/manifest/{manifestTrackingNumber} in Swagger, preprod) is very
+ * large — it includes rejection, import/export, and correction-request data
+ * that only applies to manifests already in flight. Below is a smaller
+ * "input" shape covering what's needed to CREATE a manifest via
+ * POST /emanifest/manifest/save. Swagger's schema does not mark which
+ * fields are strictly required, so treat this as a reasonable starting
+ * payload to test — the API's validation errors on first save attempt are
+ * the most reliable way to discover the true required set.
+ * ---------------------------------------------------------------------- */
+
+/** Shared "site" shape — reused by RCRAInfo for generator, transporter, and designated facility. */
+export interface Handler {
+  epaSiteId: string;
+  name?: string;
+  mailingAddress?: Address;
+  siteAddress?: Address;
+  contact?: SiteContact;
+  emergencyPhone?: PhoneNumber;
+  /** Only present on a transporter entry — its position in the transport chain. */
+  order?: number;
+}
+
+export interface WasteQuantity {
+  containerNumber?: number;
+  containerType?: { code: string; description?: string };
+  quantity: number;
+  unitOfMeasurement: { code: string; description?: string };
+}
+
+export interface WasteCode {
+  code: string;
+  acute?: boolean;
+}
+
+export interface WasteLine {
+  lineNumber: number;
+  hazardous: boolean;
+  wasteDescription: string;
+  quantity: WasteQuantity;
+  dotInformation?: {
+    properShippingName?: { code: string };
+    idNumber?: { code: string };
+    hazardClass?: { code: string };
+    packingGroup?: { code: string };
+  };
+  hazardousWaste?: {
+    federalWasteCodes?: WasteCode[];
+    generatorWasteCodes?: WasteCode[];
+  };
+  /** Biennial Report flag — set false unless you know this waste needs BR data. */
+  br?: boolean;
+  pcb?: boolean;
+  epaWaste?: boolean;
+}
+
+/** Minimal payload for POST /emanifest/manifest/save (a new, not-yet-submitted manifest). */
+export interface NewManifestInput {
+  status: "NotAssigned" | "Pending" | "Scheduled";
+  submissionType: "FullElectronic" | "Hybrid" | "Image";
+  originType: "Web" | "Service";
+  generator: Handler;
+  transporters: Handler[];
+  designatedFacility: Handler;
+  wastes: WasteLine[];
+  shipmentType?: "Domestic" | "Import" | "Export";
+}
+
+/** Full manifest record shape as returned by GET /emanifest/manifest/{mtn}. Loosely typed — see note above. */
+export interface Manifest extends NewManifestInput {
+  manifestTrackingNumber: string;
+  createdDate?: string;
+  updatedDate?: string;
+  shippedDate?: string;
+  receivedDate?: string;
+  ppcStatus?: string;
+  locked?: boolean;
+  discrepancy?: boolean;
+  /** Catch-all for the many additional fields (rejectionInfo, importInfo, exportInfo, correctionInfo, etc.) not modeled here. */
+  [key: string]: unknown;
+}

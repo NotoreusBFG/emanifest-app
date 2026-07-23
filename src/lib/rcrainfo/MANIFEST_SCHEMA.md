@@ -77,7 +77,7 @@ form-encoded, and the `Content-Type` header must NOT be manually set (let
 | `submissionType` | `"FullElectronic"` used | ✅ Round-tripped unchanged on GET. |
 | `originType` | `"Web"` sent on save | ⚠️ **GET returned `"Service"`, not `"Web"`.** Another save-vs-retrieve inconsistency, same family as the `phone`/`phoneNumber` issue below — don't assume what you send is what comes back. |
 | `import` | `false` | **Confirmed required** — omitting it fails with "Mandatory Field is Not Provided". Round-trips unchanged on GET. |
-| `export` | `false` | **Still NOT confirmed required** — added speculatively (symmetry with `import`); hasn't been flagged as missing when included (round-trips unchanged on GET), but still not tested by omission. |
+| `export` | `false` | ✅ **Confirmed required**, same as `import` — omitting it fails validation. Not just speculative symmetry after all. |
 | `shipmentType` | — | **CONFIRMED REJECTED.** Do not include at top level — API returns "Object instance has properties which are not allowed by the schema". May only exist on retrieved/in-flight manifests, not save input. |
 
 ### Confirmed required Handler fields (generator / designatedFacility / transporters)
@@ -143,10 +143,19 @@ behavior already documented above:
   information will be ignored and replaced" warning — worth knowing
   before assuming placeholder transporter contact info is safe to leave
   in production payloads.
-- `correctionInfo: { active: true }` appears on GET — **not yet
-  understood**; wasn't sent on save and its meaning/implications are
-  unconfirmed. Flag for investigation before relying on or displaying
-  this field.
+- `correctionInfo: { active: true }` appears on GET — **meaning now
+  confirmed against EPA's own JSON schema comments** in
+  `Services-Information/Schema/emanifest.json` in the public
+  [USEPA/e-manifest](https://github.com/USEPA/e-manifest) repo:
+  `CorrectionInfo.active` "Indicates if the Manifest version is active or
+  outdated for the industry" (there's also a separate `ppcActive` for
+  EPA's internal processing side). `versionNumber` only gets populated
+  once a manifest has actually been corrected — explains why we only see
+  `active: true` with no `versionNumber` on `100091730ELC`, which has
+  never been corrected. **Not yet confirmed against a real correction**
+  (i.e. haven't seen `active: false` on an outdated version or
+  `versionNumber` increment live) — that would need an actual
+  correct-manifest test.
 - `electronicSignaturesInfo` appeared on the generator with a
   `humanReadableDocument` entry (`human-readable.html`, ~155KB) — **now
   confirmed fetchable and solved the PDF/printed-document open item, see
@@ -185,11 +194,10 @@ script `scripts/test-get-attachments.ts`.
 
 ### Known unresolved / open questions
 
-- Is `export` actually required, or was it accepted just because we happened to include it? Try omitting it on a future test.
 - What exactly are valid DOT code values for `properShippingName`, `idNumber`, `hazardClass`, `packingGroup`? Check Swagger's `[All] e-Manifest Lookup Services` section for DOT-related lookup endpoints (the confirmed `retrieveContainerTypes` endpoint suggests siblings likely exist for these).
 - Which specific mailingAddress/siteAddress sub-fields are actually mandatory vs. just filling gaps in the on-file record for this particular test site? Untested against a site with a fully complete on-file record.
 - `status` *save-input* values other than `"NotAssigned"` — untested. (Note: `"Scheduled"` is now confirmed as an *output* value the system transitions to automatically.)
-- What does `correctionInfo.active: true` mean, and does it have implications for editing/correcting this manifest later?
+- Does `correctionInfo.active` flip to `false` on the superseded version, and does `versionNumber` increment as expected, once we actually test a real manifest correction? (Meaning is understood from EPA's schema comments, but not yet observed live.)
 - Why did `originType` come back as `"Service"` when `"Web"` was sent — is this always the case, or specific to how this client's requests are routed?
 - Does `form-2050.pdf` regenerate/update if the manifest is corrected after signing, or is it a snapshot from generation time?
 - Is this attachments endpoint available before all signatures are collected (e.g. at `Scheduled` status, as tested here), or only once `Signed`?
@@ -300,3 +308,9 @@ this isn't blocking save attempt #5.
   a blank-quantities variant, and the `human-readable.html` file. Manifest
   Attachments marked ✅ — **ManifestMate will not need a custom PDF
   renderer.**
+- **2026-07-23, session 2 (continued):** `export` confirmed required
+  (`types.ts` updated from optional to required, matching `import`).
+  `correctionInfo.active`'s meaning confirmed against EPA's own JSON
+  schema comments in `Services-Information/Schema/emanifest.json` — see
+  "Confirmed GET-response behavior" above for the full explanation.
+  RCRAInfo API key rotated.

@@ -247,11 +247,10 @@ export interface NewManifestInput {
    */
   import: boolean;
   /**
-   * NOT confirmed required — added speculatively since `import` was
-   * required and RCRAInfo often pairs import/export flags. Remove if the
-   * next validation pass doesn't flag it as missing.
+   * CONFIRMED required, same as `import` — omitting it fails validation.
+   * Set false for a standard domestic manifest.
    */
-  export?: boolean;
+  export: boolean;
   /**
    * REMOVED: a prior version included "shipmentType" here, but the live API
    * rejected it with "Object instance has properties which are not allowed

@@ -12,9 +12,9 @@ RCRAINFO_API_ID=your-api-id
 RCRAINFO_API_KEY=your-api-key
 ```
 
-Regenerate a fresh API Key in the RCRAInfo pre-prod portal (Tools → API)
-before using this, since the ID/Key pair used during Swagger testing was
-shared in chat and should be treated as compromised.
+The original ID/Key pair used during Swagger testing was shared in chat
+and was treated as compromised — it has since been regenerated in the
+RCRAInfo pre-prod portal (Tools → API) as of 2026-07-23.
 
 ## Basic usage (server-side only)
 

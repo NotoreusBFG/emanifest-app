@@ -29,6 +29,7 @@ import type {
   SiteDetails,
 } from "./types";
 import { RcrainfoApiError } from "./types";
+import { extractBoundary, parseMultipartMixed, type MultipartOutputPart } from "./parse-multipart";
 
 const BASE_URLS: Record<RcrainfoEnvironment, string> = {
   preprod: "https://rcrainfopreprod.epa.gov/rcrainfo/rest/api/v1",
@@ -187,6 +188,44 @@ export class RcrainfoClient {
     }
 
     return (await res.json()) as Manifest;
+  }
+
+  /**
+   * GET /emanifest/manifest/{manifestTrackingNumber}/attachments
+   *
+   * Confirmed via EPA's own emanifest-js reference client
+   * (https://github.com/USEPA/e-manifest/blob/master/emanifest-js/src/client.ts)
+   * — NOT documented with a request/response shape in Swagger itself. The
+   * response is `multipart/mixed`: one JSON part (manifest data) plus one
+   * `application/octet-stream` part containing a .zip file. The zip holds
+   * whatever document(s) RCRAInfo has for this manifest — for a fully
+   * electronic manifest this includes the auto-generated
+   * `human-readable.html` referenced in `electronicSignaturesInfo`.
+   */
+  async getManifestAttachments(manifestTrackingNumber: string): Promise<MultipartOutputPart[]> {
+    const token = await this.getToken();
+    const res = await fetch(
+      `${this.baseUrl}/emanifest/manifest/${encodeURIComponent(manifestTrackingNumber)}/attachments`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (!res.ok) {
+      const body = await safeJson(res);
+      throw new RcrainfoApiError(
+        `RCRAInfo manifest attachments fetch failed -> ${res.status}`,
+        res.status,
+        body
+      );
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+    const boundary = extractBoundary(contentType);
+    if (!boundary) {
+      throw new Error(`No multipart boundary found in Content-Type header: "${contentType}"`);
+    }
+
+    const buffer = Buffer.from(await res.arrayBuffer());
+    return parseMultipartMixed(buffer, boundary);
   }
 }
 

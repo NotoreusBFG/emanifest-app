@@ -205,7 +205,7 @@ script `scripts/test-get-attachments.ts`.
 ## Manifest Signing (`quicker-sign`) ✅
 
 `POST /emanifest/manifest/quicker-sign` ✅ — confirmed live 2026-07-23,
-Generator signature on `100091730ELC`
+full sign chain completed on `100091730ELC` (Generator → Transporter → Tsdf, status now `"Signed"`)
 
 **Not in Swagger at all.** Found via EPA's public
 [USEPA/e-manifest](https://github.com/USEPA/e-manifest) repo, but that repo
@@ -271,10 +271,34 @@ helper (which always sets `application/json` whenever a body is present).
     signed — confirms the attachments/PDF endpoint **is available
     mid-workflow**, before full signing completes, not just once
     `"Signed"`.
-- Not yet tested: signing as `"Transporter"` (with `transporterOrder`) or
-  `"Tsdf"`, and what the final fully-signed state looks like on THIS
-  manifest specifically (we've only inspected a signed reference manifest
-  belonging to a different developer, `100064228ELC`, for that).
+- **Sequential order is enforced server-side, not just by convention.**
+  Attempting to sign out of order (`"Tsdf"` before the transporter had
+  signed) failed with `E_SystemError: "Manifest is not ready to be quick
+  signed by handler VAD000532119"`. Generator → Transporter(s) in
+  `order` → Tsdf is a hard requirement, not just a recommended sequence.
+- **Signing as a handler requires your API account to have actual
+  permission at that specific site — being a valid, registered EPA site
+  ID is NOT enough.** Attempting to sign as Transporter using the
+  EPA-documented shared public test site `VATEST000001` failed with
+  `E_SystemError: "User does not have Site Services Permission"`. That
+  site is real and registered, but our test account isn't an authorized
+  user of it. Worked around this by using `updateManifest()` (still
+  possible pre-lock) to swap the manifest's transporter to
+  `VAD000532119` — our own already-authorized site — reused as
+  Transporter even though EPA's own test-site documentation describes it
+  as "Generator and TSDF" only; the permission check is account-based, not
+  a site-role restriction, so this worked live with no error. Real
+  implication for ManifestMate: **a user can only sign as handlers their
+  RCRAInfo account is actually registered/authorized for** — this will
+  matter a lot for UX (e.g. a generator's staff account signing on behalf
+  of a transporter they don't manage won't work).
+- **Confirmed the final fully-signed state on `100091730ELC` itself**
+  (not just a reference manifest belonging to another developer): status
+  transitioned to `"Signed"`, `shippedDate` and `receivedDate` both
+  appeared, and all three signature fields on `form-2050.pdf`
+  (`15-2_signature` Generator, `17-2_1_signature` Transporter,
+  `20-2_signature` Tsdf) read "Provided by Matthew Gemmell" — matching
+  the pattern observed on the reference manifest `100064228ELC` exactly.
 
 ### What actually makes a signature legitimate (CROMERR "copy of record")
 
@@ -523,3 +547,14 @@ lookup endpoint — treat as reference, not verified, except where noted.
   signature — full CROMERR identity-proofing is only strictly required
   for the designated facility's *final* certification to EPA and for
   post-receipt corrections. See "Manifest Signing" section.
+- **2026-07-23, session 2 (continued), completed the full sign chain:**
+  `100091730ELC` is now fully `"Signed"`. Hit two real constraints along
+  the way: (1) sequential order is server-enforced — signing Tsdf before
+  Transporter failed outright; (2) signing as a handler requires the
+  API account to have actual site permission there, not just a valid
+  registered site ID — our account lacked permission at the shared public
+  test transporter `VATEST000001`, so worked around it by using
+  `updateManifest()` to swap the transporter to our own already-
+  authorized site (`VAD000532119`) before signing. Confirmed the final
+  fully-signed PDF matches the reference example's pattern exactly. See
+  "Manifest Signing" section for full details.

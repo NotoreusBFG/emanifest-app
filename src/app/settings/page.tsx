@@ -1,6 +1,7 @@
 'use client' // 1. This tells Next.js this file has interactive buttons and state
 
 import { useActionState } from 'react';
+import Link from 'next/link';
 import { saveEpaSettingsAction } from '@/app/actions/epaActions';
 import { signOutAction } from '@/app/actions/authActions';
 
@@ -72,6 +73,10 @@ export default function EpaSettingsPage() {
           <p style={{ color: 'red', marginTop: '10px' }}>❌ {state.error}</p>
         )}
       </form>
+
+      <p style={{ marginTop: '20px' }}>
+        <Link href="/manifests" style={{ color: '#0070f3' }}>Look up a manifest →</Link>
+      </p>
     </div>
   );
 }

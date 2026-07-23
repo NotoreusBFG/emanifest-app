@@ -1,4 +1,4 @@
-import { encrypt } from '@/lib/cryptoUtils';
+import { encrypt, decrypt } from '@/lib/cryptoUtils';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
@@ -35,4 +35,28 @@ export async function upsertEpaCredentials(
 
   if (error) return { success: false, error: error.message };
   return { success: true, data };
+}
+
+/**
+ * Fetches and decrypts the calling user's stored RCRAInfo API credentials.
+ * Returns `null` if the user hasn't saved credentials yet (not an error —
+ * callers should treat this as "needs to visit /settings first").
+ */
+export async function getEpaCredentials(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<{ apiId: string; apiKey: string } | null> {
+  const { data, error } = await supabase
+    .from('user_credentials')
+    .select('epa_api_id, epa_api_key')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  return {
+    apiId: decrypt(data.epa_api_id),
+    apiKey: decrypt(data.epa_api_key),
+  };
 }

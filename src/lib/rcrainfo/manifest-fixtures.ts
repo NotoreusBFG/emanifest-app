@@ -1,13 +1,13 @@
 /**
  * A minimal starting payload for testing RcrainfoClient.saveManifest().
  *
- * Revision 5 — updated based on a fourth live 400 validation response
- * (2026-07-23). Only ONE error remained after the printedDotInformation
- * fix: idNumber is required after all. Added it. Generator, designated
- * facility, and transporter are all fully clean; the waste line's
- * dotInformation is now believed COMPLETE. This revision has not yet been
- * tested live — that's the very next step for the next session.
- * See MANIFEST_SCHEMA.md for the full running record.
+ * Revision 6 — CONFIRMED LIVE end-to-end (save, retrieve, attachments,
+ * quicker-sign, and update all tested against this shape). Added
+ * `additionalInfo.handlingInstructions` (confirmed renders in Box 14 of
+ * the generated PDF) and `quantity.containerNumber`/`containerType`
+ * (optional at save, but required if you ever call `updateManifest()` on
+ * the resulting manifest — included here so a fresh manifest starts
+ * update-ready). See MANIFEST_SCHEMA.md for the full running record.
  */
 
 import type { NewManifestInput } from "./types";
@@ -77,6 +77,9 @@ export function buildTestManifest(): NewManifestInput {
       },
       emergencyPhone: { number: "703-555-0199" },
     },
+    additionalInfo: {
+      handlingInstructions: "Keep upright. Do not stack. Driver call site 30 min prior to arrival.",
+    },
     wastes: [
       {
         lineNumber: 1,
@@ -85,6 +88,8 @@ export function buildTestManifest(): NewManifestInput {
         quantity: {
           quantity: 1,
           unitOfMeasurement: { code: "P" }, // "P" = pounds — not yet confirmed against a lookup endpoint
+          containerNumber: 1,
+          containerType: { code: "DM" }, // metal drums/barrels/kegs
         },
         dotInformation: {
           printedDotInformation: "RQ, Waste flammable liquids, n.o.s. (contains xylene), 3, UN1993, PG II",

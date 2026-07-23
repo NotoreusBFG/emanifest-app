@@ -122,7 +122,8 @@ status.
 | `quantity.quantity` + `quantity.unitOfMeasurement.code` | ✅ **`"P"` confirmed valid** | GET response enriches this to `{ "code": "P", "description": "Pounds" }` — confirms `"P"` is a real, accepted code without needing a separate lookup call. |
 | `hazardousWaste.federalWasteCodes` | ✅ **`D001` confirmed valid** | GET response enriches this to `{ "code": "D001", "description": "IGNITABLE WASTE" }` — same enrichment pattern as unitOfMeasurement, confirms the code is real and accepted. |
 | `lineNumber`, `br`, `pcb`, `epaWaste` | ✅ accepted, round-trip unchanged | No errors raised; GET shows same values sent. |
-| `quantity.containerType` | ✅ **confirmed optional** | Omitted entirely from the save fixture; GET response shows no `containerType` field at all and no default was applied — omitting it is safe, at least for this waste line shape. |
+| `quantity.containerType` + `quantity.containerNumber` | ⚠️ **optional at Save, but REQUIRED at Update** | Omittable on `save` — GET response shows no `containerType` field and no default applied. But calling `updateManifest()` on a manifest missing these fails with "Mandatory Field is Not Provided" for both. `"DM"` (metal drums/barrels/kegs) confirmed valid — GET enriches it to `{ "code": "DM", "description": "Metal drums, barrels, kegs" }`, same pattern as other codes. See "Manifest Update" section below. |
+| `additionalInfo.handlingInstructions` | ✅ **CONFIRMED — renders on the generated PDF** | Manifest-level (not waste-line) field, max 4000 chars per EPA's schema, corresponds to Box 14 "Special Handling Instructions" on Form 8700-22. Not restricted to GET-only. Tested via `updateManifest()` (see below) — confirmed the submitted text literally appears in the `14_instructions` PDF form field. |
 
 ### Confirmed GET-response behavior (Handler enrichment)
 
@@ -275,20 +276,73 @@ helper (which always sets `application/json` whenever a body is present).
   manifest specifically (we've only inspected a signed reference manifest
   belonging to a different developer, `100064228ELC`, for that).
 
-## Container Type Codes (from EPA manifest instructions — ❓ not yet live-tested)
+## Manifest Update ✅
+
+`PUT /emanifest/manifest/update` ✅ — confirmed live 2026-07-23 on `100091730ELC`
+
+Used to answer: **when do quantities/special-handling-instructions get
+entered onto the manifest?** Two paths — the initial estimate goes in at
+`saveManifest()` time (same as any other waste-line field); if it needs to
+change afterward (e.g. actual measured quantity at pickup, or adding
+handling notes after the fact), this Update service is how, **as long as
+the manifest isn't locked for signing yet** (status `"Pending"` or
+`"Scheduled"`, not in the signing queue — confirmed by testing this
+successfully on `100091730ELC` even after the Generator had already
+signed, since only ONE signature had landed so far, not all of them).
+
+**EPA's own docs page for this endpoint
+(`docs/Services/Manifest/update.md`) got BOTH of the following wrong** —
+another entry in the growing pile of doc/reality mismatches for this API:
+
+1. **Method:** the docs' HTTP example shows `POST`. Live API returns
+   `405`; an `OPTIONS` probe confirmed `Allow: OPTIONS,PUT`. It's `PUT`.
+2. **Body format:** the docs' example shows a plain `application/json`
+   body. Live API rejects that with a blanket 415 (same failure mode as
+   `quicker-sign`, but the *fix* is different this time —
+   `text/plain;charset=UTF-8` does NOT work here, only genuine multipart
+   form-data does, same shape as `save`: a `manifest` field containing
+   the JSON-stringified full manifest object).
+
+Requires the **complete** manifest object (not a partial patch) —
+practical pattern: `getManifest()`, mutate the fields you want changed,
+send the whole thing back via `updateManifest()`.
+
+### Confirmed request/response behavior
+
+- **`quantity.containerNumber` and `quantity.containerType` are required
+  here even though they're optional on `save`** — omitting them fails
+  with "Mandatory Field is Not Provided" for both, specifically on
+  Update. Discovered by sending back an otherwise-unmodified GET response
+  and getting exactly these two errors.
+- **`additionalInfo.handlingInstructions` confirmed working** — set it,
+  called Update, then re-fetched `/attachments`: the exact submitted text
+  appears in the PDF's `14_instructions` form field (Box 14, "Special
+  Handling Instructions"). This resolves the open question of where
+  special handling instructions live and when they can be entered.
+- The response is a **validation report, not the updated Manifest** —
+  `{ reportId, operationStatus, warnings, generatorReport, wasteReports,
+  ... }`. `operationStatus: "Updated"` on success. Call `getManifest()`
+  afterward to see the actual persisted data.
+- Sending back the current (already-partially-signed) manifest produced
+  harmless warnings, not errors: `Emanifest.status` — status can't be
+  changed once signing has started, provided value ignored;
+  `generator.paperSignatureInfo` / `generator.electronicSignatures` —
+  already-completed signature data can't be modified via Update, provided
+  values ignored. None of these blocked the update; they're just EPA
+  telling us those specific sub-fields were no-ops.
+
+## Container Type Codes (from EPA manifest instructions — ⚠️ partially live-tested)
 
 Source: EPA's official "Instructions for Completing the Uniform Hazardous
 Waste Manifest" (https://www.epa.gov/sites/default/files/2018-05/documents/instructions_for_completing_the_uniform_hazardous_waste_manifest.pdf).
 These are documented valid values for `quantity.containerType.code`, but
-NOT yet confirmed against the live API (e.g. via Swagger's
-`retrieveContainerTypes` lookup endpoint) — treat as reference, not
-verified. The revision-5 fixture doesn't set `containerType` at all, so
-this isn't blocking save attempt #5.
+mostly NOT yet confirmed against the live API's `retrieveContainerTypes`
+lookup endpoint — treat as reference, not verified, except where noted.
 
 **Drum, Barrel, and Bag Codes**
 | Code | Description |
 |---|---|
-| `DM` | Metal drums, barrels, kegs |
+| `DM` | ✅ **Confirmed valid live** (via `updateManifest()`, 2026-07-23) — Metal drums, barrels, kegs |
 | `DF` | Fiberboard or plastic drums, barrels, kegs |
 | `DW` | Wooden drums, barrels, kegs |
 | `BA` | Burlap, cloth, paper, or plastic bags |
@@ -401,3 +455,15 @@ this isn't blocking save attempt #5.
   (`100064228ELC`, not ours) to see what a fully-signed PDF/attachments
   response looks like as a safe, read-only reference before signing our
   own.
+- **2026-07-23, session 2 (continued), first live `updateManifest()`
+  call:** Answered "when do quantities/handling instructions get
+  entered" — added `additionalInfo.handlingInstructions` and
+  `quantity.containerNumber`/`containerType` to `100091730ELC` (which had
+  already been Generator-signed). EPA's docs for this endpoint were wrong
+  about both the HTTP method (`PUT`, not the docs' `POST`) and body
+  format (multipart like `save`, not the docs' plain JSON). Confirmed
+  `handlingInstructions` literally renders in the PDF's `14_instructions`
+  field (Box 14). Confirmed `containerNumber`/`containerType` are
+  required on Update despite being optional on Save. Updated
+  `manifest-fixtures.ts` to revision 6 with both fields included from the
+  start.

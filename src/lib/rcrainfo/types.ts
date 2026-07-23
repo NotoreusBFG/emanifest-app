@@ -233,6 +233,21 @@ export interface WasteLine {
 }
 
 /** Minimal payload for POST /emanifest/manifest/save (a new, not-yet-submitted manifest). */
+/**
+ * Confirmed against EPA's actual JSON schema (`emanifest.json` in the
+ * public USEPA/e-manifest repo) — "Entity containing Additional
+ * Information. Both Manifest and individual Wastes can contain this
+ * entity." Only `handlingInstructions` is modeled here since it's the
+ * only sub-field we currently need; the schema also documents
+ * `originalManifestTrackingNumbers`, `newManifestDestination`,
+ * `consentNumber`, `comments`, and `pcbAlternateDesignatedFacility` for
+ * rejection/residue/import-export scenarios we don't handle yet.
+ */
+export interface AdditionalInfo {
+  /** "Special Handling Instructions" per EPA's schema description — max length 4000. Corresponds to Box 14 on Form 8700-22. */
+  handlingInstructions?: string;
+}
+
 export interface NewManifestInput {
   status: "NotAssigned" | "Pending" | "Scheduled";
   submissionType: "FullElectronic" | "Hybrid" | "Image";
@@ -241,6 +256,8 @@ export interface NewManifestInput {
   transporters: Handler[];
   designatedFacility: Handler;
   wastes: WasteLine[];
+  /** NOT restricted to GET-only (unlike correctionInfo) — should be includable at Save/Update time. Untested by us until now. */
+  additionalInfo?: AdditionalInfo;
   /**
    * CONFIRMED required by live 400 response ("Emanifest.import — Mandatory
    * Field is Not Provided"). Set false for a standard domestic manifest.
@@ -271,6 +288,31 @@ export interface Manifest extends NewManifestInput {
   discrepancy?: boolean;
   /** Catch-all for the many additional fields (rejectionInfo, importInfo, exportInfo, correctionInfo, etc.) not modeled here. */
   [key: string]: unknown;
+}
+
+/**
+ * Response shape for PUT /emanifest/manifest/update — CONFIRMED live
+ * 2026-07-23. This is a validation/report object, NOT the updated
+ * Manifest itself — call `getManifest()` afterward to see the actual
+ * updated data. `operationStatus` seen: `"Updated"` (also expect
+ * `"Failed"` on validation errors, by analogy with `quicker-sign`).
+ */
+export interface UpdateManifestResult {
+  manifestTrackingNumber: string;
+  reportId: string;
+  date: string;
+  operationStatus: string;
+  warnings?: Array<{ field: string; message: string; value?: unknown }>;
+  generatorReport?: EntityReport;
+  transporterReports?: EntityReport[];
+  designatedFacilityReport?: EntityReport;
+  wasteReports?: EntityReport[];
+}
+
+interface EntityReport {
+  entityId?: { entityIdField: string; entityIdValue: string };
+  errors: Array<{ field: string; message: string; value?: unknown }>;
+  warnings: Array<{ field: string; message: string; value?: unknown }>;
 }
 
 /**

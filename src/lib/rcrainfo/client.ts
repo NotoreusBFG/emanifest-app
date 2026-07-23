@@ -29,6 +29,7 @@ import type {
   RcrainfoCredentials,
   RcrainfoEnvironment,
   SiteDetails,
+  UpdateManifestResult,
 } from "./types";
 import { RcrainfoApiError } from "./types";
 import { extractBoundary, parseMultipartMixed, type MultipartOutputPart } from "./parse-multipart";
@@ -190,6 +191,53 @@ export class RcrainfoClient {
     }
 
     return (await res.json()) as Manifest;
+  }
+
+  /**
+   * PUT /emanifest/manifest/update
+   *
+   * Updates an existing, not-yet-signed manifest — requires the FULL
+   * manifest JSON (not a partial patch), including `manifestTrackingNumber`.
+   * Only works while status is `"Pending"` or `"Scheduled"` and the
+   * manifest isn't locked for signing; fails with `E_ManifestLockedAsyncSign`
+   * once it's in the signing queue.
+   *
+   * CONFIRMED LIVE 2026-07-23, and EPA's own docs page
+   * (`docs/Services/Manifest/update.md`) got BOTH of the following wrong:
+   *   1. Method: docs' example shows `POST`; live API returns 405 for
+   *      that and an `OPTIONS` probe confirmed `Allow: OPTIONS,PUT`.
+   *   2. Body format: docs' example shows a plain `application/json`
+   *      body; live API rejects that (and `text/plain`, unlike
+   *      `quicker-sign`) with a blanket 415. It actually wants the SAME
+   *      multipart form-data shape as `save` — a `manifest` field
+   *      containing the JSON-stringified manifest.
+   * Also found live: `quantity.containerNumber` and `quantity.containerType`
+   * are OPTIONAL on save but REQUIRED on update — stricter validation on
+   * this endpoint for fields that were fine to omit at creation time.
+   * Response is a validation report, not the updated Manifest — call
+   * `getManifest()` afterward to see the actual result.
+   */
+  async updateManifest(manifest: Manifest): Promise<UpdateManifestResult> {
+    const token = await this.getToken();
+    const form = new FormData();
+    form.append("manifest", JSON.stringify(manifest));
+
+    const res = await fetch(`${this.baseUrl}/emanifest/manifest/update`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` }, // do NOT set Content-Type — fetch sets the multipart boundary automatically
+      body: form,
+    });
+
+    if (!res.ok) {
+      const body = await safeJson(res);
+      throw new RcrainfoApiError(
+        `RCRAInfo manifest update failed -> ${res.status}`,
+        res.status,
+        body
+      );
+    }
+
+    return (await res.json()) as UpdateManifestResult;
   }
 
   /**

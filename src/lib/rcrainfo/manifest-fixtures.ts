@@ -1,26 +1,13 @@
 /**
  * A minimal starting payload for testing RcrainfoClient.saveManifest().
  *
- * Revision 3 — updated based on a second live 400 validation response
- * (2026-07-23), which narrowed things further:
- *   - contact info needs `phone`, not `phoneNumber` (different from the
- *     GET site-details response's field naming — see ManifestContact in
- *     types.ts for the full explanation).
- *   - generator.name and designatedFacility.name are required, even
- *     though a warning confirms RCRAInfo discards submitted site info and
- *     substitutes its own registered data once it recognizes the
- *     epaSiteId. Structural validation still demands the field is present.
- *   - wastes[].dotInformation is required for hazardous waste lines (not
- *     optional as revision 1/2 assumed) — wasteDescription gets ignored
- *     in favor of it for hazardous waste per an API warning.
- *
- * Still unconfirmed: the actual valid DOT code values below
- * (properShippingName/idNumber/hazardClass/packingGroup) are placeholders
- * for a D001 ignitable liquid — not yet checked against a lookup endpoint.
- * If the next attempt fails specifically on dotInformation sub-fields,
- * check Swagger's "[All] e-Manifest Lookup Services" section for DOT
- * reference-table endpoints (similar to the container-types one already
- * confirmed) before guessing again.
+ * Revision 5 — updated based on a fourth live 400 validation response
+ * (2026-07-23). Only ONE error remained after the printedDotInformation
+ * fix: idNumber is required after all. Added it. Generator, designated
+ * facility, and transporter are all fully clean; the waste line's
+ * dotInformation is now believed COMPLETE. This revision has not yet been
+ * tested live — that's the very next step for the next session.
+ * See MANIFEST_SCHEMA.md for the full running record.
  */
 
 import type { NewManifestInput } from "./types";
@@ -100,10 +87,8 @@ export function buildTestManifest(): NewManifestInput {
           unitOfMeasurement: { code: "P" }, // "P" = pounds — not yet confirmed against a lookup endpoint
         },
         dotInformation: {
-          properShippingName: { code: "WASTE FLAMMABLE LIQUIDS, N.O.S." }, // placeholder — confirm real code via lookup endpoint
+          printedDotInformation: "RQ, Waste flammable liquids, n.o.s. (contains xylene), 3, UN1993, PG II",
           idNumber: { code: "UN1993" },
-          hazardClass: { code: "3" },
-          packingGroup: { code: "II" },
         },
         hazardousWaste: {
           federalWasteCodes: [{ code: "D001" }], // Ignitability

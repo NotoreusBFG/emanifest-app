@@ -202,19 +202,25 @@ export interface WasteLine {
   wasteDescription: string;
   quantity: WasteQuantity;
   /**
-   * CONFIRMED required by live 400 response for hazardous waste lines
-   * ("Emanifest.waste.dotInformation — Mandatory Field is Not Provided").
-   * A warning in the same response also noted that for hazardous waste,
-   * `wasteDescription` gets ignored in favor of this DOT shipping info —
-   * so this is the field that actually matters for hazardous lines.
-   * The code sub-fields reference EPA's DOT lookup tables — the values
-   * below are placeholders, not yet confirmed against a lookup endpoint.
+   * CONFIRMED required for hazardous waste lines. Structure confirmed via
+   * TWO live 400 responses:
+   *   1. dotInformation itself is required (not optional).
+   *   2. The structured sub-objects `properShippingName`, `hazardClass`,
+   *      and `packingGroup` are explicitly REJECTED on save ("properties
+   *      which are not allowed by the schema") — RCRAInfo instead wants
+   *      the full DOT shipping description as ONE printed string via
+   *      `printedDotInformation`. `idNumber` was NOT flagged as
+   *      disallowed in that same error, so it's left in below as
+   *      optional/unconfirmed rather than removed outright.
    */
   dotInformation: {
-    properShippingName?: { code: string };
-    idNumber?: { code: string };
-    hazardClass?: { code: string };
-    packingGroup?: { code: string };
+    /** CONFIRMED required — e.g. "RQ, Waste flammable liquids, n.o.s. (contains xylene), 3, UN1993, PG II" */
+    printedDotInformation: string;
+    /** CONFIRMED required (save attempt #4: "Object has missing required properties [\"idNumber\"]"). */
+    idNumber: { code: string };
+    technicalName?: string;
+    rqIndicator?: boolean;
+    rqDescription?: string;
   };
   hazardousWaste?: {
     federalWasteCodes?: WasteCode[];

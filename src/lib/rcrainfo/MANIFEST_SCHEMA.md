@@ -101,7 +101,7 @@ https://www.epa.gov/e-manifest/how-participate-testing-hazardous-waste-electroni
 
 - `VAD000532119` — "TEST TSDF OF VA" (Generator and TSDF)
 - `VA988177803` — "HEATING AND OIL" (Generator only)
-- `VATEST000001` — "TEST TRANSPORTER 1 OF VA" (Generator or Transporter) ← **used successfully in our fixture, cleared all transporter validation errors**
+- `VATEST000001` — "TEST TRANSPORTER 1 OF VA" (Generator or Transporter) ← **used successfully; fully cleared with ZERO errors as of save attempt #3, only the expected "will be overridden" warning**
 - `VATEST000002` — "TEST TRANSPORTER 2 OF VA" (Generator or Transporter)
 - `VATEST000003` — "TEST TSDF OF VA TWO" (Generator and TSDF, web services)
 - `VATEST000004` — "TEST GENERATOR OF VA" (Generator only)
@@ -115,8 +115,11 @@ status.
 | Field | Status | Notes |
 |---|---|---|
 | `dotHazardous` | ✅ required, this exact name | **NOT `hazardous`** — using `hazardous` fails with "properties which are not allowed by the schema". Easy naming trap from the field's conceptual meaning. |
-| `dotInformation` | ✅ required for hazardous waste lines | NOT optional as we first assumed from Swagger's example. Sub-fields (`properShippingName`, `idNumber`, `hazardClass`, `packingGroup`) reference EPA's DOT lookup tables via `{code: string}` — **exact valid code values not yet confirmed** against a live lookup endpoint. Current fixture uses placeholder codes for a D001 ignitable liquid (UN1993, class 3, packing group II) — unconfirmed. |
-| `wasteDescription` | ⚠️ accepted but functionally ignored for hazardous waste | API returns a warning: "For hazardous Waste, wasteDescription will be ignored" — `dotInformation.properShippingName` is what actually matters for hazardous lines. Presumably still used for non-hazardous lines (untested). |
+| `dotInformation` | ✅ required for hazardous waste lines | NOT optional as we first assumed from Swagger's example. |
+| `dotInformation.printedDotInformation` | ✅ **required, this exact structure** | RCRAInfo wants the full DOT shipping description as **one printed string**, e.g. `"RQ, Waste flammable liquids, n.o.s. (contains xylene), 3, UN1993, PG II"`. |
+| `dotInformation.properShippingName` / `.hazardClass` / `.packingGroup` | ❌ **CONFIRMED REJECTED on save** | These structured `{code: string}` sub-objects (present in Swagger's GET example) fail with "properties which are not allowed by the schema" when sent on save. They may be GET-response-only / derived fields, not save inputs. Do not include on save. |
+| `dotInformation.idNumber` | ✅ **CONFIRMED required** (save attempt #4) | Error: "Object has missing required properties [idNumber]" — this was the ONLY error remaining after the `printedDotInformation` fix, meaning generator, designatedFacility, transporter, and every other waste-line field are now believed fully clean. |
+| `wasteDescription` | ⚠️ accepted but functionally ignored for hazardous waste | API returns a warning: "For hazardous Waste, wasteDescription will be ignored" — `dotInformation.printedDotInformation` is what actually matters for hazardous lines. Presumably still used for non-hazardous lines (untested). |
 | `quantity.quantity` + `quantity.unitOfMeasurement.code` | ⚠️ accepted, not yet flagged as wrong | Used `"P"` for pounds — not confirmed against a lookup endpoint, just never flagged as invalid so far. |
 | `hazardousWaste.federalWasteCodes` | ⚠️ accepted | Used `D001` — never flagged as invalid, but also not yet confirmed as a real requirement (waste line was still failing on `dotInformation` at time of last test, so this field's validation may not have been reached yet). |
 | `lineNumber`, `br`, `pcb`, `epaWaste` | ⚠️ accepted | No errors raised on these; not deeply tested. |
@@ -145,6 +148,19 @@ status.
   after fixes. Confirmed: `contact.phone` not `contact.phoneNumber`,
   `Handler.name` required even for known sites, `dotInformation` required
   (not optional) for hazardous waste lines.
-- **Next planned test:** save attempt #3 with corrected `phone` field,
-  `name` fields, and a filled-in `dotInformation` guess. Update this doc
-  with the result — either confirm the DOT codes work, or narrow further.
+- **2026-07-23, session 1 (continued), save attempt #3:** Third live call.
+  Transporter fully cleared (zero errors). Confirmed: `dotInformation`
+  rejects structured `properShippingName`/`hazardClass`/`packingGroup`
+  objects on save — wants a single `printedDotInformation` string instead.
+  `idNumber` not flagged either way, left unconfirmed.
+- **2026-07-23, session 1 (continued), save attempt #4:** Fourth live call.
+  Only ONE error remained: `dotInformation.idNumber` confirmed required.
+  Added `idNumber: { code: "UN1993" }` to the fixture (revision 5). **This
+  revision has NOT yet been tested live** — session ended before the
+  fifth attempt could run. This is the very first thing to do next
+  session — it may well succeed outright.
+- **Next planned test:** save attempt #5 with `idNumber` added. If this
+  succeeds, capture the returned `manifestTrackingNumber` here and use it
+  to test `getManifest()` for the first time against a manifest we
+  actually created (not shared sandbox noise). If it still fails, the
+  error will be new territory — update this doc with whatever it reveals.

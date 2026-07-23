@@ -202,9 +202,10 @@ export interface WasteLine {
   wasteDescription: string;
   quantity: WasteQuantity;
   /**
-   * CONFIRMED required for hazardous waste lines. Structure confirmed via
-   * TWO live 400 responses:
-   *   1. dotInformation itself is required (not optional).
+   * CONFIRMED required ONLY for hazardous waste lines (`dotHazardous:
+   * true`) — omitting it entirely on a non-hazardous line saves cleanly
+   * with no error. Structure confirmed via THREE live responses:
+   *   1. dotInformation itself is required when dotHazardous is true.
    *   2. The structured sub-objects `properShippingName`, `hazardClass`,
    *      and `packingGroup` are explicitly REJECTED on save ("properties
    *      which are not allowed by the schema") — RCRAInfo instead wants
@@ -212,8 +213,11 @@ export interface WasteLine {
    *      `printedDotInformation`. `idNumber` was NOT flagged as
    *      disallowed in that same error, so it's left in below as
    *      optional/unconfirmed rather than removed outright.
+   *   3. For a non-hazardous line, a save including this field returns
+   *      the warning "For non-hazardous Waste Dot Information will be
+   *      ignored" — confirms it's meaningless (not just harmless) there.
    */
-  dotInformation: {
+  dotInformation?: {
     /** CONFIRMED required — e.g. "RQ, Waste flammable liquids, n.o.s. (contains xylene), 3, UN1993, PG II" */
     printedDotInformation: string;
     /** CONFIRMED required (save attempt #4: "Object has missing required properties [\"idNumber\"]"). */
@@ -229,6 +233,12 @@ export interface WasteLine {
   /** Biennial Report flag — set false unless you know this waste needs BR data. */
   br?: boolean;
   pcb?: boolean;
+  /**
+   * CONFIRMED live: cannot be `true` when `dotHazardous` is `false` —
+   * RCRAInfo returns the warning "the Waste.dotHazardous is false the
+   * Waste.epaWaste cannot be true" and silently ignores the provided
+   * value. Keep these two fields in sync.
+   */
   epaWaste?: boolean;
 }
 
@@ -291,13 +301,17 @@ export interface Manifest extends NewManifestInput {
 }
 
 /**
- * Response shape for PUT /emanifest/manifest/update — CONFIRMED live
- * 2026-07-23. This is a validation/report object, NOT the updated
- * Manifest itself — call `getManifest()` afterward to see the actual
- * updated data. `operationStatus` seen: `"Updated"` (also expect
- * `"Failed"` on validation errors, by analogy with `quicker-sign`).
+ * Response shape for POST /emanifest/manifest/save and PUT
+ * /emanifest/manifest/update — CONFIRMED live 2026-07-23 that BOTH
+ * endpoints return this same report shape, NOT the saved/updated
+ * Manifest itself (despite `save`'s response including
+ * `manifestTrackingNumber`, which made it easy to mistake for a full
+ * Manifest before we actually inspected the shape). Call `getManifest()`
+ * afterward to see the actual persisted data. `operationStatus` seen:
+ * `"Saved"`, `"Updated"` (also expect `"Failed"` on validation errors,
+ * by analogy with `quicker-sign`).
  */
-export interface UpdateManifestResult {
+export interface ManifestOperationResult {
   manifestTrackingNumber: string;
   reportId: string;
   date: string;
@@ -313,6 +327,24 @@ interface EntityReport {
   entityId?: { entityIdField: string; entityIdValue: string };
   errors: Array<{ field: string; message: string; value?: unknown }>;
   warnings: Array<{ field: string; message: string; value?: unknown }>;
+}
+
+/** Flattens every warning across the whole report into simple display strings. */
+export function collectManifestOperationWarnings(result: ManifestOperationResult): string[] {
+  const messages: string[] = [];
+  const push = (label: string, entries?: Array<{ field: string; message: string; value?: unknown }>) => {
+    for (const w of entries ?? []) {
+      messages.push(`${label}: ${w.message}${w.value !== undefined ? ` (${JSON.stringify(w.value)})` : ""}`);
+    }
+  };
+
+  push("Manifest", result.warnings);
+  push("Generator", result.generatorReport?.warnings);
+  push("Designated facility", result.designatedFacilityReport?.warnings);
+  result.transporterReports?.forEach((r, i) => push(`Transporter ${i + 1}`, r.warnings));
+  result.wasteReports?.forEach((r) => push(`Waste line ${r.entityId?.entityIdValue ?? "?"}`, r.warnings));
+
+  return messages;
 }
 
 /**

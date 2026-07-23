@@ -23,13 +23,13 @@ import type {
   AuthTokenResponse,
   CachedToken,
   Manifest,
+  ManifestOperationResult,
   NewManifestInput,
   QuickerSignParameters,
   QuickerSignResult,
   RcrainfoCredentials,
   RcrainfoEnvironment,
   SiteDetails,
-  UpdateManifestResult,
 } from "./types";
 import { RcrainfoApiError } from "./types";
 import { extractBoundary, parseMultipartMixed, type MultipartOutputPart } from "./parse-multipart";
@@ -161,13 +161,14 @@ export class RcrainfoClient {
   /**
    * POST /emanifest/manifest/save
    *
-   * Confirmed the endpoint shape via Swagger: multipart form-data with a
-   * `manifest` field (JSON-stringified) and an optional `attachment` file.
-   * NOT yet confirmed live — the exact set of required fields inside the
-   * manifest JSON is unknown; expect to iterate based on validation errors
-   * from the first few attempts.
+   * Multipart form-data with a `manifest` field (JSON-stringified) and an
+   * optional `attachment` file. Returns a `ManifestOperationResult`
+   * report — NOT the saved Manifest itself (confirmed live: the response
+   * only has `manifestTrackingNumber`/`reportId`/`operationStatus`/
+   * `warnings`/per-entity reports, no `generator`/`wastes`/etc). Call
+   * `getManifest()` afterward for the actual saved data.
    */
-  async saveManifest(manifest: NewManifestInput, attachment?: Blob): Promise<Manifest> {
+  async saveManifest(manifest: NewManifestInput, attachment?: Blob): Promise<ManifestOperationResult> {
     const token = await this.getToken();
     const form = new FormData();
     form.append("manifest", JSON.stringify(manifest));
@@ -190,7 +191,7 @@ export class RcrainfoClient {
       );
     }
 
-    return (await res.json()) as Manifest;
+    return (await res.json()) as ManifestOperationResult;
   }
 
   /**
@@ -217,7 +218,7 @@ export class RcrainfoClient {
    * Response is a validation report, not the updated Manifest — call
    * `getManifest()` afterward to see the actual result.
    */
-  async updateManifest(manifest: Manifest): Promise<UpdateManifestResult> {
+  async updateManifest(manifest: Manifest): Promise<ManifestOperationResult> {
     const token = await this.getToken();
     const form = new FormData();
     form.append("manifest", JSON.stringify(manifest));
@@ -237,7 +238,7 @@ export class RcrainfoClient {
       );
     }
 
-    return (await res.json()) as UpdateManifestResult;
+    return (await res.json()) as ManifestOperationResult;
   }
 
   /**

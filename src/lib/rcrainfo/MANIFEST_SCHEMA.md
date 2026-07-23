@@ -69,6 +69,19 @@ type `string`, which is easy to misread as "just send JSON", but it must be
 form-encoded, and the `Content-Type` header must NOT be manually set (let
 `fetch`/the browser set the multipart boundary automatically).
 
+**Response shape correction (2026-07-23):** `saveManifest()`'s response is
+a `ManifestOperationResult` **report** — `{ manifestTrackingNumber,
+reportId, date, operationStatus, warnings, generatorReport,
+transporterReports, wasteReports, designatedFacilityReport }` — NOT the
+saved `Manifest` itself. Our client's type annotation said `Manifest` for
+a long time because `manifestTrackingNumber` happens to exist on both
+shapes, which masked the mismatch — nothing ever tried to read e.g.
+`.generator.name` off a save response. Fixed by introducing
+`ManifestOperationResult` (shared with `updateManifest()`, which returns
+the identical shape) and a `collectManifestOperationWarnings()` helper to
+flatten all the per-entity warning arrays into simple strings for display.
+Call `getManifest()` after a save/update to see the actual persisted data.
+
 ### Confirmed required top-level fields
 
 | Field | Value(s) confirmed | Notes |
@@ -114,7 +127,9 @@ status.
 | Field | Status | Notes |
 |---|---|---|
 | `dotHazardous` | ✅ required, this exact name | **NOT `hazardous`** — using `hazardous` fails with "properties which are not allowed by the schema". Easy naming trap from the field's conceptual meaning. |
-| `dotInformation` | ✅ required for hazardous waste lines | NOT optional as we first assumed from Swagger's example. |
+| `dotInformation` | ⚠️ required ONLY for hazardous waste lines | Confirmed omittable entirely (no error) when `dotHazardous: false` — sending it anyway produces the warning "For non-hazardous Waste Dot Information will be ignored". Not optional-in-general as we first assumed from Swagger's example, but genuinely optional per-line based on `dotHazardous`. |
+| `epaWaste` | ✅ **must match `dotHazardous`** | Confirmed live: `epaWaste: true` while `dotHazardous: false` produces the warning "the Waste.dotHazardous is false the Waste.epaWaste cannot be true" and the provided value is silently ignored. Keep these two fields in sync in application code — a real bug we shipped and then fixed in ManifestMate's own create-manifest form. |
+| `hazardousWaste.federalWasteCodes[].code` | ⚠️ **invalid codes are silently dropped, not rejected** | Confirmed live: sending `"none"` as a placeholder produces the warning `"Provided Value is not Found", value: "none"` — no error, save still succeeds, the code just doesn't appear on the saved waste line or the PDF. Validate against real EPA codes in the UI rather than relying on the API to catch typos/placeholders. |
 | `dotInformation.printedDotInformation` | ✅ **required, this exact structure** | RCRAInfo wants the full DOT shipping description as **one printed string**, e.g. `"RQ, Waste flammable liquids, n.o.s. (contains xylene), 3, UN1993, PG II"`. |
 | `dotInformation.properShippingName` / `.hazardClass` / `.packingGroup` | ❌ **CONFIRMED REJECTED on save** | These structured `{code: string}` sub-objects (present in Swagger's GET example) fail with "properties which are not allowed by the schema" when sent on save. They may be GET-response-only / derived fields, not save inputs. Do not include on save. |
 | `dotInformation.idNumber` | ✅ **CONFIRMED required** (save attempt #4) | Error: "Object has missing required properties [idNumber]" — this was the ONLY error remaining after the `printedDotInformation` fix, meaning generator, designatedFacility, transporter, and every other waste-line field are now believed fully clean. |
@@ -381,6 +396,19 @@ UI concept at all — RCRAInfo handles pagination completely server-side
 based purely on array length. Building our own pagination/continuation
 logic would be solving a problem the API already solves.
 
+**Box 14 vs. Box 32 (2026-07-23):** tested setting `additionalInfo.
+handlingInstructions` at both the manifest level AND on individual waste
+lines (one on the main page, one on a continuation-sheet line), to see
+whether continuation sheets get their own separate special-handling box.
+They don't — **RCRAInfo concatenates the manifest-level note and every
+single waste line's own note (labeled `"Line N: ..."`) into Box 14 on
+page 1 only, regardless of which page that line physically lands on.**
+Box 32 (the continuation sheet's equivalent box) came back completely
+empty in this test. So per-waste-line `additionalInfo.handlingInstructions`
+is a real, accepted field, but it does NOT map to a per-page box the way
+the physical form's layout might suggest — there is exactly one
+functional "special instructions" destination (Box 14), not one per page.
+
 ## Manifest Update ✅
 
 `PUT /emanifest/manifest/update` ✅ — confirmed live 2026-07-23 on `100091730ELC`
@@ -594,3 +622,25 @@ lookup endpoint — treat as reference, not verified, except where noted.
   authorized site (`VAD000532119`) before signing. Confirmed the final
   fully-signed PDF matches the reference example's pattern exactly. See
   "Manifest Signing" section for full details.
+- **2026-07-23, session 2 (continued), form-mapping bug hunt:** Traced
+  real mistakes the user found in the create-manifest form's output.
+  Found and fixed a real bug (`epaWaste` hardcoded `true` for every line
+  regardless of `dotHazardous`). Confirmed three EPA-side behaviors that
+  weren't bugs: invalid federal waste codes (e.g. a placeholder `"none"`)
+  are silently dropped with a warning, not rejected; `dotInformation` is
+  genuinely optional for non-hazardous lines; Box 14 aggregates ALL
+  handling instructions (manifest + every waste line's own note)
+  regardless of page, and Box 32 isn't populated via the API at all.
+  Also discovered `saveManifest()`'s response type was wrong — it's a
+  `ManifestOperationResult` report, not the full `Manifest` — fixed and
+  unified with `updateManifest()`'s identical shape, plus added
+  `collectManifestOperationWarnings()` to surface warnings in the UI.
+  Restructured the DOT shipping description from one error-prone
+  free-text field into composed sub-fields (shipping name, hazard class,
+  ID number, packing group, RQ) assembled with the ID number first, per
+  request (DOT 49 CFR 172.202(b) permits the ID number either before or
+  after the description). Confirmed the checkbox rendering itself
+  (`9a`/`27a` fields) was already 100% correct by directly inspecting
+  `/V` values against a controlled hazardous/non-hazardous mix — the
+  reported "missing X" was likely the VS Code PDF preview extension
+  (PDF.js-based) not rendering checkbox appearance streams, not a data bug.

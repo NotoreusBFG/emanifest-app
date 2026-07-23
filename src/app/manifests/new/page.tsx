@@ -16,25 +16,37 @@ const row = { display: "flex", gap: "10px" };
 const field = { flex: 1, marginBottom: "12px" };
 const label = { display: "block", marginBottom: "5px", fontSize: "14px" };
 
-const DEFAULT_WASTE = {
-  printedDotInformation: "RQ, Waste flammable liquids, n.o.s. (contains xylene), 3, UN1993, PG II",
-  idNumberCode: "UN1993",
-  federalWasteCode: "D001",
-  quantity: "1",
-  unitCode: "P",
-  containerNumber: "1",
-  containerTypeCode: "DM",
-};
+const MAIN_PAGE_LINE_COUNT = 4;
+const CONTINUATION_SHEET_LINE_COUNT = 7;
+
+function continuationLabel(index: number): string {
+  if (index < MAIN_PAGE_LINE_COUNT) return "main form";
+  const sheetNumber = Math.ceil((index - MAIN_PAGE_LINE_COUNT + 1) / CONTINUATION_SHEET_LINE_COUNT);
+  return `continuation sheet ${sheetNumber}`;
+}
 
 export default function NewManifestPage() {
   const [state, formAction, isPending] = useActionState<CreateManifestState, FormData>(
     createManifestAction,
     null
   );
-  const [wasteIds, setWasteIds] = useState<number[]>([0]);
+  const [wasteIds, setWasteIds] = useState<number[]>([0, 1, 2, 3]);
+  const [hazardousMap, setHazardousMap] = useState<Record<number, boolean>>({
+    0: true,
+    1: true,
+    2: true,
+    3: true,
+  });
 
-  const addWasteLine = () => {
-    setWasteIds((ids) => [...ids, Math.max(...ids) + 1]);
+  const addContinuationPage = () => {
+    const nextId = wasteIds.length ? Math.max(...wasteIds) + 1 : 0;
+    const newIds = Array.from({ length: CONTINUATION_SHEET_LINE_COUNT }, (_, i) => nextId + i);
+    setWasteIds((ids) => [...ids, ...newIds]);
+    setHazardousMap((map) => {
+      const next = { ...map };
+      newIds.forEach((id) => (next[id] = true));
+      return next;
+    });
   };
 
   const removeWasteLine = (id: number) => {
@@ -48,18 +60,31 @@ export default function NewManifestPage() {
       </p>
       <h1>Create a new manifest</h1>
       <p style={{ color: "#666" }}>
-        Preprod sandbox only. Fields are pre-filled with known-good EPA test sites — edit as
-        needed. Add as many waste lines as you need — RCRAInfo automatically splits them across
-        the main form (4 lines) and continuation sheets (7 more per sheet); no page-numbering to
-        manage here.
+        Preprod sandbox only. Fields are pre-filled with a known-good EPA test site — edit as
+        needed. Empty waste-line slots are skipped automatically, so it&apos;s fine to leave most
+        of the 4 main-form slots blank.
       </p>
 
       {state && !state.success && <p style={{ color: "red" }}>❌ {state.error}</p>}
       {state && state.success && (
-        <p style={{ color: "green" }}>
-          ✅ Saved as <strong>{state.manifestTrackingNumber}</strong> —{" "}
-          <Link href="/manifests" style={{ color: "#0070f3" }}>look it up</Link>
-        </p>
+        <div style={{ border: "1px solid #cde9cd", borderRadius: "6px", padding: "12px", marginBottom: "10px" }}>
+          <p style={{ color: "green", margin: 0 }}>
+            ✅ Saved as <strong>{state.manifestTrackingNumber}</strong> —{" "}
+            <Link href="/manifests" style={{ color: "#0070f3" }}>look it up</Link>
+          </p>
+          {state.warnings.length > 0 && (
+            <div style={{ marginTop: "10px" }}>
+              <p style={{ margin: "0 0 4px", fontWeight: "bold", color: "#946c00" }}>
+                RCRAInfo warnings (data was still saved — check these weren&apos;t mistakes):
+              </p>
+              <ul style={{ margin: 0, paddingLeft: "20px", color: "#946c00", fontSize: "14px" }}>
+                {state.warnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
 
       <form action={formAction}>
@@ -191,125 +216,149 @@ export default function NewManifestPage() {
           </div>
         </fieldset>
 
-        {wasteIds.map((id, index) => (
-          <fieldset
-            key={id}
-            style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}
-          >
-            <legend style={{ padding: "0 8px" }}>
-              Waste line {index + 1}
-              {index < 4
-                ? " (main form)"
-                : ` (continuation sheet ${Math.ceil((index - 3) / 7)}, item ${
-                    ((index - 4) % 7) + 5
-                  })`}
-            </legend>
+        {wasteIds.map((id, index) => {
+          const isHazardous = hazardousMap[id] ?? true;
+          return (
+            <fieldset
+              key={id}
+              style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}
+            >
+              <legend style={{ padding: "0 8px" }}>
+                Waste line {index + 1} ({continuationLabel(index)})
+              </legend>
 
-            <div style={field}>
-              <label style={label}>
-                <input
-                  name={`dotHazardous_${id}`}
-                  type="checkbox"
-                  defaultChecked
-                  style={{ marginRight: "6px" }}
-                />
-                Hazardous (DOT)
-              </label>
-            </div>
+              <div style={field}>
+                <label style={label}>
+                  <input
+                    name={`dotHazardous_${id}`}
+                    type="checkbox"
+                    checked={isHazardous}
+                    onChange={(e) =>
+                      setHazardousMap((map) => ({ ...map, [id]: e.target.checked }))
+                    }
+                    style={{ marginRight: "6px" }}
+                  />
+                  Hazardous (DOT)
+                </label>
+              </div>
 
-            <div style={field}>
-              <label style={label}>Printed DOT information (full shipping description)</label>
-              <textarea
-                name={`printedDotInformation_${id}`}
-                required
-                rows={4}
-                defaultValue={DEFAULT_WASTE.printedDotInformation}
-                style={{ ...inputStyle, resize: "vertical" }}
-              />
-            </div>
+              {isHazardous ? (
+                <>
+                  <div style={field}>
+                    <label style={label}>Proper shipping name</label>
+                    <textarea
+                      name={`properShippingName_${id}`}
+                      rows={2}
+                      defaultValue={
+                        index === 0 ? "Waste flammable liquids, n.o.s. (contains xylene)" : ""
+                      }
+                      style={{ ...inputStyle, resize: "vertical" }}
+                    />
+                  </div>
+                  <div style={row}>
+                    <div style={field}>
+                      <label style={label}>
+                        <input
+                          name={`rqIndicator_${id}`}
+                          type="checkbox"
+                          defaultChecked={index === 0}
+                          style={{ marginRight: "6px" }}
+                        />
+                        RQ (reportable quantity)
+                      </label>
+                    </div>
+                    <div style={field}>
+                      <label style={label}>Hazard class</label>
+                      <input
+                        name={`hazardClass_${id}`}
+                        defaultValue={index === 0 ? "3" : ""}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div style={field}>
+                      <label style={label}>Packing group</label>
+                      <input
+                        name={`packingGroup_${id}`}
+                        defaultValue={index === 0 ? "II" : ""}
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                  <div style={row}>
+                    <div style={field}>
+                      <label style={label}>DOT ID number code</label>
+                      <input
+                        name={`idNumberCode_${id}`}
+                        defaultValue={index === 0 ? "UN1993" : ""}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div style={field}>
+                      <label style={label}>Federal waste code (optional — leave blank if none)</label>
+                      <input
+                        name={`federalWasteCode_${id}`}
+                        defaultValue={index === 0 ? "D001" : ""}
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={field}>
+                  <label style={label}>Waste description</label>
+                  <input name={`wasteDescription_${id}`} style={inputStyle} />
+                </div>
+              )}
 
-            <div style={row}>
-              <div style={field}>
-                <label style={label}>DOT ID number code</label>
-                <input
-                  name={`idNumberCode_${id}`}
-                  required
-                  defaultValue={DEFAULT_WASTE.idNumberCode}
-                  style={inputStyle}
-                />
+              <div style={row}>
+                <div style={field}>
+                  <label style={label}>Quantity</label>
+                  <input
+                    name={`quantity_${id}`}
+                    type="number"
+                    defaultValue={index === 0 ? "1" : ""}
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={field}>
+                  <label style={label}>Unit code</label>
+                  <input name={`unitCode_${id}`} defaultValue={index === 0 ? "P" : ""} style={inputStyle} />
+                </div>
+                <div style={field}>
+                  <label style={label}>Container count</label>
+                  <input
+                    name={`containerNumber_${id}`}
+                    type="number"
+                    defaultValue={index === 0 ? "1" : ""}
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={field}>
+                  <label style={label}>Container type code</label>
+                  <input
+                    name={`containerTypeCode_${id}`}
+                    defaultValue={index === 0 ? "DM" : ""}
+                    style={inputStyle}
+                  />
+                </div>
               </div>
-              <div style={field}>
-                <label style={label}>Federal waste code (optional)</label>
-                <input
-                  name={`federalWasteCode_${id}`}
-                  defaultValue={DEFAULT_WASTE.federalWasteCode}
-                  style={inputStyle}
-                />
-              </div>
-            </div>
 
-            <div style={row}>
-              <div style={field}>
-                <label style={label}>Quantity</label>
-                <input
-                  name={`quantity_${id}`}
-                  type="number"
-                  required
-                  defaultValue={DEFAULT_WASTE.quantity}
-                  style={inputStyle}
-                />
-              </div>
-              <div style={field}>
-                <label style={label}>Unit code</label>
-                <input
-                  name={`unitCode_${id}`}
-                  required
-                  defaultValue={DEFAULT_WASTE.unitCode}
-                  style={inputStyle}
-                />
-              </div>
-              <div style={field}>
-                <label style={label}>Container count</label>
-                <input
-                  name={`containerNumber_${id}`}
-                  type="number"
-                  required
-                  defaultValue={DEFAULT_WASTE.containerNumber}
-                  style={inputStyle}
-                />
-              </div>
-              <div style={field}>
-                <label style={label}>Container type code</label>
-                <input
-                  name={`containerTypeCode_${id}`}
-                  required
-                  defaultValue={DEFAULT_WASTE.containerTypeCode}
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-
-            {wasteIds.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeWasteLine(id)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#c00",
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              >
-                Remove this waste line
-              </button>
-            )}
-          </fieldset>
-        ))}
+              {wasteIds.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeWasteLine(id)}
+                  style={{ background: "none", border: "none", color: "#c00", cursor: "pointer", padding: 0 }}
+                >
+                  Remove this waste line
+                </button>
+              )}
+            </fieldset>
+          );
+        })}
 
         <button
           type="button"
-          onClick={addWasteLine}
+          onClick={addContinuationPage}
           style={{
             marginBottom: "20px",
             padding: "8px 16px",
@@ -320,11 +369,15 @@ export default function NewManifestPage() {
             cursor: "pointer",
           }}
         >
-          + Add waste line
+          + Add continuation page ({CONTINUATION_SHEET_LINE_COUNT} more lines)
         </button>
 
         <div style={{ marginBottom: "20px" }}>
-          <label style={label}>Special handling instructions (optional, Box 14)</label>
+          <label style={label}>
+            Special handling instructions (optional — Box 14. RCRAInfo prints this, plus any
+            per-line notes, all on page 1 regardless of which page the line is on — there&apos;s
+            no separate box per continuation sheet.)
+          </label>
           <textarea
             name="handlingInstructions"
             rows={3}

@@ -40,19 +40,26 @@ const site = await client.getSiteDetails("VAD000532119");
   returned real data for `VAD000532119`.
 - ✅ **Manifest tracking numbers** (`getManifestTrackingNumbers` in
   `client.ts`) — confirmed live: `GET
-  /emanifest/manifest-tracking-numbers/{siteId}`. No query params or body;
-  it just returns the MTNs tied to a site. Earlier draft of this client
-  guessed a `POST /emanifest/search` shape from the Python package's docs —
-  that was wrong and has been replaced.
+  /emanifest/manifest-tracking-numbers/{siteId}`. Returns a **flat array of
+  MTN strings**, not full manifest objects — no status, dates, or site info
+  per entry. Fix a fresh token before retrying if you see `E_AccessDenied`;
+  tokens expire in ~20 min and Swagger doesn't always carry the
+  Authorization header between sections.
 
-## Suggested next test
+## Important finding: shared sandbox data
 
-The first Swagger attempt against this endpoint returned `E_AccessDenied`
-because no bearer token was attached to that specific "Try it out" call —
-generate a fresh token (old ones expire in ~20 min) and re-run it with the
-`Authorization: Bearer <token>` header set. That'll show whether
-`VAD000532119` has existing test manifest history to develop against, or if
-it's a blank slate you'll need to seed with an uploaded test manifest first.
+Querying `VAD000532119` returned several **thousand** MTNs. This site
+("Test TSDF of VA") is a publicly documented EPA sandbox test site used by
+many developers learning the API — this response is very likely a mix of
+everyone's test data, not anything specific to ManifestMate. Don't treat
+this as clean data to build/demo the UI against.
+
+## Suggested next step
+
+Create your own test manifest via the API's manifest-creation endpoint (not
+yet explored this session) so you have one known, traceable MTN to build
+and test the read/query flow against — rather than sifting through shared
+sandbox noise.
 
 ## Known dependency: auth bug fix
 

@@ -22,7 +22,6 @@
 import type {
   AuthTokenResponse,
   CachedToken,
-  ManifestSummary,
   RcrainfoCredentials,
   RcrainfoEnvironment,
   SiteDetails,
@@ -132,13 +131,16 @@ export class RcrainfoClient {
   /**
    * GET /emanifest/manifest-tracking-numbers/{siteId}
    *
-   * Confirmed live against Swagger (preprod) this session. Returns the MTNs
-   * associated with a site — takes no query params/body, so status/date
-   * filtering (if needed) has to happen client-side after this call, or via
-   * a separate endpoint if the Swagger doc turns up one that supports it.
+   * Confirmed live against Swagger (preprod) this session. Returns a flat
+   * array of MTN strings tied to a site — NOT full manifest objects (no
+   * status/dates/etc per entry). Confirmed against VAD000532119, which
+   * returned several thousand MTNs — this is a shared public EPA sandbox
+   * site used by many developers, so treat this as noisy shared data, not
+   * clean test data specific to this app. Use manifest creation + a known
+   * MTN for reliable dev/test data instead.
    */
-  async getManifestTrackingNumbers(siteId: string): Promise<ManifestSummary[]> {
-    return this.request<ManifestSummary[]>(
+  async getManifestTrackingNumbers(siteId: string): Promise<string[]> {
+    return this.request<string[]>(
       `/emanifest/manifest-tracking-numbers/${encodeURIComponent(siteId)}`
     );
   }

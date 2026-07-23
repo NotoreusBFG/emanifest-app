@@ -1,0 +1,129 @@
+<svg viewBox="0 0 1200 950" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .wordmark { font-family: 'Space Grotesk', 'Futura', 'Century Gothic', sans-serif; font-weight: 700; }
+      .tagline { font-family: 'Roboto Slab', Georgia, serif; font-weight: 500; letter-spacing: 2.5px; }
+      .caption { font-family: 'Roboto Slab', Georgia, serif; font-weight: 600; letter-spacing: 3px; }
+      .swatchlabel { font-family: 'Roboto Slab', Georgia, serif; font-weight: 500; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="950" fill="#F7F4EE"/>
+
+  <!-- ============ ROW 1: PRIMARY LOCKUP ============ -->
+  <text x="60" y="45" class="caption" font-size="13" fill="#7FA593">PRIMARY LOCKUP — DRUM + PLACARD MARK</text>
+
+  <!-- Icon: teal drum, amber placard diamond -->
+  <g transform="translate(48,26) scale(0.72)">
+    <ellipse cx="115" cy="44" rx="58" ry="18" fill="#0F3D3E"/>
+    <rect x="57" y="44" width="116" height="148" rx="14" fill="#0F3D3E"/>
+    <line x1="60" y1="96" x2="170" y2="96" stroke="#F7F4EE" stroke-width="6"/>
+    <line x1="60" y1="150" x2="170" y2="150" stroke="#F7F4EE" stroke-width="6"/>
+    <g transform="translate(115,140) rotate(45)">
+      <rect x="-34" y="-34" width="68" height="68" rx="8" fill="#E8A33D" stroke="#F7F4EE" stroke-width="6"/>
+      <g transform="rotate(-45)">
+        <polyline points="-14,10 -2,-16 8,-2 18,-22" fill="none" stroke="#201F1B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </g>
+
+  <text x="270" y="150" class="wordmark" font-size="72" fill="#201F1B">Manifest<tspan fill="#0F3D3E">Mate</tspan></text>
+  <line x1="272" y1="168" x2="340" y2="168" stroke="#E8A33D" stroke-width="5" stroke-linecap="round"/>
+  <text x="272" y="200" class="tagline" font-size="15" fill="#3E3D38">HAZARDOUS WASTE MANIFESTS, SIMPLIFIED</text>
+
+  <line x1="60" y1="270" x2="1140" y2="270" stroke="#D9D4C6" stroke-width="1.5"/>
+
+  <!-- ============ ROW 2: ICON MARKS ============ -->
+  <text x="60" y="315" class="caption" font-size="13" fill="#7FA593">ICON MARKS</text>
+
+  <!-- Square 1: on teal -->
+  <rect x="60" y="335" width="160" height="160" rx="28" fill="#0F3D3E"/>
+  <g transform="translate(94,362) scale(0.42)">
+    <ellipse cx="115" cy="44" rx="58" ry="18" fill="#F7F4EE"/>
+    <rect x="57" y="44" width="116" height="148" rx="14" fill="#F7F4EE"/>
+    <line x1="60" y1="96" x2="170" y2="96" stroke="#0F3D3E" stroke-width="7"/>
+    <line x1="60" y1="150" x2="170" y2="150" stroke="#0F3D3E" stroke-width="7"/>
+    <g transform="translate(115,140) rotate(45)">
+      <rect x="-34" y="-34" width="68" height="68" rx="8" fill="#E8A33D" stroke="#0F3D3E" stroke-width="7"/>
+      <g transform="rotate(-45)">
+        <polyline points="-14,10 -2,-16 8,-2 18,-22" fill="none" stroke="#201F1B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </g>
+  <text x="140" y="522" text-anchor="middle" class="swatchlabel" font-size="13" fill="#3E3D38">ON TEAL</text>
+
+  <!-- Square 2: outline, on paper -->
+  <rect x="280" y="335" width="160" height="160" rx="28" fill="#F7F4EE" stroke="#0F3D3E" stroke-width="2.5"/>
+  <g transform="translate(314,362) scale(0.42)">
+    <ellipse cx="115" cy="44" rx="58" ry="18" fill="#0F3D3E"/>
+    <rect x="57" y="44" width="116" height="148" rx="14" fill="#0F3D3E"/>
+    <line x1="60" y1="96" x2="170" y2="96" stroke="#F7F4EE" stroke-width="7"/>
+    <line x1="60" y1="150" x2="170" y2="150" stroke="#F7F4EE" stroke-width="7"/>
+    <g transform="translate(115,140) rotate(45)">
+      <rect x="-34" y="-34" width="68" height="68" rx="8" fill="#E8A33D" stroke="#F7F4EE" stroke-width="7"/>
+      <g transform="rotate(-45)">
+        <polyline points="-14,10 -2,-16 8,-2 18,-22" fill="none" stroke="#201F1B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </g>
+  <text x="360" y="522" text-anchor="middle" class="swatchlabel" font-size="13" fill="#3E3D38">OUTLINE</text>
+
+  <!-- Square 3: on dark -->
+  <rect x="500" y="335" width="160" height="160" rx="28" fill="#0B2120"/>
+  <g transform="translate(534,362) scale(0.42)">
+    <ellipse cx="115" cy="44" rx="58" ry="18" fill="#F7F4EE"/>
+    <rect x="57" y="44" width="116" height="148" rx="14" fill="#F7F4EE"/>
+    <line x1="60" y1="96" x2="170" y2="96" stroke="#0B2120" stroke-width="7"/>
+    <line x1="60" y1="150" x2="170" y2="150" stroke="#0B2120" stroke-width="7"/>
+    <g transform="translate(115,140) rotate(45)">
+      <rect x="-34" y="-34" width="68" height="68" rx="8" fill="#E8A33D" stroke="#0B2120" stroke-width="7"/>
+      <g transform="rotate(-45)">
+        <polyline points="-14,10 -2,-16 8,-2 18,-22" fill="none" stroke="#0B2120" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </g>
+  <text x="580" y="522" text-anchor="middle" class="swatchlabel" font-size="13" fill="#3E3D38">ON DARK</text>
+
+  <line x1="60" y1="555" x2="1140" y2="555" stroke="#D9D4C6" stroke-width="1.5"/>
+
+  <!-- ============ ROW 3: REVERSED / DARK BACKGROUND ============ -->
+  <text x="60" y="600" class="caption" font-size="13" fill="#7FA593">REVERSED / DARK BACKGROUND</text>
+
+  <rect x="60" y="618" width="1080" height="150" rx="20" fill="#0B2120"/>
+
+  <g transform="translate(100,630) scale(0.55)">
+    <ellipse cx="115" cy="44" rx="58" ry="18" fill="#F7F4EE"/>
+    <rect x="57" y="44" width="116" height="148" rx="14" fill="#F7F4EE"/>
+    <line x1="60" y1="96" x2="170" y2="96" stroke="#0B2120" stroke-width="7"/>
+    <line x1="60" y1="150" x2="170" y2="150" stroke="#0B2120" stroke-width="7"/>
+    <g transform="translate(115,140) rotate(45)">
+      <rect x="-34" y="-34" width="68" height="68" rx="8" fill="#E8A33D" stroke="#0B2120" stroke-width="7"/>
+      <g transform="rotate(-45)">
+        <polyline points="-14,10 -2,-16 8,-2 18,-22" fill="none" stroke="#0B2120" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </g>
+
+  <text x="235" y="700" class="wordmark" font-size="52" fill="#F7F4EE">Manifest<tspan fill="#E8A33D">Mate</tspan></text>
+  <text x="237" y="730" class="tagline" font-size="13" fill="#7FA593">HAZARDOUS WASTE MANIFESTS, SIMPLIFIED</text>
+
+  <line x1="60" y1="800" x2="1140" y2="800" stroke="#D9D4C6" stroke-width="1.5"/>
+
+  <!-- ============ ROW 4: COLOR PALETTE ============ -->
+  <text x="60" y="845" class="caption" font-size="13" fill="#7FA593">COLOR PALETTE</text>
+
+  <rect x="60" y="862" width="70" height="70" rx="10" fill="#0F3D3E"/>
+  <text x="60" y="950" class="swatchlabel" font-size="12" fill="#3E3D38">Ink Teal — #0F3D3E</text>
+
+  <rect x="230" y="862" width="70" height="70" rx="10" fill="#E8A33D"/>
+  <text x="230" y="950" class="swatchlabel" font-size="12" fill="#3E3D38">Amber — #E8A33D</text>
+
+  <rect x="400" y="862" width="70" height="70" rx="10" fill="#F7F4EE" stroke="#D9D4C6" stroke-width="1.5"/>
+  <text x="400" y="950" class="swatchlabel" font-size="12" fill="#3E3D38">Paper — #F7F4EE</text>
+
+  <rect x="570" y="862" width="70" height="70" rx="10" fill="#201F1B"/>
+  <text x="570" y="950" class="swatchlabel" font-size="12" fill="#3E3D38">Charcoal — #201F1B</text>
+
+  <rect x="740" y="862" width="70" height="70" rx="10" fill="#7FA593"/>
+  <text x="740" y="950" class="swatchlabel" font-size="12" fill="#3E3D38">Sage — #7FA593</text>
+</svg>

@@ -143,13 +143,38 @@ export class RcrainfoApiError extends Error {
  * the most reliable way to discover the true required set.
  * ---------------------------------------------------------------------- */
 
+/**
+ * Contact shape specifically for MANIFEST SAVE payloads.
+ *
+ * CONFIRMED via live 400 response: the save schema wants `contact.phone`,
+ * NOT `contact.phoneNumber` — different from SiteContact (used by the GET
+ * site-details response), which does use `phoneNumber`. Annoying but real
+ * inconsistency between this API's GET and POST schemas — don't conflate
+ * the two contact shapes.
+ */
+export interface ManifestContact {
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  phone?: PhoneNumber;
+  email?: string;
+  companyName?: string;
+}
+
 /** Shared "site" shape — reused by RCRAInfo for generator, transporter, and designated facility. */
 export interface Handler {
   epaSiteId: string;
-  name?: string;
+  /**
+   * CONFIRMED required by live 400 response, even for a site RCRAInfo
+   * already has on file — a warning in the same response confirms
+   * whatever name you submit gets discarded and replaced with the
+   * registered value once EPA recognizes the epaSiteId, but the field must
+   * still be present and non-empty to pass structural validation.
+   */
+  name: string;
   mailingAddress?: Address;
   siteAddress?: Address;
-  contact?: SiteContact;
+  contact?: ManifestContact;
   emergencyPhone?: PhoneNumber;
   /** Only present on a transporter entry — its position in the transport chain. */
   order?: number;
@@ -169,10 +194,23 @@ export interface WasteCode {
 
 export interface WasteLine {
   lineNumber: number;
-  hazardous: boolean;
+  /**
+   * CONFIRMED via live 400 response: the API rejects a field called
+   * "hazardous" and requires "dotHazardous" instead. Renamed accordingly.
+   */
+  dotHazardous: boolean;
   wasteDescription: string;
   quantity: WasteQuantity;
-  dotInformation?: {
+  /**
+   * CONFIRMED required by live 400 response for hazardous waste lines
+   * ("Emanifest.waste.dotInformation — Mandatory Field is Not Provided").
+   * A warning in the same response also noted that for hazardous waste,
+   * `wasteDescription` gets ignored in favor of this DOT shipping info —
+   * so this is the field that actually matters for hazardous lines.
+   * The code sub-fields reference EPA's DOT lookup tables — the values
+   * below are placeholders, not yet confirmed against a lookup endpoint.
+   */
+  dotInformation: {
     properShippingName?: { code: string };
     idNumber?: { code: string };
     hazardClass?: { code: string };
@@ -197,7 +235,23 @@ export interface NewManifestInput {
   transporters: Handler[];
   designatedFacility: Handler;
   wastes: WasteLine[];
-  shipmentType?: "Domestic" | "Import" | "Export";
+  /**
+   * CONFIRMED required by live 400 response ("Emanifest.import — Mandatory
+   * Field is Not Provided"). Set false for a standard domestic manifest.
+   */
+  import: boolean;
+  /**
+   * NOT confirmed required — added speculatively since `import` was
+   * required and RCRAInfo often pairs import/export flags. Remove if the
+   * next validation pass doesn't flag it as missing.
+   */
+  export?: boolean;
+  /**
+   * REMOVED: a prior version included "shipmentType" here, but the live API
+   * rejected it with "Object instance has properties which are not allowed
+   * by the schema". It may only appear on retrieved manifests, not save
+   * input — do not add it back without re-confirming.
+   */
 }
 
 /** Full manifest record shape as returned by GET /emanifest/manifest/{mtn}. Loosely typed — see note above. */

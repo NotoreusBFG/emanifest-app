@@ -1,11 +1,21 @@
 import { encrypt } from '@/lib/cryptoUtils';
-import { supabase } from '@/lib/supabaseClient';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * This "Worker" function encrypts the credentials and 
+ * This "Worker" function encrypts the credentials and
  * saves them to Supabase [2].
+ *
+ * Takes the caller's authenticated Supabase client (from
+ * `@/lib/supabase/server`) rather than importing a shared instance —
+ * RLS on `user_credentials` requires the request to carry the actual
+ * logged-in user's session, which only the per-request server client has.
  */
-export async function upsertEpaCredentials(userId: string, apiId: string, apiKey: string) {
+export async function upsertEpaCredentials(
+  supabase: SupabaseClient,
+  userId: string,
+  apiId: string,
+  apiKey: string
+) {
   const encryptedId = encrypt(apiId);
   const encryptedKey = encrypt(apiKey);
 

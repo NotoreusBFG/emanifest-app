@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import { saveEpaSettingsAction } from '@/app/actions/epaActions';
+import { signOutAction } from '@/app/actions/authActions';
 
 export default function EpaSettingsPage() {
   // 2. 'useActionState' connects our form to the Server Action.
@@ -12,7 +13,14 @@ export default function EpaSettingsPage() {
 
   return (
     <div style={{ maxWidth: '400px', margin: '40px auto', fontFamily: 'sans-serif' }}>
-      <h1>EPA Settings</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <h1>EPA Settings</h1>
+        <form action={signOutAction}>
+          <button type="submit" style={{ background: 'none', border: 'none', color: '#0070f3', cursor: 'pointer' }}>
+            Sign out
+          </button>
+        </form>
+      </div>
       <p style={{ color: '#666' }}>Securely store your API credentials.</p>
 
       {/* 3. The 'action' prop tells the form to run our Server Action when submitted */}

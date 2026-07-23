@@ -345,6 +345,42 @@ proofing UX (security questions, registered-user identity verification,
 etc.) is only strictly needed at the TSDF's final-certification step —
 not for every signature in the chain.
 
+## Waste line count / continuation pages ✅
+
+**The API has NO concept of "pages" or "continuation" at all** —
+confirmed by grepping the full `emanifest.json` schema for
+`continuation`/`page`/`pageCount`/`numberOfPages`: zero matches. `wastes`
+is just a flat array; RCRAInfo's PDF generator handles pagination
+entirely server-side.
+
+**Confirmed the real paper form's structure** by inspecting the actual
+generated PDF's form field names (not from a spec — reverse-engineered
+from the live output):
+- Main page (Form 8700-22): waste-line fields suffixed `_1` through `_4`
+  (e.g. `9b_1_printedDotInfo` .. `9b_4_printedDotInfo`, `10-1_1_num` ..
+  `10-1_4_num`) — **exactly 4 waste lines**.
+- One continuation sheet (Form 8700-22A): fields explicitly labeled
+  `33b_12_lineNumber_5` through `33b_18_lineNumber_11` — **exactly 7
+  more lines**, using box numbers in the high 20s/30s (`27a`/`27b`/`31`/
+  `33b`) instead of the main page's `9`/`10`/`13`.
+- **4 + 7 = 11 total lines per continuation sheet**, matching the
+  official form exactly.
+
+**Confirmed live that RCRAInfo auto-generates as many continuation pages
+as needed, entirely automatically:**
+- Saved a manifest with 6 waste lines → generated PDF was **2 pages**
+  (4 on main + 2 of the 7 continuation slots used).
+- Saved a manifest with 15 waste lines → generated PDF was **3 pages**
+  (4 + 7 + 4, i.e. two continuation sheets stacked).
+- The `22_page` field (page number) was correctly auto-populated (`"2"`
+  on the 2-page test) without us ever setting it.
+
+**Implication for ManifestMate:** the waste-line form should just be a
+freely add/removable list with no artificial cap and no page/continuation
+UI concept at all — RCRAInfo handles pagination completely server-side
+based purely on array length. Building our own pagination/continuation
+logic would be solving a problem the API already solves.
+
 ## Manifest Update ✅
 
 `PUT /emanifest/manifest/update` ✅ — confirmed live 2026-07-23 on `100091730ELC`

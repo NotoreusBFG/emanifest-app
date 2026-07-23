@@ -126,29 +126,37 @@ export async function createManifestAction(
     additionalInfo: f("handlingInstructions")
       ? { handlingInstructions: f("handlingInstructions") }
       : undefined,
-    wastes: [
-      {
-        lineNumber: 1,
-        dotHazardous: formData.get("dotHazardous") === "on",
-        wasteDescription: f("wasteDescription"),
-        quantity: {
-          quantity: Number(f("quantity")) || 0,
-          unitOfMeasurement: { code: f("unitCode") },
-          containerNumber: Number(f("containerNumber")) || 1,
-          containerType: { code: f("containerTypeCode") },
-        },
-        dotInformation: {
-          printedDotInformation: f("printedDotInformation"),
-          idNumber: { code: f("idNumberCode") },
-        },
-        hazardousWaste: f("federalWasteCode")
-          ? { federalWasteCodes: [{ code: f("federalWasteCode") }] }
-          : undefined,
-        br: false,
-        pcb: false,
-        epaWaste: true,
-      },
-    ],
+    // Waste lines are a flat array however many there are — RCRAInfo has no
+    // "page"/"continuation" concept at all and auto-paginates the generated
+    // PDF itself (confirmed live: 4 lines/1 page, 6 lines/2 pages, 15
+    // lines/3 pages, all without us doing anything page-related).
+    wastes: (formData.get("wasteLineIds") as string)
+      .split(",")
+      .filter(Boolean)
+      .map((id, index) => {
+        const w = (name: string) => (formData.get(`${name}_${id}`) as string)?.trim() ?? "";
+        return {
+          lineNumber: index + 1,
+          dotHazardous: formData.get(`dotHazardous_${id}`) === "on",
+          wasteDescription: w("printedDotInformation"),
+          quantity: {
+            quantity: Number(w("quantity")) || 0,
+            unitOfMeasurement: { code: w("unitCode") },
+            containerNumber: Number(w("containerNumber")) || 1,
+            containerType: { code: w("containerTypeCode") },
+          },
+          dotInformation: {
+            printedDotInformation: w("printedDotInformation"),
+            idNumber: { code: w("idNumberCode") },
+          },
+          hazardousWaste: w("federalWasteCode")
+            ? { federalWasteCodes: [{ code: w("federalWasteCode") }] }
+            : undefined,
+          br: false,
+          pcb: false,
+          epaWaste: true,
+        };
+      }),
   };
 
   try {

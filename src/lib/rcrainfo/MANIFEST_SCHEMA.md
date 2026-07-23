@@ -49,17 +49,16 @@ below) for a clean, traceable test case.
 
 ## Manifest Retrieve (single)
 
-`GET /emanifest/manifest/{manifestTrackingNumber}` ⚠️
+`GET /emanifest/manifest/{manifestTrackingNumber}` ✅
 
-Schema confirmed via Swagger's example response (very large — see
-`types.ts` `Manifest` interface for the modeled subset). **Not yet called
-live against a real MTN** — do that once we have a real MTN from a
-successful save, to confirm the retrieve shape matches what save actually
-produces.
+Confirmed live against a real, app-created manifest (`100091730ELC`,
+created by our own `saveManifest()` call — not shared sandbox noise). See
+"Confirmed GET-response behavior" under Manifest Save below for what this
+call revealed about how save input maps to retrieved output.
 
 ## Manifest Save (create) — the complex one
 
-`POST /emanifest/manifest/save` ⚠️ — in progress, iterating via validation errors
+`POST /emanifest/manifest/save` ✅ — first full end-to-end success on attempt #5
 
 **Request format:** multipart form-data, NOT JSON body directly.
 - `manifest` field: a JSON-**stringified** string containing the manifest object
@@ -74,11 +73,11 @@ form-encoded, and the `Content-Type` header must NOT be manually set (let
 
 | Field | Value(s) confirmed | Notes |
 |---|---|---|
-| `status` | `"NotAssigned"` used successfully | Other values (`Pending`, `Scheduled`) untested |
-| `submissionType` | `"FullElectronic"` used | — |
-| `originType` | `"Web"` used | — |
-| `import` | `false` | **Confirmed required** — omitting it fails with "Mandatory Field is Not Provided" |
-| `export` | `false` | **NOT confirmed required** — added speculatively (symmetry with `import`); hasn't been flagged as missing when included, but also never tested by omitting it |
+| `status` | `"NotAssigned"` used successfully on save | ✅ **Confirmed auto-transitions.** GET on the resulting manifest showed `status: "Scheduled"` — `"NotAssigned"` is a save-input value only; RCRAInfo advances it automatically once e.g. the transporter is verified. Other input values (`Pending`, `Scheduled`) as *save* inputs remain untested. |
+| `submissionType` | `"FullElectronic"` used | ✅ Round-tripped unchanged on GET. |
+| `originType` | `"Web"` sent on save | ⚠️ **GET returned `"Service"`, not `"Web"`.** Another save-vs-retrieve inconsistency, same family as the `phone`/`phoneNumber` issue below — don't assume what you send is what comes back. |
+| `import` | `false` | **Confirmed required** — omitting it fails with "Mandatory Field is Not Provided". Round-trips unchanged on GET. |
+| `export` | `false` | **Still NOT confirmed required** — added speculatively (symmetry with `import`); hasn't been flagged as missing when included (round-trips unchanged on GET), but still not tested by omission. |
 | `shipmentType` | — | **CONFIRMED REJECTED.** Do not include at top level — API returns "Object instance has properties which are not allowed by the schema". May only exist on retrieved/in-flight manifests, not save input. |
 
 ### Confirmed required Handler fields (generator / designatedFacility / transporters)
@@ -119,17 +118,91 @@ status.
 | `dotInformation.printedDotInformation` | ✅ **required, this exact structure** | RCRAInfo wants the full DOT shipping description as **one printed string**, e.g. `"RQ, Waste flammable liquids, n.o.s. (contains xylene), 3, UN1993, PG II"`. |
 | `dotInformation.properShippingName` / `.hazardClass` / `.packingGroup` | ❌ **CONFIRMED REJECTED on save** | These structured `{code: string}` sub-objects (present in Swagger's GET example) fail with "properties which are not allowed by the schema" when sent on save. They may be GET-response-only / derived fields, not save inputs. Do not include on save. |
 | `dotInformation.idNumber` | ✅ **CONFIRMED required** (save attempt #4) | Error: "Object has missing required properties [idNumber]" — this was the ONLY error remaining after the `printedDotInformation` fix, meaning generator, designatedFacility, transporter, and every other waste-line field are now believed fully clean. |
-| `wasteDescription` | ⚠️ accepted but functionally ignored for hazardous waste | API returns a warning: "For hazardous Waste, wasteDescription will be ignored" — `dotInformation.printedDotInformation` is what actually matters for hazardous lines. Presumably still used for non-hazardous lines (untested). |
-| `quantity.quantity` + `quantity.unitOfMeasurement.code` | ⚠️ accepted, not yet flagged as wrong | Used `"P"` for pounds — not confirmed against a lookup endpoint, just never flagged as invalid so far. |
-| `hazardousWaste.federalWasteCodes` | ⚠️ accepted | Used `D001` — never flagged as invalid, but also not yet confirmed as a real requirement (waste line was still failing on `dotInformation` at time of last test, so this field's validation may not have been reached yet). |
-| `lineNumber`, `br`, `pcb`, `epaWaste` | ⚠️ accepted | No errors raised on these; not deeply tested. |
+| `wasteDescription` | ✅ **CONFIRMED dropped, not just ignored** | Save attempt returned a warning: "For hazardous Waste, wasteDescription will be ignored". The follow-up GET confirmed this literally — the field is **entirely absent** from the retrieved waste line, not merely blank/unused. `dotInformation.printedDotInformation` is what actually matters for hazardous lines. Presumably still used for non-hazardous lines (untested). |
+| `quantity.quantity` + `quantity.unitOfMeasurement.code` | ✅ **`"P"` confirmed valid** | GET response enriches this to `{ "code": "P", "description": "Pounds" }` — confirms `"P"` is a real, accepted code without needing a separate lookup call. |
+| `hazardousWaste.federalWasteCodes` | ✅ **`D001` confirmed valid** | GET response enriches this to `{ "code": "D001", "description": "IGNITABLE WASTE" }` — same enrichment pattern as unitOfMeasurement, confirms the code is real and accepted. |
+| `lineNumber`, `br`, `pcb`, `epaWaste` | ✅ accepted, round-trip unchanged | No errors raised; GET shows same values sent. |
+| `quantity.containerType` | ✅ **confirmed optional** | Omitted entirely from the save fixture; GET response shows no `containerType` field at all and no default was applied — omitting it is safe, at least for this waste line shape. |
+
+### Confirmed GET-response behavior (Handler enrichment)
+
+Confirmed via GET on manifest `100091730ELC` (created by our own save,
+2026-07-23): when a `Handler` (generator, transporter, designatedFacility)
+resolves to a real registered `epaSiteId`, RCRAInfo **enriches the record
+with fields we never sent**, in addition to the "will be overridden"
+behavior already documented above:
+
+- `modified` (boolean), `registered` (boolean), `gisPrimary`,
+  `canEsign`, `limitedEsign`, `hasRegisteredEmanifestUser` — all appear
+  on GET even though save input doesn't include them.
+- For the transporter (`VATEST000001`), the registered address and
+  contact came back **completely different** from what we submitted —
+  real address (`2777 SOUTH CRYSTAL DRIVE`) and a real named contact
+  (`SCOTT CHRISTIAN`) replaced our placeholder values entirely. This is
+  the practical effect of the "Registered site was found. Provided site
+  information will be ignored and replaced" warning — worth knowing
+  before assuming placeholder transporter contact info is safe to leave
+  in production payloads.
+- `correctionInfo: { active: true }` appears on GET — **not yet
+  understood**; wasn't sent on save and its meaning/implications are
+  unconfirmed. Flag for investigation before relying on or displaying
+  this field.
+- `electronicSignaturesInfo` appeared on the generator with a
+  `humanReadableDocument` entry (`human-readable.html`, ~155KB) — **this
+  may be relevant to the PDF/printed-document open item** (see session
+  notes on hard-copy manifest generation). Worth checking whether this
+  HTML document is fetchable/downloadable and whether it's EPA's
+  equivalent of the printed 8700-22 form, before building a custom PDF
+  generator from scratch.
 
 ### Known unresolved / open questions
 
 - Is `export` actually required, or was it accepted just because we happened to include it? Try omitting it on a future test.
 - What exactly are valid DOT code values for `properShippingName`, `idNumber`, `hazardClass`, `packingGroup`? Check Swagger's `[All] e-Manifest Lookup Services` section for DOT-related lookup endpoints (the confirmed `retrieveContainerTypes` endpoint suggests siblings likely exist for these).
 - Which specific mailingAddress/siteAddress sub-fields are actually mandatory vs. just filling gaps in the on-file record for this particular test site? Untested against a site with a fully complete on-file record.
-- `status` values other than `"NotAssigned"` — untested.
+- `status` *save-input* values other than `"NotAssigned"` — untested. (Note: `"Scheduled"` is now confirmed as an *output* value the system transitions to automatically.)
+- What does `correctionInfo.active: true` mean, and does it have implications for editing/correcting this manifest later?
+- Is the `electronicSignaturesInfo.humanReadableDocument` (`human-readable.html`) fetchable, and could it satisfy the "printed manifest for the truck driver" requirement instead of building a custom PDF renderer?
+- Why did `originType` come back as `"Service"` when `"Web"` was sent — is this always the case, or specific to how this client's requests are routed?
+
+## Container Type Codes (from EPA manifest instructions — ❓ not yet live-tested)
+
+Source: EPA's official "Instructions for Completing the Uniform Hazardous
+Waste Manifest" (https://www.epa.gov/sites/default/files/2018-05/documents/instructions_for_completing_the_uniform_hazardous_waste_manifest.pdf).
+These are documented valid values for `quantity.containerType.code`, but
+NOT yet confirmed against the live API (e.g. via Swagger's
+`retrieveContainerTypes` lookup endpoint) — treat as reference, not
+verified. The revision-5 fixture doesn't set `containerType` at all, so
+this isn't blocking save attempt #5.
+
+**Drum, Barrel, and Bag Codes**
+| Code | Description |
+|---|---|
+| `DM` | Metal drums, barrels, kegs |
+| `DF` | Fiberboard or plastic drums, barrels, kegs |
+| `DW` | Wooden drums, barrels, kegs |
+| `BA` | Burlap, cloth, paper, or plastic bags |
+
+**Box and Carton Codes**
+| Code | Description |
+|---|---|
+| `CM` | Metal boxes, cartons, cases (including roll-offs) |
+| `CF` | Fiber or plastic boxes, cartons, cases |
+| `CW` | Wooden boxes, cartons, cases |
+
+**Tank and Bulk Codes**
+| Code | Description |
+|---|---|
+| `TT` | Cargo tanks (tank trucks) |
+| `TC` | Tank cars |
+| `TP` | Portable tanks |
+| `DT` | Dump truck |
+| `HG` | Hopper or gondola cars |
+
+**Special Codes**
+| Code | Description |
+|---|---|
+| `CY` | Cylinders |
 
 ---
 
@@ -164,3 +237,24 @@ status.
   to test `getManifest()` for the first time against a manifest we
   actually created (not shared sandbox noise). If it still fails, the
   error will be new territory — update this doc with whatever it reveals.
+- **2026-07-23, session 1 (continued):** Added container type code
+  reference table from EPA's official manifest instructions PDF. Not yet
+  confirmed against the live API's `retrieveContainerTypes` lookup — ❓
+  status until tested.
+- **2026-07-23, session 1 (continued), save attempt #5: SUCCESS.**
+  Fixture revision 5 saved with zero errors on the first try. Returned
+  `manifestTrackingNumber: "100091730ELC"`. Only the two expected/benign
+  warnings appeared (transporter site info overridden, wasteDescription
+  ignored for hazardous waste). Manifest Save marked ✅.
+- **2026-07-23, session 1 (continued), first live `getManifest()` call:**
+  Retrieved `100091730ELC` successfully. Manifest Retrieve marked ✅.
+  Confirmed: `status` auto-transitions `NotAssigned` → `Scheduled`;
+  `originType` came back `"Service"` despite sending `"Web"`;
+  `wasteDescription` is fully dropped (not just ignored) for hazardous
+  lines; `unitOfMeasurement.code: "P"` and `federalWasteCodes: "D001"`
+  both confirmed valid via description enrichment; Handler records get
+  enriched with registration metadata and, for the transporter, entirely
+  replaced address/contact info; an unexplained `correctionInfo.active:
+  true` field appeared; generator carries an `electronicSignaturesInfo`
+  block with a `human-readable.html` document that may be relevant to
+  the still-open printed-manifest/PDF requirement.

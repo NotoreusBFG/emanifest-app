@@ -276,6 +276,51 @@ helper (which always sets `application/json` whenever a body is present).
   manifest specifically (we've only inspected a signed reference manifest
   belonging to a different developer, `100064228ELC`, for that).
 
+### What actually makes a signature legitimate (CROMERR "copy of record")
+
+Confirmed via EPA's own CROMERR guidance
+([Learn about CROMERR](https://www.epa.gov/cromerr/learn-about-cross-media-electronic-reporting-rule-cromerr),
+[Lesson 6: Signature Process](https://www.epa.gov/cromerr/lesson-6-signature-process)):
+**there is no separate "control number" or "confirmation code" for an
+individual signature.** CROMERR defines a "copy of record" as (1) the
+electronic signature logically associated with the document, (2) the
+date/time of receipt, and (3) other info establishing the meaning/
+circumstances of signing — a bundle, not a lookup ID.
+
+That bundle is exactly what appeared on GET after our live signature —
+the full `electronicSignaturesInfo` entry (only partially visible before
+we actually signed anything):
+
+```json
+{
+  "signer": { "firstName": "Matthew", "lastName": "Gemmell", "userId": "NOTOREUSBFG" },
+  "signatureDate": "2026-07-23T20:27:31.362+00:00",
+  "signerRole": "Industry",
+  "signatureMethod": "QuickerSign",
+  "humanReadableDocument": { "name": "human-readable.html", "size": 156362, "mimeType": "TEXT_HTML" }
+}
+```
+
+The `humanReadableDocument` IS the CROMERR "copy of record" artifact —
+`signer.userId` + `signatureDate` bound into that document together are
+what constitute a legitimate signature, not any discrete ID.
+
+**Important scoping finding — Quick Sign vs. full CROMERR are NOT the
+same requirement everywhere:** per EPA's e-Manifest FAQ, Quick Sign
+(what `quicker-sign` implements) and full CROMERR-proofed signatures are
+*legally identical on the printed manifest*, but they apply to different
+steps:
+- **Quick Sign** covers the Generator's, Transporter's, and receiving
+  facility's **initial** signature (what we just tested).
+- **Full CROMERR identity-proofed signing** is specifically required for
+  the **designated facility's final certification submitted to EPA**,
+  and for **post-receipt corrections**.
+
+This matters for ManifestMate's scope: the heavier CROMERR identity-
+proofing UX (security questions, registered-user identity verification,
+etc.) is only strictly needed at the TSDF's final-certification step —
+not for every signature in the chain.
+
 ## Manifest Update ✅
 
 `PUT /emanifest/manifest/update` ✅ — confirmed live 2026-07-23 on `100091730ELC`
@@ -467,3 +512,14 @@ lookup endpoint — treat as reference, not verified, except where noted.
   required on Update despite being optional on Save. Updated
   `manifest-fixtures.ts` to revision 6 with both fields included from the
   start.
+- **2026-07-23, session 2 (continued):** Researched what legally
+  constitutes a legitimate signature. Confirmed via EPA's own CROMERR
+  guidance there's no discrete "control number" — the legal record is
+  the `electronicSignaturesInfo` bundle (signer identity + timestamp +
+  the `humanReadableDocument` copy-of-record artifact), now fully visible
+  on GET after our live Generator signature. Also confirmed Quick Sign
+  (what `quicker-sign` implements) is legally equivalent to full CROMERR
+  signing for the Generator/Transporter/receiving-facility's *initial*
+  signature — full CROMERR identity-proofing is only strictly required
+  for the designated facility's *final* certification to EPA and for
+  post-receipt corrections. See "Manifest Signing" section.

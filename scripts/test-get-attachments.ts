@@ -10,13 +10,15 @@ async function main() {
     },
   });
 
-  const parts = await client.getManifestAttachments("100091730ELC");
+  const mtn = process.argv[2] ?? "100091730ELC";
+  const parts = await client.getManifestAttachments(mtn);
+  console.log(`MTN: ${mtn}`);
   console.log(`Got ${parts.length} part(s):`);
 
   for (const [i, part] of parts.entries()) {
     console.log(`\nPart ${i}: contentType=${part.contentType} contentDisposition=${part.contentDisposition ?? "(none)"}`);
     if (part.contentType === "application/octet-stream" && Buffer.isBuffer(part.data)) {
-      const outPath = `/tmp/manifest-attachment-${i}.zip`;
+      const outPath = `/tmp/manifest-attachment-${mtn}-${i}.zip`;
       writeFileSync(outPath, part.data);
       console.log(`  Wrote ${part.data.length} bytes to ${outPath}`);
     } else {

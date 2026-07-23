@@ -272,3 +272,65 @@ export interface Manifest extends NewManifestInput {
   /** Catch-all for the many additional fields (rejectionInfo, importInfo, exportInfo, correctionInfo, etc.) not modeled here. */
   [key: string]: unknown;
 }
+
+/**
+ * Parameters for POST /emanifest/manifest/quicker-sign — a simplified
+ * electronic signature endpoint (as opposed to full CROMERR identity-proofed
+ * signing).
+ *
+ * CONFIRMED LIVE 2026-07-23. Field is `siteId` (lowercase d) — matches
+ * EPA's published JSON schema
+ * (`Services-Information/Schema/quicker sign.json` in the public
+ * USEPA/e-manifest repo), NOT the `siteID` used in that same repo's
+ * `emanifest-js/src/types.ts` reference client — the two disagree with
+ * each other. `siteType` values confirmed: `"Generator"` works; the
+ * others are documented but untested by us.
+ *
+ * IMPORTANT: the actual signer identity (name, EPA userId) that ends up
+ * on the manifest comes from whichever API credentials made the call —
+ * NOT from `printedSignatureName`, which is just a printed/display value
+ * on the form. `printedSignatureDate` also gets silently normalized to
+ * noon UTC of the given day regardless of the time portion sent.
+ */
+export interface QuickerSignParameters {
+  siteId: string;
+  siteType: "Generator" | "Transporter" | "Tsdf" | "RejectionInfo_AlternateTsdf";
+  printedSignatureName: string;
+  /** ISO 8601, e.g. "2026-07-23T12:00:00.000Z" — silently normalized to noon UTC of this date regardless. */
+  printedSignatureDate: string;
+  manifestTrackingNumbers: string[];
+  /** Required only when siteType is "Transporter" — matches the transporter's `order` field on the manifest. */
+  transporterOrder?: number;
+}
+
+/**
+ * Response shape for POST /emanifest/manifest/quicker-sign — CONFIRMED
+ * live 2026-07-23. `operationStatus` came back as `"Completed"`, which is
+ * NOT one of the three values EPA's own JSON schema documents
+ * (`"AllSigned" | "PartiallySigned" | "Failed"`) — treat that enum as
+ * unreliable/incomplete.
+ */
+export interface QuickerSignResult {
+  reportId: string;
+  date: string;
+  operationStatus: string;
+  manifestReports: Array<{
+    manifestTrackingNumber: string;
+    manifestSigned?: { message: string };
+    manifestError?: { message: string; field?: string; value?: string };
+  }>;
+  signerReport: {
+    printedSignatureName: string;
+    printedSignatureDate: string;
+    electronicSignatureDate: string;
+    firstName: string;
+    lastName: string;
+    userId: string;
+    warnings?: Array<{ field: string; message: string; value?: string; id?: unknown }>;
+  };
+  siteReport: {
+    siteId: string;
+    siteType: string;
+    transporterOrder?: number;
+  };
+}

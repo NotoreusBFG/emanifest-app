@@ -200,7 +200,80 @@ script `scripts/test-get-attachments.ts`.
 - Does `correctionInfo.active` flip to `false` on the superseded version, and does `versionNumber` increment as expected, once we actually test a real manifest correction? (Meaning is understood from EPA's schema comments, but not yet observed live.)
 - Why did `originType` come back as `"Service"` when `"Web"` was sent — is this always the case, or specific to how this client's requests are routed?
 - Does `form-2050.pdf` regenerate/update if the manifest is corrected after signing, or is it a snapshot from generation time?
-- Is this attachments endpoint available before all signatures are collected (e.g. at `Scheduled` status, as tested here), or only once `Signed`?
+
+## Manifest Signing (`quicker-sign`) ✅
+
+`POST /emanifest/manifest/quicker-sign` ✅ — confirmed live 2026-07-23,
+Generator signature on `100091730ELC`
+
+**Not in Swagger at all.** Found via EPA's public
+[USEPA/e-manifest](https://github.com/USEPA/e-manifest) repo, but that repo
+contains **two disagreeing sources** for this endpoint's shape:
+- `Services-Information/Schema/quicker sign.json` (the formal JSON schema) — uses `siteId`
+- `emanifest-js/src/types.ts` (the reference TS client) — uses `siteID`
+
+**`siteId` (the JSON schema's naming) is correct** — confirmed by testing
+both.
+
+### The real blocker: Content-Type
+
+Every attempt with `Content-Type: application/json` — even a byte-perfect
+JSON body — failed with a generic Tomcat **415 Unsupported Media Type**,
+regardless of exact field names. Confirmed this wasn't a fetch/Node quirk
+by reproducing it with raw `curl` too. The fix, found essentially by
+elimination: **this endpoint wants `Content-Type: text/plain;charset=UTF-8`**
+for a JSON-stringified body. Genuinely undocumented anywhere we could find
+— not in Swagger, not in either GitHub source. `RcrainfoClient.signManifest()`
+sets this explicitly rather than going through the generic `request()`
+helper (which always sets `application/json` whenever a body is present).
+
+### Confirmed request shape
+
+```ts
+{
+  siteId: "VAD000532119",
+  siteType: "Generator", // "Transporter" and "Tsdf" documented but untested by us; "RejectionInfo_AlternateTsdf" also documented
+  printedSignatureName: "Test Contact",
+  printedSignatureDate: "2026-07-23T20:23:21.023Z",
+  manifestTrackingNumbers: ["100091730ELC"],
+  // transporterOrder: 1, // required only when siteType is "Transporter"
+}
+```
+
+### Confirmed response shape and behavior
+
+- `operationStatus: "Completed"` came back — **NOT** one of the three
+  values EPA's own JSON schema documents (`"AllSigned" | "PartiallySigned"
+  | "Failed"`). Treat that enum as incomplete/unreliable.
+- `signerReport.firstName` / `.lastName` / `.userId` reflect **whichever
+  API credentials made the call** (`"Matthew Gemmell"` / `"NOTOREUSBFG"`
+  in our test) — **NOT** the submitted `printedSignatureName` (`"Test
+  Contact"`). The printed name is a display value only; the actual signer
+  identity is bound to the authenticated API caller. Important for
+  ManifestMate's UX/legal framing — whoever's API key is configured for a
+  site IS the legal signer, regardless of what name is typed in.
+- `signerReport.printedSignatureDate` gets silently normalized to **noon
+  UTC of the given date**, discarding whatever time-of-day was sent — a
+  warning in the response confirms this explicitly.
+- Confirmed the manifest's actual state DOES change immediately:
+  - `generator.paperSignatureInfo` appeared on GET with the printed
+    name/date.
+  - Re-fetching `/attachments` afterward: the generator's PDF signature
+    field (`15-2_signature`) now reads **"Provided by Matthew Gemmell"**
+    (again, the real API-caller identity, not `printedSignatureName`).
+  - A new `cor-t-1-human-readable.html` (transporter's document) appeared
+    in the attachments zip **even though the transporter hasn't signed
+    yet** — looks like it's generated proactively once the workflow
+    advances to that party, not strictly gated on that party's actual
+    signature.
+  - Top-level `status` remains `"Scheduled"` after only the generator has
+    signed — confirms the attachments/PDF endpoint **is available
+    mid-workflow**, before full signing completes, not just once
+    `"Signed"`.
+- Not yet tested: signing as `"Transporter"` (with `transporterOrder`) or
+  `"Tsdf"`, and what the final fully-signed state looks like on THIS
+  manifest specifically (we've only inspected a signed reference manifest
+  belonging to a different developer, `100064228ELC`, for that).
 
 ## Container Type Codes (from EPA manifest instructions — ❓ not yet live-tested)
 
@@ -314,3 +387,17 @@ this isn't blocking save attempt #5.
   schema comments in `Services-Information/Schema/emanifest.json` — see
   "Confirmed GET-response behavior" above for the full explanation.
   RCRAInfo API key rotated.
+- **2026-07-23, session 2 (continued), first live `quicker-sign` call:**
+  Signed `100091730ELC` as Generator (`VAD000532119`). Took several failed
+  attempts to find the right request shape — see "Manifest Signing"
+  section for the full story, but in short: the `siteId` field naming
+  (not `siteID`), and critically the required
+  `Content-Type: text/plain;charset=UTF-8` (NOT `application/json`,
+  which gets a blanket 415 from this endpoint specifically). Confirmed
+  the real signer identity comes from the API caller's credentials, not
+  the submitted `printedSignatureName`. Also used the shared sandbox's
+  noisy MTN list productively for once: sampled ~45 MTNs at
+  `VAD000532119` and found 19 already-`Signed` manifests, inspected one
+  (`100064228ELC`, not ours) to see what a fully-signed PDF/attachments
+  response looks like as a safe, read-only reference before signing our
+  own.

@@ -24,6 +24,8 @@ import type {
   CachedToken,
   Manifest,
   NewManifestInput,
+  QuickerSignParameters,
+  QuickerSignResult,
   RcrainfoCredentials,
   RcrainfoEnvironment,
   SiteDetails,
@@ -226,6 +228,41 @@ export class RcrainfoClient {
 
     const buffer = Buffer.from(await res.arrayBuffer());
     return parseMultipartMixed(buffer, boundary);
+  }
+
+  /**
+   * POST /emanifest/manifest/quicker-sign
+   *
+   * CONFIRMED LIVE 2026-07-23. Does NOT use the generic `request()` helper
+   * because this endpoint is oddly picky about Content-Type: sending
+   * `application/json` (what `request()` always sets when a body is
+   * present) gets rejected with a generic Tomcat 415, even though the body
+   * IS JSON. It only works with `Content-Type: text/plain;charset=UTF-8`.
+   * Undocumented anywhere — found by trial and error after `request()`
+   * failed. See `QuickerSignParameters` for other field-naming gotchas.
+   */
+  async signManifest(params: QuickerSignParameters): Promise<QuickerSignResult> {
+    const token = await this.getToken();
+    const res = await fetch(`${this.baseUrl}/emanifest/manifest/quicker-sign`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "text/plain;charset=UTF-8",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!res.ok) {
+      const body = await safeJson(res);
+      throw new RcrainfoApiError(
+        `RCRAInfo quicker-sign failed -> ${res.status}`,
+        res.status,
+        body
+      );
+    }
+
+    return (await res.json()) as QuickerSignResult;
   }
 }
 

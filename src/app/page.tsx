@@ -1,46 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 
 const primaryButton =
   "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold text-white shadow-sm transition hover:opacity-90 bg-gradient-to-r from-brand-blue to-brand-green";
 const secondaryButton =
   "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold border-2 border-brand-blue text-brand-blue transition hover:bg-brand-tint";
 
-export default async function Home() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export default function Home() {
   return (
     <div className="flex flex-col flex-1">
-      <header className="flex items-center justify-between px-6 py-6 sm:px-12">
-        <Image
-          src="/manifestmate-logo.jpg"
-          alt="ManifestMate"
-          width={340}
-          height={95}
-          priority
-        />
-        {user ? (
-          <Link href="/manifests" className="font-medium text-brand-blue hover:underline">
-            Go to your manifests →
-          </Link>
-        ) : (
-          <Link href="/login" className="font-medium text-brand-blue hover:underline">
-            Sign in
-          </Link>
-        )}
-      </header>
-
       <main className="flex-1">
         {/* Hero */}
         <section className="relative overflow-hidden px-6 py-16 sm:px-12 sm:py-20 bg-brand-tint">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -left-32 -bottom-32 h-96 w-[40rem] rounded-full bg-gradient-to-r from-brand-blue to-brand-green opacity-20 blur-3xl"
-          />
           <div className="relative mx-auto max-w-3xl text-center">
             <Image
               src="/manifestmate-icon-flow.png"

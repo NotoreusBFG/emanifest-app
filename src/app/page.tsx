@@ -15,12 +15,12 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col flex-1">
-      <header className="flex items-center justify-between px-6 py-5 sm:px-12">
+      <header className="flex items-center justify-between px-6 py-6 sm:px-12">
         <Image
           src="/manifestmate-logo.jpg"
           alt="ManifestMate"
-          width={220}
-          height={61}
+          width={340}
+          height={95}
           priority
         />
         {user ? (
@@ -36,9 +36,21 @@ export default async function Home() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="px-6 py-16 sm:px-12 sm:py-24 bg-brand-tint">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-brand-teal">
+        <section className="relative overflow-hidden px-6 py-16 sm:px-12 sm:py-20 bg-brand-tint">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-32 -bottom-32 h-96 w-[40rem] rounded-full bg-gradient-to-r from-brand-blue to-brand-green opacity-20 blur-3xl"
+          />
+          <div className="relative mx-auto max-w-3xl text-center">
+            <Image
+              src="/manifestmate-icon-flow.png"
+              alt="Hazardous waste tracked from drum, to transport, to disposal facility"
+              width={1610}
+              height={280}
+              className="mx-auto h-auto w-full max-w-2xl"
+              priority
+            />
+            <p className="mt-8 mb-4 text-sm font-semibold uppercase tracking-wide text-brand-teal">
               For generators new to hazardous waste manifesting
             </p>
             <h1 className="text-4xl sm:text-5xl font-bold text-brand-navy leading-tight">

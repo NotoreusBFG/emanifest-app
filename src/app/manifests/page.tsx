@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { lookupManifestAction, type LookupManifestState } from "@/app/actions/manifestActions";
 import type { Manifest } from "@/lib/rcrainfo/types";
+import { brand, brandGradient } from "@/lib/brandColors";
 
 const inputStyle = {
   width: "100%",
@@ -21,10 +22,10 @@ export default function ManifestLookupPage() {
   return (
     <div style={{ maxWidth: "600px", margin: "40px auto", fontFamily: "sans-serif" }}>
       <p style={{ display: "flex", justifyContent: "space-between" }}>
-        <Link href="/settings" style={{ color: "#0070f3" }}>← Settings</Link>
-        <Link href="/manifests/new" style={{ color: "#0070f3" }}>+ Create new manifest</Link>
+        <Link href="/settings" style={{ color: brand.blue }}>← Settings</Link>
+        <Link href="/manifests/new" style={{ color: brand.blue }}>+ Create new manifest</Link>
       </p>
-      <h1>Look up a manifest</h1>
+      <h1 style={{ color: brand.navy }}>Look up a manifest</h1>
       <p style={{ color: "#666" }}>
         Enter an e-Manifest tracking number to see its current status.
       </p>
@@ -42,10 +43,11 @@ export default function ManifestLookupPage() {
           disabled={isPending}
           style={{
             padding: "8px 16px",
-            backgroundColor: isPending ? "#ccc" : "#0070f3",
+            background: isPending ? "#ccc" : brandGradient,
             color: "white",
             border: "none",
             borderRadius: "4px",
+            fontWeight: 600,
             cursor: isPending ? "not-allowed" : "pointer",
           }}
         >
@@ -66,8 +68,8 @@ export default function ManifestLookupPage() {
 
 function ManifestSummary({ manifest }: { manifest: Manifest }) {
   return (
-    <div style={{ border: "1px solid #ddd", borderRadius: "6px", padding: "20px" }}>
-      <h2 style={{ marginTop: 0 }}>{manifest.manifestTrackingNumber}</h2>
+    <div style={{ border: `1px solid ${brand.tint}`, borderRadius: "6px", padding: "20px", backgroundColor: "#fff" }}>
+      <h2 style={{ marginTop: 0, color: brand.navy }}>{manifest.manifestTrackingNumber}</h2>
       <p>
         <strong>Status:</strong> {manifest.status}
         {" · "}
@@ -79,10 +81,10 @@ function ManifestSummary({ manifest }: { manifest: Manifest }) {
         {manifest.receivedDate && <> · Received {formatDate(manifest.receivedDate)}</>}
       </p>
 
-      <h3>Generator</h3>
+      <h3 style={{ color: brand.navy }}>Generator</h3>
       <p>{manifest.generator.name} ({manifest.generator.epaSiteId})</p>
 
-      <h3>Transporter{manifest.transporters.length > 1 ? "s" : ""}</h3>
+      <h3 style={{ color: brand.navy }}>Transporter{manifest.transporters.length > 1 ? "s" : ""}</h3>
       <ul>
         {manifest.transporters.map((t, i) => (
           <li key={i}>
@@ -91,12 +93,12 @@ function ManifestSummary({ manifest }: { manifest: Manifest }) {
         ))}
       </ul>
 
-      <h3>Designated facility</h3>
+      <h3 style={{ color: brand.navy }}>Designated facility</h3>
       <p>
         {manifest.designatedFacility.name} ({manifest.designatedFacility.epaSiteId})
       </p>
 
-      <h3>Waste lines</h3>
+      <h3 style={{ color: brand.navy }}>Waste lines</h3>
       <ul>
         {manifest.wastes.map((w) => (
           <li key={w.lineNumber}>
@@ -108,7 +110,7 @@ function ManifestSummary({ manifest }: { manifest: Manifest }) {
 
       <a
         href={`/api/manifests/${manifest.manifestTrackingNumber}/attachments`}
-        style={{ color: "#0070f3" }}
+        style={{ color: brand.blue }}
       >
         Download attachments (PDF + docs, .zip)
       </a>

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { signInAction, signUpAction } from "@/app/actions/authActions";
+import { brand, brandGradient } from "@/lib/brandColors";
 
 type ActionState = { success: boolean; error?: string; message?: string } | null;
 
@@ -31,7 +32,7 @@ export default function LoginPage() {
 
   return (
     <div style={{ maxWidth: "400px", margin: "40px auto", fontFamily: "sans-serif" }}>
-      <h1>Sign in</h1>
+      <h1 style={{ color: brand.navy }}>Sign in</h1>
       <form
         action={signInFormAction}
         style={{ display: "flex", flexDirection: "column", gap: "15px" }}
@@ -65,10 +66,11 @@ export default function LoginPage() {
           disabled={signInPending}
           style={{
             padding: "10px",
-            backgroundColor: signInPending ? "#ccc" : "#0070f3",
+            background: signInPending ? "#ccc" : brandGradient,
             color: "white",
             border: "none",
             borderRadius: "4px",
+            fontWeight: 600,
             cursor: signInPending ? "not-allowed" : "pointer",
           }}
         >
@@ -77,9 +79,9 @@ export default function LoginPage() {
         <SubmitState state={signInState} />
       </form>
 
-      <hr style={{ margin: "30px 0" }} />
+      <hr style={{ margin: "30px 0", borderColor: brand.tint }} />
 
-      <h2>New here?</h2>
+      <h2 style={{ color: brand.navy }}>New here?</h2>
       <form
         action={signUpFormAction}
         style={{ display: "flex", flexDirection: "column", gap: "15px" }}
@@ -114,10 +116,11 @@ export default function LoginPage() {
           disabled={signUpPending}
           style={{
             padding: "10px",
-            backgroundColor: signUpPending ? "#ccc" : "#333",
-            color: "white",
-            border: "none",
+            backgroundColor: "white",
+            color: signUpPending ? "#ccc" : brand.blue,
+            border: `2px solid ${signUpPending ? "#ccc" : brand.blue}`,
             borderRadius: "4px",
+            fontWeight: 600,
             cursor: signUpPending ? "not-allowed" : "pointer",
           }}
         >

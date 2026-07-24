@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { createManifestAction, type CreateManifestState } from "@/app/actions/manifestActions";
+import { brand, brandGradient } from "@/lib/brandColors";
 
 const inputStyle = {
   width: "100%",
@@ -141,9 +142,9 @@ export default function NewManifestPage() {
   return (
     <div style={{ maxWidth: "700px", margin: "40px auto", fontFamily: "sans-serif" }}>
       <p>
-        <Link href="/manifests" style={{ color: "#0070f3" }}>← Look up a manifest</Link>
+        <Link href="/manifests" style={{ color: brand.blue }}>← Look up a manifest</Link>
       </p>
-      <h1>Create a new manifest</h1>
+      <h1 style={{ color: brand.navy }}>Create a new manifest</h1>
       <p style={{ color: "#666" }}>
         Preprod sandbox only. Fields are pre-filled with a known-good EPA test site — edit as
         needed. Empty waste-line slots are skipped automatically, so it&apos;s fine to leave most
@@ -155,7 +156,7 @@ export default function NewManifestPage() {
         <div style={{ border: "1px solid #cde9cd", borderRadius: "6px", padding: "12px", marginBottom: "10px" }}>
           <p style={{ color: "green", margin: 0 }}>
             ✅ Saved as <strong>{state.manifestTrackingNumber}</strong> —{" "}
-            <Link href="/manifests" style={{ color: "#0070f3" }}>look it up</Link>
+            <Link href="/manifests" style={{ color: brand.blue }}>look it up</Link>
           </p>
           {state.warnings.length > 0 && (
             <div style={{ marginTop: "10px" }}>
@@ -180,7 +181,7 @@ export default function NewManifestPage() {
         />
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
-          <legend style={{ padding: "0 8px" }}>Generator</legend>
+          <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Generator</legend>
           <div style={row}>
             <div style={field}>
               <label style={label}>EPA Site ID</label>
@@ -302,7 +303,7 @@ export default function NewManifestPage() {
         </fieldset>
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
-          <legend style={{ padding: "0 8px" }}>Transporter</legend>
+          <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Transporter</legend>
           <div style={row}>
             <div style={field}>
               <label style={label}>EPA Site ID</label>
@@ -328,7 +329,7 @@ export default function NewManifestPage() {
         </fieldset>
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
-          <legend style={{ padding: "0 8px" }}>Designated facility</legend>
+          <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Designated facility</legend>
           <div style={row}>
             <div style={field}>
               <label style={label}>EPA Site ID</label>
@@ -454,7 +455,7 @@ export default function NewManifestPage() {
             key={line.id}
             style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}
           >
-            <legend style={{ padding: "0 8px" }}>
+            <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>
               Waste line {index + 1} ({continuationLabel(index)})
             </legend>
 
@@ -614,9 +615,10 @@ export default function NewManifestPage() {
             marginBottom: "20px",
             padding: "8px 16px",
             backgroundColor: "white",
-            color: "#0070f3",
-            border: "1px solid #0070f3",
+            color: brand.blue,
+            border: `1px solid ${brand.blue}`,
             borderRadius: "4px",
+            fontWeight: 600,
             cursor: "pointer",
           }}
         >
@@ -643,10 +645,11 @@ export default function NewManifestPage() {
           disabled={isPending}
           style={{
             padding: "10px 20px",
-            backgroundColor: isPending ? "#ccc" : "#0070f3",
+            background: isPending ? "#ccc" : brandGradient,
             color: "white",
             border: "none",
             borderRadius: "4px",
+            fontWeight: 600,
             cursor: isPending ? "not-allowed" : "pointer",
           }}
         >

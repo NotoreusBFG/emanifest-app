@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import Link from 'next/link';
 import { saveEpaSettingsAction } from '@/app/actions/epaActions';
 import { signOutAction } from '@/app/actions/authActions';
+import { brand, brandGradient } from '@/lib/brandColors';
 
 export default function EpaSettingsPage() {
   // 2. 'useActionState' connects our form to the Server Action.
@@ -15,9 +16,9 @@ export default function EpaSettingsPage() {
   return (
     <div style={{ maxWidth: '400px', margin: '40px auto', fontFamily: 'sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1>EPA Settings</h1>
+        <h1 style={{ color: brand.navy }}>EPA Settings</h1>
         <form action={signOutAction}>
-          <button type="submit" style={{ background: 'none', border: 'none', color: '#0070f3', cursor: 'pointer' }}>
+          <button type="submit" style={{ background: 'none', border: 'none', color: brand.blue, cursor: 'pointer' }}>
             Sign out
           </button>
         </form>
@@ -53,13 +54,14 @@ export default function EpaSettingsPage() {
         <button 
           type="submit" 
           disabled={isPending}
-          style={{ 
-            padding: '10px', 
-            backgroundColor: isPending ? '#ccc' : '#0070f3', 
-            color: 'white', 
-            border: 'none', 
+          style={{
+            padding: '10px',
+            background: isPending ? '#ccc' : brandGradient,
+            color: 'white',
+            border: 'none',
             borderRadius: '4px',
-            cursor: isPending ? 'not-allowed' : 'pointer' 
+            fontWeight: 600,
+            cursor: isPending ? 'not-allowed' : 'pointer'
           }}
         >
           {isPending ? 'Saving Securely...' : 'Save Credentials'}
@@ -75,7 +77,7 @@ export default function EpaSettingsPage() {
       </form>
 
       <p style={{ marginTop: '20px' }}>
-        <Link href="/manifests" style={{ color: '#0070f3' }}>Look up a manifest →</Link>
+        <Link href="/manifests" style={{ color: brand.blue }}>Look up a manifest →</Link>
       </p>
     </div>
   );

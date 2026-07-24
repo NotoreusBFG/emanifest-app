@@ -644,3 +644,14 @@ lookup endpoint — treat as reference, not verified, except where noted.
   `/V` values against a controlled hazardous/non-hazardous mix — the
   reported "missing X" was likely the VS Code PDF preview extension
   (PDF.js-based) not rendering checkbox appearance streams, not a data bug.
+- **2026-07-23, session 2 (continued), two more real bugs from live user
+  testing:** (1) A waste line with a description but blank quantity/unit/
+  container was still submitted, sending empty strings that RCRAInfo
+  hard-rejects (`Instance value ("") not found in enum`, `String "" is
+  too short`) — now validated client-action-side before calling the API,
+  with a specific "waste line N is missing X" error instead of a raw API
+  dump. (2) The federal waste code field only supported one code;
+  RCRAInfo rejected a comma-separated list typed into it as an invalid
+  single-code format (`"Invalid Field Format...value":"D001, D003, F002,
+  F005"`) — fixed to split on commas into multiple `federalWasteCodes[]`
+  entries, confirmed live with 3 codes on one line, zero errors.

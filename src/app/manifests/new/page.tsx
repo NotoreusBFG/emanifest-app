@@ -294,7 +294,7 @@ export default function NewManifestPage() {
                       />
                     </div>
                     <div style={field}>
-                      <label style={label}>Federal waste code (optional — leave blank if none)</label>
+                      <label style={label}>Federal waste codes (optional — comma-separated, e.g. "D001, D003")</label>
                       <input
                         name={`federalWasteCode_${id}`}
                         defaultValue={index === 0 ? "D001" : ""}
@@ -310,6 +310,10 @@ export default function NewManifestPage() {
                 </div>
               )}
 
+              <p style={{ fontSize: "13px", color: "#888", margin: "0 0 8px" }}>
+                Quantity, unit, container count, and container type are all required once this
+                line has a description.
+              </p>
               <div style={row}>
                 <div style={field}>
                   <label style={label}>Quantity</label>

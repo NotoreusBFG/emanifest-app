@@ -126,78 +126,107 @@ export async function createManifestAction(
     additionalInfo: f("handlingInstructions")
       ? { handlingInstructions: f("handlingInstructions") }
       : undefined,
-    // Waste lines are a flat array however many there are — RCRAInfo has no
-    // "page"/"continuation" concept at all and auto-paginates the generated
-    // PDF itself (confirmed live: 4 lines/1 page, 6 lines/2 pages, 15
-    // lines/3 pages, all without us doing anything page-related). Slots
-    // with no description entered are treated as unused and dropped, so
-    // the form can show 4+ empty slots without forcing every one to be filled.
-    wastes: (formData.get("wasteLineIds") as string)
-      .split(",")
-      .filter(Boolean)
-      .map((id): Omit<WasteLine, "lineNumber"> | null => {
-        const w = (name: string) => (formData.get(`${name}_${id}`) as string)?.trim() ?? "";
-        const isHazardous = formData.get(`dotHazardous_${id}`) === "on";
-        const quantity = {
-          quantity: Number(w("quantity")) || 0,
-          unitOfMeasurement: { code: w("unitCode") },
-          containerNumber: Number(w("containerNumber")) || 1,
-          containerType: { code: w("containerTypeCode") },
-        };
-
-        if (isHazardous) {
-          const properShippingName = w("properShippingName");
-          if (!properShippingName) return null; // unused slot
-
-          const idNumberCode = w("idNumberCode");
-          const rq = formData.get(`rqIndicator_${id}`) === "on";
-          // ID number listed first per request — DOT (49 CFR 172.202(b))
-          // permits the ID number either immediately before or after the
-          // shipping description; this composes it in that order rather
-          // than relying on the user to type the whole string correctly.
-          const printedDotInformation = [
-            idNumberCode || null,
-            rq ? "RQ" : null,
-            properShippingName,
-            w("hazardClass") || null,
-            w("packingGroup") ? `PG ${w("packingGroup")}` : null,
-          ]
-            .filter(Boolean)
-            .join(", ");
-
-          return {
-            dotHazardous: true,
-            wasteDescription: properShippingName, // ignored by RCRAInfo for hazardous lines, but still a required field
-            quantity,
-            dotInformation: { printedDotInformation, idNumber: { code: idNumberCode } },
-            hazardousWaste: w("federalWasteCode")
-              ? { federalWasteCodes: [{ code: w("federalWasteCode") }] }
-              : undefined,
-            br: false,
-            pcb: false,
-            epaWaste: true, // CONFIRMED: can only be true when dotHazardous is true
-          };
-        }
-
-        const wasteDescription = w("wasteDescription");
-        if (!wasteDescription) return null; // unused slot
-
-        return {
-          dotHazardous: false,
-          wasteDescription,
-          quantity,
-          br: false,
-          pcb: false,
-          epaWaste: false, // CONFIRMED: RCRAInfo rejects true here when dotHazardous is false
-        };
-      })
-      .filter((w): w is Omit<WasteLine, "lineNumber"> => w !== null)
-      .map((w, index) => ({ ...w, lineNumber: index + 1 })),
+    wastes: [], // filled in below, after validation
   };
 
-  if (input.wastes.length === 0) {
+  // Waste lines are a flat array however many there are — RCRAInfo has no
+  // "page"/"continuation" concept at all and auto-paginates the generated
+  // PDF itself (confirmed live: 4 lines/1 page, 6 lines/2 pages, 15
+  // lines/3 pages, all without us doing anything page-related). Slots with
+  // no description entered are treated as unused and dropped, so the form
+  // can show 4+ empty slots without forcing every one to be filled — but a
+  // line that IS used must have quantity/unit/container filled in, or
+  // RCRAInfo hard-rejects it with an empty-string schema error. Validated
+  // here, before calling the API, so the user gets a specific "line 3 is
+  // missing X" message instead of a raw API error dump.
+  const wasteLineIds = (formData.get("wasteLineIds") as string).split(",").filter(Boolean);
+  const wastes: WasteLine[] = [];
+  const lineErrors: string[] = [];
+
+  for (const id of wasteLineIds) {
+    const w = (name: string) => (formData.get(`${name}_${id}`) as string)?.trim() ?? "";
+    const isHazardous = formData.get(`dotHazardous_${id}`) === "on";
+    const properShippingName = w("properShippingName");
+    const wasteDescription = w("wasteDescription");
+    const description = isHazardous ? properShippingName : wasteDescription;
+    if (!description) continue; // unused slot
+
+    const displayLineNumber = wastes.length + 1;
+    const quantity = Number(w("quantity"));
+    const unitCode = w("unitCode");
+    const containerNumber = Number(w("containerNumber"));
+    const containerTypeCode = w("containerTypeCode");
+    if (!quantity || !unitCode || !containerNumber || !containerTypeCode) {
+      lineErrors.push(
+        `Waste line ${displayLineNumber}: quantity, unit code, container count, and container type code are all required once a description is entered.`
+      );
+      continue;
+    }
+
+    const quantityField = {
+      quantity,
+      unitOfMeasurement: { code: unitCode },
+      containerNumber,
+      containerType: { code: containerTypeCode },
+    };
+
+    // Multiple codes are common on a real waste line (e.g. "D001, D003") —
+    // split on commas rather than only supporting one, which RCRAInfo
+    // rejects outright as an invalid single code format.
+    const federalWasteCodes = w("federalWasteCode")
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .map((code) => ({ code }));
+
+    if (isHazardous) {
+      const idNumberCode = w("idNumberCode");
+      const rq = formData.get(`rqIndicator_${id}`) === "on";
+      // ID number listed first per request — DOT (49 CFR 172.202(b))
+      // permits the ID number either immediately before or after the
+      // shipping description; this composes it in that order rather
+      // than relying on the user to type the whole string correctly.
+      const printedDotInformation = [
+        idNumberCode || null,
+        rq ? "RQ" : null,
+        properShippingName,
+        w("hazardClass") || null,
+        w("packingGroup") ? `PG ${w("packingGroup")}` : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      wastes.push({
+        lineNumber: displayLineNumber,
+        dotHazardous: true,
+        wasteDescription: properShippingName, // ignored by RCRAInfo for hazardous lines, but still a required field
+        quantity: quantityField,
+        dotInformation: { printedDotInformation, idNumber: { code: idNumberCode } },
+        hazardousWaste: federalWasteCodes.length ? { federalWasteCodes } : undefined,
+        br: false,
+        pcb: false,
+        epaWaste: true, // CONFIRMED: can only be true when dotHazardous is true
+      });
+    } else {
+      wastes.push({
+        lineNumber: displayLineNumber,
+        dotHazardous: false,
+        wasteDescription,
+        quantity: quantityField,
+        br: false,
+        pcb: false,
+        epaWaste: false, // CONFIRMED: RCRAInfo rejects true here when dotHazardous is false
+      });
+    }
+  }
+
+  if (lineErrors.length > 0) {
+    return { success: false, error: lineErrors.join(" ") };
+  }
+  if (wastes.length === 0) {
     return { success: false, error: "Add at least one waste line with a description." };
   }
+  input.wastes = wastes;
 
   try {
     const client = await getRcrainfoClientForUser(supabase, user.id);

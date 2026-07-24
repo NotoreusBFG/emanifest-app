@@ -25,32 +25,117 @@ function continuationLabel(index: number): string {
   return `continuation sheet ${sheetNumber}`;
 }
 
+interface HandlerFormState {
+  epaSiteId: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  emergencyPhone: string;
+  address1: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
+const DEFAULT_SITE: HandlerFormState = {
+  epaSiteId: "VAD000532119",
+  name: "TEST TSDF OF VA",
+  firstName: "Test",
+  lastName: "Contact",
+  phone: "703-555-0100",
+  email: "test-contact@example.com",
+  emergencyPhone: "703-555-0199",
+  address1: "123 MAIN ST",
+  city: "ARLINGTON",
+  state: "VA",
+  zip: "22202",
+};
+
+interface TransporterFormState {
+  epaSiteId: string;
+  name: string;
+}
+
+const DEFAULT_TRANSPORTER: TransporterFormState = {
+  epaSiteId: "VATEST000001",
+  name: "TEST TRANSPORTER 1 OF VA",
+};
+
+interface WasteLineFormState {
+  id: number;
+  dotHazardous: boolean;
+  properShippingName: string;
+  rqIndicator: boolean;
+  hazardClass: string;
+  packingGroup: string;
+  idNumberCode: string;
+  federalWasteCode: string;
+  wasteDescription: string;
+  quantity: string;
+  unitCode: string;
+  containerNumber: string;
+  containerTypeCode: string;
+}
+
+function emptyWasteLine(id: number, prefill: boolean): WasteLineFormState {
+  return {
+    id,
+    dotHazardous: true,
+    properShippingName: prefill ? "Waste flammable liquids, n.o.s. (contains xylene)" : "",
+    rqIndicator: prefill,
+    hazardClass: prefill ? "3" : "",
+    packingGroup: prefill ? "II" : "",
+    idNumberCode: prefill ? "UN1993" : "",
+    federalWasteCode: prefill ? "D001" : "",
+    wasteDescription: "",
+    quantity: prefill ? "1" : "",
+    unitCode: prefill ? "P" : "",
+    containerNumber: prefill ? "1" : "",
+    containerTypeCode: prefill ? "DM" : "",
+  };
+}
+
+/**
+ * Every field here is controlled by React state (not `defaultValue`),
+ * because React resets uncontrolled form fields after ANY Server Action
+ * submission completes — success or failure. Without this, a validation
+ * error wipes out everything the user typed. Controlled state is immune
+ * to that reset since it lives independently of the DOM.
+ */
 export default function NewManifestPage() {
   const [state, formAction, isPending] = useActionState<CreateManifestState, FormData>(
     createManifestAction,
     null
   );
-  const [wasteIds, setWasteIds] = useState<number[]>([0, 1, 2, 3]);
-  const [hazardousMap, setHazardousMap] = useState<Record<number, boolean>>({
-    0: true,
-    1: true,
-    2: true,
-    3: true,
-  });
+
+  const [generator, setGenerator] = useState<HandlerFormState>(DEFAULT_SITE);
+  const [facility, setFacility] = useState<HandlerFormState>(DEFAULT_SITE);
+  const [transporter, setTransporter] = useState<TransporterFormState>(DEFAULT_TRANSPORTER);
+  const [handlingInstructions, setHandlingInstructions] = useState(
+    "Keep upright. Do not stack. Driver call site 30 min prior to arrival."
+  );
+  const [wasteLines, setWasteLines] = useState<WasteLineFormState[]>([
+    emptyWasteLine(0, true),
+    emptyWasteLine(1, false),
+    emptyWasteLine(2, false),
+    emptyWasteLine(3, false),
+  ]);
+
+  const updateWasteLine = (id: number, patch: Partial<WasteLineFormState>) =>
+    setWasteLines((lines) => lines.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
   const addContinuationPage = () => {
-    const nextId = wasteIds.length ? Math.max(...wasteIds) + 1 : 0;
-    const newIds = Array.from({ length: CONTINUATION_SHEET_LINE_COUNT }, (_, i) => nextId + i);
-    setWasteIds((ids) => [...ids, ...newIds]);
-    setHazardousMap((map) => {
-      const next = { ...map };
-      newIds.forEach((id) => (next[id] = true));
-      return next;
-    });
+    const nextId = wasteLines.length ? Math.max(...wasteLines.map((l) => l.id)) + 1 : 0;
+    const newLines = Array.from({ length: CONTINUATION_SHEET_LINE_COUNT }, (_, i) =>
+      emptyWasteLine(nextId + i, false)
+    );
+    setWasteLines((lines) => [...lines, ...newLines]);
   };
 
   const removeWasteLine = (id: number) => {
-    setWasteIds((ids) => (ids.length > 1 ? ids.filter((i) => i !== id) : ids));
+    setWasteLines((lines) => (lines.length > 1 ? lines.filter((l) => l.id !== id) : lines));
   };
 
   return (
@@ -88,60 +173,130 @@ export default function NewManifestPage() {
       )}
 
       <form action={formAction}>
-        <input type="hidden" name="wasteLineIds" value={wasteIds.join(",")} />
+        <input
+          type="hidden"
+          name="wasteLineIds"
+          value={wasteLines.map((l) => l.id).join(",")}
+        />
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
           <legend style={{ padding: "0 8px" }}>Generator</legend>
           <div style={row}>
             <div style={field}>
               <label style={label}>EPA Site ID</label>
-              <input name="generatorEpaSiteId" required defaultValue="VAD000532119" style={inputStyle} />
+              <input
+                name="generatorEpaSiteId"
+                required
+                value={generator.epaSiteId}
+                onChange={(e) => setGenerator((g) => ({ ...g, epaSiteId: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>Name</label>
-              <input name="generatorName" required defaultValue="TEST TSDF OF VA" style={inputStyle} />
+              <input
+                name="generatorName"
+                required
+                value={generator.name}
+                onChange={(e) => setGenerator((g) => ({ ...g, name: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
           </div>
           <div style={row}>
             <div style={field}>
               <label style={label}>Contact first name</label>
-              <input name="generatorFirstName" required defaultValue="Test" style={inputStyle} />
+              <input
+                name="generatorFirstName"
+                required
+                value={generator.firstName}
+                onChange={(e) => setGenerator((g) => ({ ...g, firstName: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>Contact last name</label>
-              <input name="generatorLastName" required defaultValue="Contact" style={inputStyle} />
+              <input
+                name="generatorLastName"
+                required
+                value={generator.lastName}
+                onChange={(e) => setGenerator((g) => ({ ...g, lastName: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
           </div>
           <div style={row}>
             <div style={field}>
               <label style={label}>Contact phone</label>
-              <input name="generatorPhone" required defaultValue="703-555-0100" style={inputStyle} />
+              <input
+                name="generatorPhone"
+                required
+                value={generator.phone}
+                onChange={(e) => setGenerator((g) => ({ ...g, phone: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>Contact email</label>
-              <input name="generatorEmail" type="email" defaultValue="test-contact@example.com" style={inputStyle} />
+              <input
+                name="generatorEmail"
+                type="email"
+                value={generator.email}
+                onChange={(e) => setGenerator((g) => ({ ...g, email: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>Emergency phone</label>
-              <input name="generatorEmergencyPhone" required defaultValue="703-555-0199" style={inputStyle} />
+              <input
+                name="generatorEmergencyPhone"
+                required
+                value={generator.emergencyPhone}
+                onChange={(e) => setGenerator((g) => ({ ...g, emergencyPhone: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
           </div>
           <div style={row}>
             <div style={{ ...field, flex: 2 }}>
               <label style={label}>Address</label>
-              <input name="generatorAddress1" required defaultValue="123 MAIN ST" style={inputStyle} />
+              <input
+                name="generatorAddress1"
+                required
+                value={generator.address1}
+                onChange={(e) => setGenerator((g) => ({ ...g, address1: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>City</label>
-              <input name="generatorCity" required defaultValue="ARLINGTON" style={inputStyle} />
+              <input
+                name="generatorCity"
+                required
+                value={generator.city}
+                onChange={(e) => setGenerator((g) => ({ ...g, city: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={{ ...field, flex: 0.5 }}>
               <label style={label}>State</label>
-              <input name="generatorState" required defaultValue="VA" style={inputStyle} />
+              <input
+                name="generatorState"
+                required
+                value={generator.state}
+                onChange={(e) => setGenerator((g) => ({ ...g, state: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={{ ...field, flex: 0.7 }}>
               <label style={label}>Zip</label>
-              <input name="generatorZip" required defaultValue="22202" style={inputStyle} />
+              <input
+                name="generatorZip"
+                required
+                value={generator.zip}
+                onChange={(e) => setGenerator((g) => ({ ...g, zip: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
           </div>
         </fieldset>
@@ -151,11 +306,23 @@ export default function NewManifestPage() {
           <div style={row}>
             <div style={field}>
               <label style={label}>EPA Site ID</label>
-              <input name="transporterEpaSiteId" required defaultValue="VATEST000001" style={inputStyle} />
+              <input
+                name="transporterEpaSiteId"
+                required
+                value={transporter.epaSiteId}
+                onChange={(e) => setTransporter((t) => ({ ...t, epaSiteId: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>Name</label>
-              <input name="transporterName" required defaultValue="TEST TRANSPORTER 1 OF VA" style={inputStyle} />
+              <input
+                name="transporterName"
+                required
+                value={transporter.name}
+                onChange={(e) => setTransporter((t) => ({ ...t, name: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
           </div>
         </fieldset>
@@ -165,200 +332,280 @@ export default function NewManifestPage() {
           <div style={row}>
             <div style={field}>
               <label style={label}>EPA Site ID</label>
-              <input name="facilityEpaSiteId" required defaultValue="VAD000532119" style={inputStyle} />
+              <input
+                name="facilityEpaSiteId"
+                required
+                value={facility.epaSiteId}
+                onChange={(e) => setFacility((f) => ({ ...f, epaSiteId: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>Name</label>
-              <input name="facilityName" required defaultValue="TEST TSDF OF VA" style={inputStyle} />
+              <input
+                name="facilityName"
+                required
+                value={facility.name}
+                onChange={(e) => setFacility((f) => ({ ...f, name: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
           </div>
           <div style={row}>
             <div style={field}>
               <label style={label}>Contact first name</label>
-              <input name="facilityFirstName" required defaultValue="Test" style={inputStyle} />
+              <input
+                name="facilityFirstName"
+                required
+                value={facility.firstName}
+                onChange={(e) => setFacility((f) => ({ ...f, firstName: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>Contact last name</label>
-              <input name="facilityLastName" required defaultValue="Contact" style={inputStyle} />
+              <input
+                name="facilityLastName"
+                required
+                value={facility.lastName}
+                onChange={(e) => setFacility((f) => ({ ...f, lastName: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
           </div>
           <div style={row}>
             <div style={field}>
               <label style={label}>Contact phone</label>
-              <input name="facilityPhone" required defaultValue="703-555-0100" style={inputStyle} />
+              <input
+                name="facilityPhone"
+                required
+                value={facility.phone}
+                onChange={(e) => setFacility((f) => ({ ...f, phone: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>Contact email</label>
-              <input name="facilityEmail" type="email" defaultValue="test-contact@example.com" style={inputStyle} />
+              <input
+                name="facilityEmail"
+                type="email"
+                value={facility.email}
+                onChange={(e) => setFacility((f) => ({ ...f, email: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>Emergency phone</label>
-              <input name="facilityEmergencyPhone" required defaultValue="703-555-0199" style={inputStyle} />
+              <input
+                name="facilityEmergencyPhone"
+                required
+                value={facility.emergencyPhone}
+                onChange={(e) => setFacility((f) => ({ ...f, emergencyPhone: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
           </div>
           <div style={row}>
             <div style={{ ...field, flex: 2 }}>
               <label style={label}>Address</label>
-              <input name="facilityAddress1" required defaultValue="123 MAIN ST" style={inputStyle} />
+              <input
+                name="facilityAddress1"
+                required
+                value={facility.address1}
+                onChange={(e) => setFacility((f) => ({ ...f, address1: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={field}>
               <label style={label}>City</label>
-              <input name="facilityCity" required defaultValue="ARLINGTON" style={inputStyle} />
+              <input
+                name="facilityCity"
+                required
+                value={facility.city}
+                onChange={(e) => setFacility((f) => ({ ...f, city: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={{ ...field, flex: 0.5 }}>
               <label style={label}>State</label>
-              <input name="facilityState" required defaultValue="VA" style={inputStyle} />
+              <input
+                name="facilityState"
+                required
+                value={facility.state}
+                onChange={(e) => setFacility((f) => ({ ...f, state: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
             <div style={{ ...field, flex: 0.7 }}>
               <label style={label}>Zip</label>
-              <input name="facilityZip" required defaultValue="22202" style={inputStyle} />
+              <input
+                name="facilityZip"
+                required
+                value={facility.zip}
+                onChange={(e) => setFacility((f) => ({ ...f, zip: e.target.value }))}
+                style={inputStyle}
+              />
             </div>
           </div>
         </fieldset>
 
-        {wasteIds.map((id, index) => {
-          const isHazardous = hazardousMap[id] ?? true;
-          return (
-            <fieldset
-              key={id}
-              style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}
-            >
-              <legend style={{ padding: "0 8px" }}>
-                Waste line {index + 1} ({continuationLabel(index)})
-              </legend>
+        {wasteLines.map((line, index) => (
+          <fieldset
+            key={line.id}
+            style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}
+          >
+            <legend style={{ padding: "0 8px" }}>
+              Waste line {index + 1} ({continuationLabel(index)})
+            </legend>
 
-              <div style={field}>
-                <label style={label}>
-                  <input
-                    name={`dotHazardous_${id}`}
-                    type="checkbox"
-                    checked={isHazardous}
-                    onChange={(e) =>
-                      setHazardousMap((map) => ({ ...map, [id]: e.target.checked }))
-                    }
-                    style={{ marginRight: "6px" }}
+            <div style={field}>
+              <label style={label}>
+                <input
+                  name={`dotHazardous_${line.id}`}
+                  type="checkbox"
+                  checked={line.dotHazardous}
+                  onChange={(e) => updateWasteLine(line.id, { dotHazardous: e.target.checked })}
+                  style={{ marginRight: "6px" }}
+                />
+                Hazardous (DOT)
+              </label>
+            </div>
+
+            {line.dotHazardous ? (
+              <>
+                <div style={field}>
+                  <label style={label}>Proper shipping name</label>
+                  <textarea
+                    name={`properShippingName_${line.id}`}
+                    rows={2}
+                    value={line.properShippingName}
+                    onChange={(e) => updateWasteLine(line.id, { properShippingName: e.target.value })}
+                    style={{ ...inputStyle, resize: "vertical" }}
                   />
-                  Hazardous (DOT)
-                </label>
-              </div>
-
-              {isHazardous ? (
-                <>
+                </div>
+                <div style={row}>
                   <div style={field}>
-                    <label style={label}>Proper shipping name</label>
-                    <textarea
-                      name={`properShippingName_${id}`}
-                      rows={2}
-                      defaultValue={
-                        index === 0 ? "Waste flammable liquids, n.o.s. (contains xylene)" : ""
-                      }
-                      style={{ ...inputStyle, resize: "vertical" }}
+                    <label style={label}>
+                      <input
+                        name={`rqIndicator_${line.id}`}
+                        type="checkbox"
+                        checked={line.rqIndicator}
+                        onChange={(e) => updateWasteLine(line.id, { rqIndicator: e.target.checked })}
+                        style={{ marginRight: "6px" }}
+                      />
+                      RQ (reportable quantity)
+                    </label>
+                  </div>
+                  <div style={field}>
+                    <label style={label}>Hazard class</label>
+                    <input
+                      name={`hazardClass_${line.id}`}
+                      value={line.hazardClass}
+                      onChange={(e) => updateWasteLine(line.id, { hazardClass: e.target.value })}
+                      style={inputStyle}
                     />
                   </div>
-                  <div style={row}>
-                    <div style={field}>
-                      <label style={label}>
-                        <input
-                          name={`rqIndicator_${id}`}
-                          type="checkbox"
-                          defaultChecked={index === 0}
-                          style={{ marginRight: "6px" }}
-                        />
-                        RQ (reportable quantity)
-                      </label>
-                    </div>
-                    <div style={field}>
-                      <label style={label}>Hazard class</label>
-                      <input
-                        name={`hazardClass_${id}`}
-                        defaultValue={index === 0 ? "3" : ""}
-                        style={inputStyle}
-                      />
-                    </div>
-                    <div style={field}>
-                      <label style={label}>Packing group</label>
-                      <input
-                        name={`packingGroup_${id}`}
-                        defaultValue={index === 0 ? "II" : ""}
-                        style={inputStyle}
-                      />
-                    </div>
+                  <div style={field}>
+                    <label style={label}>Packing group</label>
+                    <input
+                      name={`packingGroup_${line.id}`}
+                      value={line.packingGroup}
+                      onChange={(e) => updateWasteLine(line.id, { packingGroup: e.target.value })}
+                      style={inputStyle}
+                    />
                   </div>
-                  <div style={row}>
-                    <div style={field}>
-                      <label style={label}>DOT ID number code</label>
-                      <input
-                        name={`idNumberCode_${id}`}
-                        defaultValue={index === 0 ? "UN1993" : ""}
-                        style={inputStyle}
-                      />
-                    </div>
-                    <div style={field}>
-                      <label style={label}>Federal waste codes (optional — comma-separated, e.g. "D001, D003")</label>
-                      <input
-                        name={`federalWasteCode_${id}`}
-                        defaultValue={index === 0 ? "D001" : ""}
-                        style={inputStyle}
-                      />
-                    </div>
+                </div>
+                <div style={row}>
+                  <div style={field}>
+                    <label style={label}>DOT ID number code</label>
+                    <input
+                      name={`idNumberCode_${line.id}`}
+                      value={line.idNumberCode}
+                      onChange={(e) => updateWasteLine(line.id, { idNumberCode: e.target.value })}
+                      style={inputStyle}
+                    />
                   </div>
-                </>
-              ) : (
-                <div style={field}>
-                  <label style={label}>Waste description</label>
-                  <input name={`wasteDescription_${id}`} style={inputStyle} />
+                  <div style={field}>
+                    <label style={label}>
+                      Federal waste codes (optional — comma-separated, e.g. &quot;D001, D003&quot;)
+                    </label>
+                    <input
+                      name={`federalWasteCode_${line.id}`}
+                      value={line.federalWasteCode}
+                      onChange={(e) => updateWasteLine(line.id, { federalWasteCode: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </div>
                 </div>
-              )}
-
-              <p style={{ fontSize: "13px", color: "#888", margin: "0 0 8px" }}>
-                Quantity, unit, container count, and container type are all required once this
-                line has a description.
-              </p>
-              <div style={row}>
-                <div style={field}>
-                  <label style={label}>Quantity</label>
-                  <input
-                    name={`quantity_${id}`}
-                    type="number"
-                    defaultValue={index === 0 ? "1" : ""}
-                    style={inputStyle}
-                  />
-                </div>
-                <div style={field}>
-                  <label style={label}>Unit code</label>
-                  <input name={`unitCode_${id}`} defaultValue={index === 0 ? "P" : ""} style={inputStyle} />
-                </div>
-                <div style={field}>
-                  <label style={label}>Container count</label>
-                  <input
-                    name={`containerNumber_${id}`}
-                    type="number"
-                    defaultValue={index === 0 ? "1" : ""}
-                    style={inputStyle}
-                  />
-                </div>
-                <div style={field}>
-                  <label style={label}>Container type code</label>
-                  <input
-                    name={`containerTypeCode_${id}`}
-                    defaultValue={index === 0 ? "DM" : ""}
-                    style={inputStyle}
-                  />
-                </div>
+              </>
+            ) : (
+              <div style={field}>
+                <label style={label}>Waste description</label>
+                <input
+                  name={`wasteDescription_${line.id}`}
+                  value={line.wasteDescription}
+                  onChange={(e) => updateWasteLine(line.id, { wasteDescription: e.target.value })}
+                  style={inputStyle}
+                />
               </div>
+            )}
 
-              {wasteIds.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeWasteLine(id)}
-                  style={{ background: "none", border: "none", color: "#c00", cursor: "pointer", padding: 0 }}
-                >
-                  Remove this waste line
-                </button>
-              )}
-            </fieldset>
-          );
-        })}
+            <p style={{ fontSize: "13px", color: "#888", margin: "0 0 8px" }}>
+              Quantity, unit, container count, and container type are all required once this
+              line has a description.
+            </p>
+            <div style={row}>
+              <div style={field}>
+                <label style={label}>Quantity</label>
+                <input
+                  name={`quantity_${line.id}`}
+                  type="number"
+                  value={line.quantity}
+                  onChange={(e) => updateWasteLine(line.id, { quantity: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={field}>
+                <label style={label}>Unit code</label>
+                <input
+                  name={`unitCode_${line.id}`}
+                  value={line.unitCode}
+                  onChange={(e) => updateWasteLine(line.id, { unitCode: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={field}>
+                <label style={label}>Container count</label>
+                <input
+                  name={`containerNumber_${line.id}`}
+                  type="number"
+                  value={line.containerNumber}
+                  onChange={(e) => updateWasteLine(line.id, { containerNumber: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={field}>
+                <label style={label}>Container type code</label>
+                <input
+                  name={`containerTypeCode_${line.id}`}
+                  value={line.containerTypeCode}
+                  onChange={(e) => updateWasteLine(line.id, { containerTypeCode: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            {wasteLines.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeWasteLine(line.id)}
+                style={{ background: "none", border: "none", color: "#c00", cursor: "pointer", padding: 0 }}
+              >
+                Remove this waste line
+              </button>
+            )}
+          </fieldset>
+        ))}
 
         <button
           type="button"
@@ -385,7 +632,8 @@ export default function NewManifestPage() {
           <textarea
             name="handlingInstructions"
             rows={3}
-            defaultValue="Keep upright. Do not stack. Driver call site 30 min prior to arrival."
+            value={handlingInstructions}
+            onChange={(e) => setHandlingInstructions(e.target.value)}
             style={{ ...inputStyle, resize: "vertical" }}
           />
         </div>

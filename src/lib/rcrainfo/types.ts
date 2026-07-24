@@ -84,6 +84,56 @@ export interface SiteDetails {
 }
 
 /**
+ * Request body for POST /site-search. Per EPA's docs, at least one of
+ * epaSiteId/name/streetNumber/address1/city/state/zip must be provided.
+ * A 12-character epaSiteId triggers an exact match and all other fields
+ * are ignored. `streetNumber` requires `address1`; `address1` requires a
+ * valid `city` or `zip`.
+ *
+ * `siteType` casing CONFIRMED LIVE 2026-07-24: `"Transporter"`, `"Tsdf"`,
+ * and `"Broker"` all work (`"Tsdf"`, not the `"TSDF"` shown in EPA's prose
+ * docs — matches the reference client and the already-confirmed
+ * `QuickerSignParameters` casing).
+ */
+export interface SiteSearchParams {
+  epaSiteId?: string;
+  name?: string;
+  streetNumber?: string;
+  address1?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  siteType?: "Generator" | "Transporter" | "Tsdf" | "Broker";
+  pageNumber?: number;
+}
+
+/**
+ * Shape of a single site in a POST /site-search response — CONFIRMED LIVE
+ * 2026-07-24 (neither EPA's prose docs nor its own `emanifest-js`
+ * reference client, which types this `any`, documented it). Turns out to
+ * be identical to `SiteDetails` (the `GET /site-details/{siteId}` shape)
+ * plus `mailingAddress`/`siteAddress` both present — reusing that type
+ * directly rather than a separate near-duplicate.
+ */
+export type SiteSearchResultItem = SiteDetails;
+
+/**
+ * Response shape for POST /site-search — CONFIRMED LIVE 2026-07-24.
+ * Pagination fields (`totalNumberOfSites`/`totalNumberOfPages`/
+ * `currentPageNumber`) and `searchedParameters` (an ECHO of the request
+ * params as `{field, value}` pairs, NOT the request shape itself) were
+ * both guessed wrong in the initial unverified version of this type —
+ * corrected against a real response.
+ */
+export interface SiteSearchResponse {
+  totalNumberOfSites: number;
+  totalNumberOfPages: number;
+  currentPageNumber: number;
+  searchedParameters: Array<{ field: string; value: string }>;
+  sites: SiteSearchResultItem[];
+}
+
+/**
  * Known e-Manifest status values. Confirm the exhaustive list against the
  * Swagger "search MTN" endpoint's parameter description before relying on
  * this in production — EPA has added statuses over time.

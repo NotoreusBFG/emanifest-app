@@ -4,6 +4,10 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { createManifestAction, type CreateManifestState } from "@/app/actions/manifestActions";
 import { brand, brandGradient } from "@/lib/brandColors";
+import { SiteSearchField } from "./SiteSearchField";
+import { HazmatSearchField } from "./HazmatSearchField";
+import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
+import type { HazmatEntry } from "@/lib/hazmat/types";
 
 const inputStyle = {
   width: "100%",
@@ -67,6 +71,13 @@ const DEFAULT_TRANSPORTER: TransporterFormState = {
 interface WasteLineFormState {
   id: number;
   dotHazardous: boolean;
+  /**
+   * A material can be DOT-hazardous without being a RCRA hazardous waste
+   * (e.g. solid vs. liquid sodium hydroxide) — when checked, prefixes
+   * "Waste " onto the proper shipping name in the composed DOT
+   * description, matching standard manifest convention.
+   */
+  isRcraWaste: boolean;
   properShippingName: string;
   rqIndicator: boolean;
   hazardClass: string;
@@ -78,13 +89,16 @@ interface WasteLineFormState {
   unitCode: string;
   containerNumber: string;
   containerTypeCode: string;
+  /** Prints into Box 14 (Special Handling Instructions), tagged by line number. */
+  specialInstructions: string;
 }
 
 function emptyWasteLine(id: number, prefill: boolean): WasteLineFormState {
   return {
     id,
     dotHazardous: true,
-    properShippingName: prefill ? "Waste flammable liquids, n.o.s. (contains xylene)" : "",
+    isRcraWaste: true,
+    properShippingName: prefill ? "flammable liquids, n.o.s. (contains xylene)" : "",
     rqIndicator: prefill,
     hazardClass: prefill ? "3" : "",
     packingGroup: prefill ? "II" : "",
@@ -95,6 +109,7 @@ function emptyWasteLine(id: number, prefill: boolean): WasteLineFormState {
     unitCode: prefill ? "P" : "",
     containerNumber: prefill ? "1" : "",
     containerTypeCode: prefill ? "DM" : "",
+    specialInstructions: "",
   };
 }
 
@@ -124,8 +139,48 @@ export default function NewManifestPage() {
     emptyWasteLine(3, false),
   ]);
 
+  const fillTransporterFromSite = (site: SiteSearchResultItem) =>
+    setTransporter((t) => ({ ...t, epaSiteId: site.epaSiteId, name: site.name }));
+
+  const fillFacilityFromSite = (site: SiteSearchResultItem) =>
+    setFacility((f) => ({
+      ...f,
+      epaSiteId: site.epaSiteId,
+      name: site.name,
+      address1: site.siteAddress?.address1 ?? f.address1,
+      city: site.siteAddress?.city ?? f.city,
+      state: site.siteAddress?.state?.code ?? f.state,
+      zip: site.siteAddress?.zip ?? f.zip,
+      // EPA's registered contact for the site — previously left unfilled,
+      // which meant whatever placeholder was already in the form (e.g. the
+      // default test-site phone number) silently ended up on the printed
+      // manifest instead of the real facility contact.
+      firstName: site.contact?.firstName ?? f.firstName,
+      lastName: site.contact?.lastName ?? f.lastName,
+      phone: site.contact?.phoneNumber?.number ?? f.phone,
+      email: site.contact?.email ?? f.email,
+      emergencyPhone: site.emergencyPhone?.number ?? f.emergencyPhone,
+    }));
+
   const updateWasteLine = (id: number, patch: Partial<WasteLineFormState>) =>
     setWasteLines((lines) => lines.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+
+  const fillWasteLineFromHazmat = (id: number, entry: HazmatEntry) => {
+    // A few §172.101 entries (e.g. "Hazardous waste, liquid, n.o.s.",
+    // "Hazardous waste, solid, n.o.s.") already have "waste" baked into
+    // their official shipping name — checking "RCRA waste" on top of one
+    // of these would double it up ("Waste Hazardous waste, liquid,
+    // n.o.s."), so force it off for exactly these entries rather than
+    // leaving that footgun for the user to notice manually.
+    const nameAlreadyIncludesWaste = /\bwaste\b/i.test(entry.properShippingName);
+    updateWasteLine(id, {
+      properShippingName: entry.properShippingName,
+      hazardClass: entry.hazardClass,
+      packingGroup: entry.packingGroup,
+      idNumberCode: entry.idNumbers,
+      ...(nameAlreadyIncludesWaste ? { isRcraWaste: false } : {}),
+    });
+  };
 
   const addContinuationPage = () => {
     const nextId = wasteLines.length ? Math.max(...wasteLines.map((l) => l.id)) + 1 : 0;
@@ -304,6 +359,11 @@ export default function NewManifestPage() {
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
           <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Transporter</legend>
+          <SiteSearchField
+            siteType="Transporter"
+            placeholder="Search registered transporters by name…"
+            onSelect={fillTransporterFromSite}
+          />
           <div style={row}>
             <div style={field}>
               <label style={label}>EPA Site ID</label>
@@ -330,6 +390,11 @@ export default function NewManifestPage() {
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
           <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Designated facility</legend>
+          <SiteSearchField
+            siteType="Tsdf"
+            placeholder="Search registered disposal facilities by name…"
+            onSelect={fillFacilityFromSite}
+          />
           <div style={row}>
             <div style={field}>
               <label style={label}>EPA Site ID</label>
@@ -459,21 +524,51 @@ export default function NewManifestPage() {
               Waste line {index + 1} ({continuationLabel(index)})
             </legend>
 
-            <div style={field}>
-              <label style={label}>
+            <div style={row}>
+              <div style={{ ...field, flex: 0.6 }}>
+                <label style={label}>
+                  <input
+                    name={`dotHazardous_${line.id}`}
+                    type="checkbox"
+                    checked={line.dotHazardous}
+                    onChange={(e) => updateWasteLine(line.id, { dotHazardous: e.target.checked })}
+                    style={{ marginRight: "6px" }}
+                  />
+                  HM (DOT hazardous material)
+                </label>
+              </div>
+              <div style={{ ...field, flex: 0.6 }}>
+                <label style={{ ...label, opacity: line.dotHazardous ? 1 : 0.5 }}>
+                  <input
+                    name={`isRcraWaste_${line.id}`}
+                    type="checkbox"
+                    checked={line.isRcraWaste}
+                    disabled={!line.dotHazardous}
+                    onChange={(e) => updateWasteLine(line.id, { isRcraWaste: e.target.checked })}
+                    style={{ marginRight: "6px" }}
+                  />
+                  RCRA waste (prints &quot;Waste&quot;)
+                </label>
+              </div>
+              <div style={field}>
+                <label style={label}>
+                  Special instructions for this line (optional — prints into Box 14)
+                </label>
                 <input
-                  name={`dotHazardous_${line.id}`}
-                  type="checkbox"
-                  checked={line.dotHazardous}
-                  onChange={(e) => updateWasteLine(line.id, { dotHazardous: e.target.checked })}
-                  style={{ marginRight: "6px" }}
+                  name={`specialInstructions_${line.id}`}
+                  value={line.specialInstructions}
+                  onChange={(e) => updateWasteLine(line.id, { specialInstructions: e.target.value })}
+                  style={inputStyle}
                 />
-                Hazardous (DOT)
-              </label>
+              </div>
             </div>
 
             {line.dotHazardous ? (
               <>
+                <HazmatSearchField
+                  placeholder="Search DOT hazardous materials table by shipping name…"
+                  onSelect={(entry) => fillWasteLineFromHazmat(line.id, entry)}
+                />
                 <div style={field}>
                   <label style={label}>Proper shipping name</label>
                   <textarea

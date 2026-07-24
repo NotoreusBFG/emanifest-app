@@ -30,6 +30,8 @@ import type {
   RcrainfoCredentials,
   RcrainfoEnvironment,
   SiteDetails,
+  SiteSearchParams,
+  SiteSearchResponse,
 } from "./types";
 import { RcrainfoApiError } from "./types";
 import { extractBoundary, parseMultipartMixed, type MultipartOutputPart } from "./parse-multipart";
@@ -132,6 +134,38 @@ export class RcrainfoClient {
   /** GET /site-details/{siteId} */
   async getSiteDetails(siteId: string): Promise<SiteDetails> {
     return this.request<SiteDetails>(`/site-details/${encodeURIComponent(siteId)}`);
+  }
+
+  /**
+   * POST /site-search
+   *
+   * CONFIRMED LIVE 2026-07-24. Does NOT use the generic `request()` helper
+   * because — same undocumented quirk as `quicker-sign` — this endpoint
+   * rejects `Content-Type: application/json` with a blanket Tomcat 415
+   * even though the body IS JSON; only `text/plain;charset=UTF-8` works.
+   * Found by direct testing against preprod after the generic helper's
+   * `application/json` request failed with a 415 in production use. Used
+   * for transporter/designated-facility lookup in the manifest form, since
+   * `getSiteDetails()` only works for an already-known exact site ID.
+   */
+  async searchSites(params: SiteSearchParams): Promise<SiteSearchResponse> {
+    const token = await this.getToken();
+    const res = await fetch(`${this.baseUrl}/site-search`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "text/plain;charset=UTF-8",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!res.ok) {
+      const body = await safeJson(res);
+      throw new RcrainfoApiError(`RCRAInfo site search failed -> ${res.status}`, res.status, body);
+    }
+
+    return (await res.json()) as SiteSearchResponse;
   }
 
   /** GET /emanifest/manifest/{manifestTrackingNumber} — full manifest record. */

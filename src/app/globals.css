@@ -25,11 +25,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ManifestMate's brand palette (light tints, navy text) is a light-mode
+   design end to end -- no dark-mode variant exists for it yet. Forcing
+   light mode here avoids sections with no explicit background silently
+   inheriting a dark body background while their text stays hardcoded
+   dark, which made the getting-started section unreadable for anyone
+   with a system dark-mode preference. */
+:root {
+  color-scheme: light;
 }
 
 body {

@@ -150,33 +150,24 @@ export class RcrainfoClient {
   /**
    * POST /site-search
    *
-   * CONFIRMED LIVE 2026-07-24. Does NOT use the generic `request()` helper
-   * because — same undocumented quirk as `quicker-sign` — this endpoint
-   * rejects `Content-Type: application/json` with a blanket Tomcat 415
-   * even though the body IS JSON; only `text/plain;charset=UTF-8` works.
-   * Found by direct testing against preprod after the generic helper's
-   * `application/json` request failed with a 415 in production use. Used
-   * for transporter/designated-facility lookup in the manifest form, since
+   * CONFIRMED LIVE 2026-07-24. Same undocumented quirk as `quicker-sign` —
+   * this endpoint rejects `Content-Type: application/json` with a blanket
+   * Tomcat 415 even though the body IS JSON; only
+   * `text/plain;charset=UTF-8` works. Uses the generic `request()` helper
+   * with a header override (its header merge already puts `init.headers`
+   * last, so this overrides the default `application/json` without
+   * needing a fully separate fetch call) — keeps the automatic 401-retry
+   * and error-wrapping behavior every other endpoint gets, rather than
+   * reimplementing both by hand. Used for generator/transporter/
+   * designated-facility lookup in the manifest form, since
    * `getSiteDetails()` only works for an already-known exact site ID.
    */
   async searchSites(params: SiteSearchParams): Promise<SiteSearchResponse> {
-    const token = await this.getToken();
-    const res = await fetch(`${this.baseUrl}/site-search`, {
+    return this.request<SiteSearchResponse>(`/site-search`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "text/plain;charset=UTF-8",
-        Accept: "application/json",
-      },
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
       body: JSON.stringify(params),
     });
-
-    if (!res.ok) {
-      const body = await safeJson(res);
-      throw new RcrainfoApiError(`RCRAInfo site search failed -> ${res.status}`, res.status, body);
-    }
-
-    return (await res.json()) as SiteSearchResponse;
   }
 
   /** GET /emanifest/manifest/{manifestTrackingNumber} — full manifest record. */

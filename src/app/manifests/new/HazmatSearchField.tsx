@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { searchHazmatAction } from "@/app/actions/hazmatActions";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 import { brand } from "@/lib/brandColors";
+import { useClickOutside } from "@/lib/hooks/useClickOutside";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
@@ -48,15 +49,7 @@ export function HazmatSearchField({ placeholder, onSelect }: HazmatSearchFieldPr
     };
   }, [query]);
 
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  useClickOutside(containerRef, () => setIsOpen(false));
 
   const handleSelect = (entry: HazmatEntry) => {
     onSelect(entry);

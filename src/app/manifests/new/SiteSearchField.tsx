@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { searchSitesAction } from "@/app/actions/manifestActions";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import { brand } from "@/lib/brandColors";
+import { useClickOutside } from "@/lib/hooks/useClickOutside";
 
 const SEARCH_DEBOUNCE_MS = 400;
 const MIN_QUERY_LENGTH = 2; // matches RCRAInfo's own minimum for `name`/`epaSiteId`
@@ -16,8 +17,8 @@ interface SiteSearchFieldProps {
 
 /**
  * Autocomplete for looking up a registered EPA site by name, backed by
- * `POST /site-search` (see `searchSites()` in client.ts — NOT YET
- * CONFIRMED LIVE). Selecting a result fills the surrounding form via
+ * `POST /site-search` (see `searchSites()` in client.ts — confirmed live).
+ * Selecting a result fills the surrounding form via
  * `onSelect`; this component doesn't hold the selected value itself; the
  * parent's existing controlled state remains the source of truth so
  * manual edits after selection keep working exactly as before.
@@ -58,16 +59,7 @@ export function SiteSearchField({ siteType, placeholder, onSelect }: SiteSearchF
     };
   }, [query, siteType]);
 
-  // Close the dropdown on outside click.
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  useClickOutside(containerRef, () => setIsOpen(false));
 
   const handleSelect = (site: SiteSearchResultItem) => {
     onSelect(site);

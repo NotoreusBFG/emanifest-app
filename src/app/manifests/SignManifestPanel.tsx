@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { signManifestAction, type SignManifestParams } from "@/app/actions/manifestActions";
 import type { Manifest } from "@/lib/rcrainfo/types";
-import { brand, brandGradient } from "@/lib/brandColors";
+import { brand } from "@/lib/brandColors";
+import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 
 interface SignableRole {
   label: string;
@@ -106,14 +107,7 @@ export function SignManifestPanel({
         <input
           value={printedName}
           onChange={(e) => setPrintedName(e.target.value)}
-          style={{
-            width: "100%",
-            maxWidth: "300px",
-            padding: "8px",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            boxSizing: "border-box",
-          }}
+          style={{ ...inputStyle, maxWidth: "300px" }}
         />
       </div>
 
@@ -124,16 +118,7 @@ export function SignManifestPanel({
             type="button"
             disabled={pendingRole !== null}
             onClick={() => handleSign(role)}
-            style={{
-              alignSelf: "flex-start",
-              padding: "8px 16px",
-              background: pendingRole ? "#ccc" : brandGradient,
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              fontWeight: 600,
-              cursor: pendingRole ? "not-allowed" : "pointer",
-            }}
+            style={{ alignSelf: "flex-start", ...primaryButtonStyle(pendingRole !== null) }}
           >
             {pendingRole === role.label ? "Signing…" : `Sign as ${role.label}`}
           </button>

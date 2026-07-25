@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getFederalWasteCodesAction } from "@/app/actions/manifestActions";
 import type { FederalWasteCode } from "@/lib/rcrainfo/types";
 import { brand } from "@/lib/brandColors";
+import { useClickOutside } from "@/lib/hooks/useClickOutside";
 
 const MIN_QUERY_LENGTH = 1;
 
@@ -52,25 +53,18 @@ export function FederalWasteCodeField({ name, value, onChange }: FederalWasteCod
     };
   }, []);
 
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  useClickOutside(containerRef, () => setIsOpen(false));
 
   const selected = parseCodes(value);
   const q = query.trim().toLowerCase();
-  const matches =
-    allCodes && q.length >= MIN_QUERY_LENGTH
-      ? allCodes
-          .filter((c) => !selected.includes(c.code))
-          .filter((c) => c.code.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
-          .slice(0, 20)
-      : [];
+  const matches = useMemo(() => {
+    if (!allCodes || q.length < MIN_QUERY_LENGTH) return [];
+    return allCodes
+      .filter((c) => !selected.includes(c.code))
+      .filter((c) => c.code.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
+      .slice(0, 20);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `selected` is derived from `value` every render; including the array itself would defeat memoization
+  }, [allCodes, q, value]);
 
   const addCode = (code: string) => {
     onChange([...selected, code].join(", "));

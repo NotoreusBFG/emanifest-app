@@ -8,15 +8,9 @@ import {
   type LookupManifestState,
 } from "@/app/actions/manifestActions";
 import type { Manifest } from "@/lib/rcrainfo/types";
-import { brand, brandGradient } from "@/lib/brandColors";
+import { brand } from "@/lib/brandColors";
+import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { SignManifestPanel } from "./SignManifestPanel";
-
-const inputStyle = {
-  width: "100%",
-  padding: "8px",
-  borderRadius: "4px",
-  border: "1px solid #ccc",
-};
 
 export default function ManifestLookupPage() {
   const [state, formAction, isPending] = useActionState<LookupManifestState, FormData>(
@@ -57,19 +51,7 @@ export default function ManifestLookupPage() {
           required
           style={{ ...inputStyle, flex: 1 }}
         />
-        <button
-          type="submit"
-          disabled={isPending}
-          style={{
-            padding: "8px 16px",
-            background: isPending ? "#ccc" : brandGradient,
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            fontWeight: 600,
-            cursor: isPending ? "not-allowed" : "pointer",
-          }}
-        >
+        <button type="submit" disabled={isPending} style={primaryButtonStyle(isPending)}>
           {isPending ? "Looking up..." : "Look up"}
         </button>
       </form>

@@ -3,20 +3,13 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { createManifestAction, type CreateManifestState } from "@/app/actions/manifestActions";
-import { brand, brandGradient } from "@/lib/brandColors";
+import { brand } from "@/lib/brandColors";
+import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { SiteSearchField } from "./SiteSearchField";
 import { HazmatSearchField } from "./HazmatSearchField";
 import { FederalWasteCodeField } from "./FederalWasteCodeField";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
-
-const inputStyle = {
-  width: "100%",
-  padding: "8px",
-  borderRadius: "4px",
-  border: "1px solid #ccc",
-  boxSizing: "border-box" as const,
-};
 
 const row = { display: "flex", gap: "10px" };
 const field = { flex: 1, marginBottom: "12px" };
@@ -143,41 +136,34 @@ export default function NewManifestPage() {
   const fillTransporterFromSite = (site: SiteSearchResultItem) =>
     setTransporter((t) => ({ ...t, epaSiteId: site.epaSiteId, name: site.name }));
 
+  /**
+   * Generator and designated facility share the same form shape
+   * (`HandlerFormState`) and the same fill logic — EPA's registered
+   * contact (name/address/phone/email/emergency phone) overwrites
+   * whatever placeholder was there before, since leaving it unfilled
+   * previously let default test-site data silently end up on printed
+   * manifests.
+   */
+  const fillHandlerFromSite = (site: SiteSearchResultItem, current: HandlerFormState): HandlerFormState => ({
+    ...current,
+    epaSiteId: site.epaSiteId,
+    name: site.name,
+    address1: site.siteAddress?.address1 ?? current.address1,
+    city: site.siteAddress?.city ?? current.city,
+    state: site.siteAddress?.state?.code ?? current.state,
+    zip: site.siteAddress?.zip ?? current.zip,
+    firstName: site.contact?.firstName ?? current.firstName,
+    lastName: site.contact?.lastName ?? current.lastName,
+    phone: site.contact?.phoneNumber?.number ?? current.phone,
+    email: site.contact?.email ?? current.email,
+    emergencyPhone: site.emergencyPhone?.number ?? current.emergencyPhone,
+  });
+
   const fillGeneratorFromSite = (site: SiteSearchResultItem) =>
-    setGenerator((g) => ({
-      ...g,
-      epaSiteId: site.epaSiteId,
-      name: site.name,
-      address1: site.siteAddress?.address1 ?? g.address1,
-      city: site.siteAddress?.city ?? g.city,
-      state: site.siteAddress?.state?.code ?? g.state,
-      zip: site.siteAddress?.zip ?? g.zip,
-      firstName: site.contact?.firstName ?? g.firstName,
-      lastName: site.contact?.lastName ?? g.lastName,
-      phone: site.contact?.phoneNumber?.number ?? g.phone,
-      email: site.contact?.email ?? g.email,
-      emergencyPhone: site.emergencyPhone?.number ?? g.emergencyPhone,
-    }));
+    setGenerator((g) => fillHandlerFromSite(site, g));
 
   const fillFacilityFromSite = (site: SiteSearchResultItem) =>
-    setFacility((f) => ({
-      ...f,
-      epaSiteId: site.epaSiteId,
-      name: site.name,
-      address1: site.siteAddress?.address1 ?? f.address1,
-      city: site.siteAddress?.city ?? f.city,
-      state: site.siteAddress?.state?.code ?? f.state,
-      zip: site.siteAddress?.zip ?? f.zip,
-      // EPA's registered contact for the site — previously left unfilled,
-      // which meant whatever placeholder was already in the form (e.g. the
-      // default test-site phone number) silently ended up on the printed
-      // manifest instead of the real facility contact.
-      firstName: site.contact?.firstName ?? f.firstName,
-      lastName: site.contact?.lastName ?? f.lastName,
-      phone: site.contact?.phoneNumber?.number ?? f.phone,
-      email: site.contact?.email ?? f.email,
-      emergencyPhone: site.emergencyPhone?.number ?? f.emergencyPhone,
-    }));
+    setFacility((f) => fillHandlerFromSite(site, f));
 
   const updateWasteLine = (id: number, patch: Partial<WasteLineFormState>) =>
     setWasteLines((lines) => lines.map((l) => (l.id === id ? { ...l, ...patch } : l)));
@@ -760,15 +746,7 @@ export default function NewManifestPage() {
         <button
           type="submit"
           disabled={isPending}
-          style={{
-            padding: "10px 20px",
-            background: isPending ? "#ccc" : brandGradient,
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            fontWeight: 600,
-            cursor: isPending ? "not-allowed" : "pointer",
-          }}
+          style={{ ...primaryButtonStyle(isPending), padding: "10px 20px" }}
         >
           {isPending ? "Saving..." : "Save manifest"}
         </button>

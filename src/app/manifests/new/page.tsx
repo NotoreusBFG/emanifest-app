@@ -13,6 +13,8 @@ import { SiteSearchField } from "./SiteSearchField";
 import { HazmatSearchField } from "./HazmatSearchField";
 import { FederalWasteCodeField } from "./FederalWasteCodeField";
 import { SignManifestPanel } from "../SignManifestPanel";
+import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
+import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { Manifest, SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 
@@ -50,7 +52,7 @@ const DEFAULT_SITE: HandlerFormState = {
   lastName: "Contact",
   phone: "703-555-0100",
   email: "test-contact@example.com",
-  emergencyPhone: "703-555-0199",
+  emergencyPhone: SYSTEM_DEFAULT_EMERGENCY_PHONE,
   address1: "123 MAIN ST",
   city: "ARLINGTON",
   state: "VA",
@@ -128,6 +130,25 @@ export default function NewManifestPage() {
   const [generator, setGenerator] = useState<HandlerFormState>(DEFAULT_SITE);
   const [facility, setFacility] = useState<HandlerFormState>(DEFAULT_SITE);
   const [transporter, setTransporter] = useState<TransporterFormState>(DEFAULT_TRANSPORTER);
+
+  // Starts at the system default (used synchronously above, before this
+  // fetch can possibly resolve) and is replaced by the user's own saved
+  // preference from Settings, if they have one. Also used as the fallback
+  // in fillHandlerFromSite below, for sites EPA has no emergency phone on
+  // file for.
+  const [defaultEmergencyPhone, setDefaultEmergencyPhone] = useState(SYSTEM_DEFAULT_EMERGENCY_PHONE);
+
+  useEffect(() => {
+    getDefaultEmergencyPhoneAction().then((phone) => {
+      if (!phone || phone === SYSTEM_DEFAULT_EMERGENCY_PHONE) return;
+      setDefaultEmergencyPhone(phone);
+      // Only overwrite generator/facility if the user hasn't already
+      // edited the field away from the system default in the (brief)
+      // window before this fetch resolved — don't clobber a manual edit.
+      setGenerator((g) => (g.emergencyPhone === SYSTEM_DEFAULT_EMERGENCY_PHONE ? { ...g, emergencyPhone: phone } : g));
+      setFacility((f) => (f.emergencyPhone === SYSTEM_DEFAULT_EMERGENCY_PHONE ? { ...f, emergencyPhone: phone } : f));
+    });
+  }, []);
   const [handlingInstructions, setHandlingInstructions] = useState(
     "Keep upright. Do not stack. Driver call site 30 min prior to arrival."
   );
@@ -190,7 +211,10 @@ export default function NewManifestPage() {
     lastName: site.contact?.lastName ?? "",
     phone: site.contact?.phoneNumber?.number ?? "",
     email: site.contact?.email ?? "",
-    emergencyPhone: site.emergencyPhone?.number ?? "",
+    // Unlike the fields above, an empty emergency phone isn't a useful
+    // "please fill this in" signal — it's a required field with a sensible
+    // system/user-configured default, so fall back to that instead of "".
+    emergencyPhone: site.emergencyPhone?.number ?? defaultEmergencyPhone,
   });
 
   const fillGeneratorFromSite = (site: SiteSearchResultItem) =>

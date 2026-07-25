@@ -22,6 +22,7 @@
 import type {
   AuthTokenResponse,
   CachedToken,
+  FederalWasteCode,
   Manifest,
   ManifestOperationResult,
   NewManifestInput,
@@ -134,6 +135,16 @@ export class RcrainfoClient {
   /** GET /site-details/{siteId} */
   async getSiteDetails(siteId: string): Promise<SiteDetails> {
     return this.request<SiteDetails>(`/site-details/${encodeURIComponent(siteId)}`);
+  }
+
+  /**
+   * GET /lookup/federal-waste-codes — CONFIRMED LIVE 2026-07-25, 567 real
+   * codes (D/F/K/L/P/U prefixes). A plain GET with no body, so none of the
+   * Content-Type quirks that affect the POST lookup/search endpoints apply
+   * here — uses the generic `request()` helper.
+   */
+  async getFederalWasteCodes(): Promise<FederalWasteCode[]> {
+    return this.request<FederalWasteCode[]>(`/lookup/federal-waste-codes`);
   }
 
   /**

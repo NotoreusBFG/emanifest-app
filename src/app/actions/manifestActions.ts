@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRcrainfoClientForUser, NoCredentialsError } from "@/services/manifestService";
 import { RcrainfoApiError, collectManifestOperationWarnings } from "@/lib/rcrainfo/types";
 import type {
+  FederalWasteCode,
   Manifest,
   NewManifestInput,
   QuickerSignParameters,
@@ -138,9 +139,9 @@ export type SiteSearchState =
 /**
  * Called directly from the manifest form's site-search autocomplete (not a
  * <form action> — Server Actions can be invoked as plain async functions
- * from client components). Wraps `RcrainfoClient.searchSites()`, which is
- * itself not yet confirmed live — see caveats on `SiteSearchParams`/
- * `SiteSearchResultItem` in `types.ts`.
+ * from client components). Wraps `RcrainfoClient.searchSites()` — confirmed
+ * live 2026-07-24, see `SiteSearchParams`/`SiteSearchResultItem` in
+ * `types.ts` for the Content-Type quirk this endpoint needed.
  */
 export async function searchSitesAction(params: SiteSearchParams): Promise<SiteSearchState> {
   const supabase = await createClient();
@@ -153,6 +154,45 @@ export async function searchSitesAction(params: SiteSearchParams): Promise<SiteS
     const client = await getRcrainfoClientForUser(supabase, user.id);
     const result = await client.searchSites(params);
     return { success: true, sites: result.sites ?? [] };
+  } catch (err) {
+    return { success: false, error: formatRcrainfoError(err) };
+  }
+}
+
+export type FederalWasteCodeState =
+  | { success: true; codes: FederalWasteCode[] }
+  | { success: false; error: string };
+
+/** In-process cache — this is static regulatory reference data (567 codes,
+ * confirmed live 2026-07-25) that changes rarely, so there's no reason to
+ * hit RCRAInfo's API on every manifest form load. Cleared on server
+ * restart; not persisted anywhere more durable since staleness risk here
+ * is low and the cost of being wrong is just a missing/renamed code
+ * showing up a bit late. */
+let cachedFederalWasteCodes: FederalWasteCode[] | null = null;
+
+/**
+ * Called directly from the waste-line federal-waste-code picker. Backs
+ * `RcrainfoClient.getFederalWasteCodes()` — used to constrain that field to
+ * real EPA codes instead of free text a user could mistype (same class of
+ * bug as the literal "None" hit earlier in the DOT ID number field).
+ */
+export async function getFederalWasteCodesAction(): Promise<FederalWasteCodeState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  if (cachedFederalWasteCodes) {
+    return { success: true, codes: cachedFederalWasteCodes };
+  }
+
+  try {
+    const client = await getRcrainfoClientForUser(supabase, user.id);
+    const codes = await client.getFederalWasteCodes();
+    cachedFederalWasteCodes = codes;
+    return { success: true, codes };
   } catch (err) {
     return { success: false, error: formatRcrainfoError(err) };
   }

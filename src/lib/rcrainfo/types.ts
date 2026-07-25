@@ -84,6 +84,19 @@ export interface SiteDetails {
 }
 
 /**
+ * Response item shape for GET /lookup/federal-waste-codes — CONFIRMED LIVE
+ * 2026-07-25 (`docs/Services/Lookup/lookup.md` in the public
+ * USEPA/e-manifest repo). 567 real entries as of that test, prefixes
+ * D/F/K/L/P/U. This is the authoritative source for what belongs in the
+ * manifest's federal waste code field — used to constrain the waste-line
+ * form to only real codes instead of free text.
+ */
+export interface FederalWasteCode {
+  code: string;
+  description: string;
+}
+
+/**
  * Request body for POST /site-search. Per EPA's docs, at least one of
  * epaSiteId/name/streetNumber/address1/city/state/zip must be provided.
  * A 12-character epaSiteId triggers an exact match and all other fields

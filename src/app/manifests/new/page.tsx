@@ -6,6 +6,7 @@ import { createManifestAction, type CreateManifestState } from "@/app/actions/ma
 import { brand, brandGradient } from "@/lib/brandColors";
 import { SiteSearchField } from "./SiteSearchField";
 import { HazmatSearchField } from "./HazmatSearchField";
+import { FederalWasteCodeField } from "./FederalWasteCodeField";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 
@@ -622,14 +623,11 @@ export default function NewManifestPage() {
                     />
                   </div>
                   <div style={field}>
-                    <label style={label}>
-                      Federal waste codes (optional — comma-separated, e.g. &quot;D001, D003&quot;)
-                    </label>
-                    <input
+                    <label style={label}>Federal waste codes (optional)</label>
+                    <FederalWasteCodeField
                       name={`federalWasteCode_${line.id}`}
                       value={line.federalWasteCode}
-                      onChange={(e) => updateWasteLine(line.id, { federalWasteCode: e.target.value })}
-                      style={inputStyle}
+                      onChange={(v) => updateWasteLine(line.id, { federalWasteCode: v })}
                     />
                   </div>
                 </div>

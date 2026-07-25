@@ -614,12 +614,15 @@ export default function NewManifestPage() {
                 </div>
                 <div style={row}>
                   <div style={field}>
-                    <label style={label}>DOT ID number code</label>
+                    <label style={label}>
+                      DOT ID number code (from search above — search by ID number too, e.g.
+                      &quot;UN1993&quot;)
+                    </label>
                     <input
                       name={`idNumberCode_${line.id}`}
                       value={line.idNumberCode}
-                      onChange={(e) => updateWasteLine(line.id, { idNumberCode: e.target.value })}
-                      style={inputStyle}
+                      readOnly
+                      style={{ ...inputStyle, backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
                     />
                   </div>
                   <div style={field}>

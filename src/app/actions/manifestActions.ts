@@ -199,7 +199,7 @@ export async function getFederalWasteCodesAction(): Promise<FederalWasteCodeStat
 }
 
 export type CreateManifestState =
-  | { success: true; manifestTrackingNumber: string; warnings: string[] }
+  | { success: true; manifestTrackingNumber: string; warnings: string[]; intent: "draft" | "sign" }
   | { success: false; error: string }
   | null;
 
@@ -207,6 +207,12 @@ export async function createManifestAction(
   prevState: CreateManifestState,
   formData: FormData
 ): Promise<CreateManifestState> {
+  // Which of the two submit buttons was used — see the "Save as draft" /
+  // "Save & sign" buttons in the form. Only the activated submit button's
+  // name/value pair is included in FormData, per the HTML spec, so this
+  // works without any extra client-side wiring.
+  const intent = formData.get("intent") === "sign" ? "sign" : "draft";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -413,6 +419,7 @@ export async function createManifestAction(
       success: true,
       manifestTrackingNumber: result.manifestTrackingNumber,
       warnings: collectManifestOperationWarnings(result),
+      intent,
     };
   } catch (err) {
     return { success: false, error: formatRcrainfoError(err) };

@@ -1,14 +1,19 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { createManifestAction, type CreateManifestState } from "@/app/actions/manifestActions";
+import {
+  createManifestAction,
+  refetchManifestAction,
+  type CreateManifestState,
+} from "@/app/actions/manifestActions";
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { SiteSearchField } from "./SiteSearchField";
 import { HazmatSearchField } from "./HazmatSearchField";
 import { FederalWasteCodeField } from "./FederalWasteCodeField";
-import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
+import { SignManifestPanel } from "../SignManifestPanel";
+import type { Manifest, SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 
 const row = { display: "flex", gap: "10px" };
@@ -133,6 +138,29 @@ export default function NewManifestPage() {
     emptyWasteLine(3, false),
   ]);
 
+  // "Save & sign" fetches the full saved manifest (rather than reusing the
+  // form's local state) so the sign panel reflects what RCRAInfo actually
+  // registered — it silently overrides submitted names/addresses with its
+  // own on-file records, so the freshly-fetched copy is the accurate one.
+  const [signableManifest, setSignableManifest] = useState<Manifest | null>(null);
+
+  useEffect(() => {
+    if (state?.success && state.intent === "sign") {
+      refetchManifestAction(state.manifestTrackingNumber).then((result) => {
+        if (result.success) setSignableManifest(result.manifest);
+      });
+    } else {
+      setSignableManifest(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when a new save result comes in, not on every render
+  }, [state]);
+
+  const refreshSignableManifest = async () => {
+    if (!signableManifest) return;
+    const result = await refetchManifestAction(signableManifest.manifestTrackingNumber);
+    if (result.success) setSignableManifest(result.manifest);
+  };
+
   const fillTransporterFromSite = (site: SiteSearchResultItem) =>
     setTransporter((t) => ({ ...t, epaSiteId: site.epaSiteId, name: site.name }));
 
@@ -148,15 +176,21 @@ export default function NewManifestPage() {
     ...current,
     epaSiteId: site.epaSiteId,
     name: site.name,
-    address1: site.siteAddress?.address1 ?? current.address1,
-    city: site.siteAddress?.city ?? current.city,
-    state: site.siteAddress?.state?.code ?? current.state,
-    zip: site.siteAddress?.zip ?? current.zip,
-    firstName: site.contact?.firstName ?? current.firstName,
-    lastName: site.contact?.lastName ?? current.lastName,
-    phone: site.contact?.phoneNumber?.number ?? current.phone,
-    email: site.contact?.email ?? current.email,
-    emergencyPhone: site.emergencyPhone?.number ?? current.emergencyPhone,
+    // Falls back to "" (not the previous value) when EPA's record doesn't
+    // have a given field — some registered sites are missing phone/contact
+    // data. Falling back to whatever was there before silently left stale
+    // placeholder data in place (e.g. a disposal facility showing the
+    // previous site's phone number), which looks legitimate but is wrong.
+    // An empty field is an honest signal that this one needs manual entry.
+    address1: site.siteAddress?.address1 ?? "",
+    city: site.siteAddress?.city ?? "",
+    state: site.siteAddress?.state?.code ?? "",
+    zip: site.siteAddress?.zip ?? "",
+    firstName: site.contact?.firstName ?? "",
+    lastName: site.contact?.lastName ?? "",
+    phone: site.contact?.phoneNumber?.number ?? "",
+    email: site.contact?.email ?? "",
+    emergencyPhone: site.emergencyPhone?.number ?? "",
   });
 
   const fillGeneratorFromSite = (site: SiteSearchResultItem) =>
@@ -204,9 +238,10 @@ export default function NewManifestPage() {
       </p>
       <h1 style={{ color: brand.navy }}>Create a new manifest</h1>
       <p style={{ color: "#666" }}>
-        Preprod sandbox only. Fields are pre-filled with a known-good EPA test site — edit as
-        needed. Empty waste-line slots are skipped automatically, so it&apos;s fine to leave most
-        of the 4 main-form slots blank.
+        Preprod sandbox only — this saves to EPA&apos;s RCRAInfo test environment, not the live
+        production e-Manifest system. Fields are pre-filled with a known-good EPA test site — edit
+        as needed. Empty waste-line slots are skipped automatically, so it&apos;s fine to leave
+        most of the 4 main-form slots blank; you don&apos;t need to delete unused lines.
       </p>
 
       {state && !state.success && <p style={{ color: "red" }}>❌ {state.error}</p>}
@@ -226,6 +261,15 @@ export default function NewManifestPage() {
                   <li key={i}>{w}</li>
                 ))}
               </ul>
+            </div>
+          )}
+          {state.intent === "sign" && (
+            <div style={{ marginTop: "10px" }}>
+              {signableManifest ? (
+                <SignManifestPanel manifest={signableManifest} onSigned={refreshSignableManifest} />
+              ) : (
+                <p style={{ color: "#666", fontSize: "14px" }}>Loading sign options…</p>
+              )}
             </div>
           )}
         </div>
@@ -743,13 +787,38 @@ export default function NewManifestPage() {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={isPending}
-          style={{ ...primaryButtonStyle(isPending), padding: "10px 20px" }}
-        >
-          {isPending ? "Saving..." : "Save manifest"}
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            type="submit"
+            name="intent"
+            value="draft"
+            disabled={isPending}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "white",
+              color: isPending ? "#ccc" : brand.blue,
+              border: `2px solid ${isPending ? "#ccc" : brand.blue}`,
+              borderRadius: "4px",
+              fontWeight: 600,
+              cursor: isPending ? "not-allowed" : "pointer",
+            }}
+          >
+            {isPending ? "Saving..." : "Save as draft"}
+          </button>
+          <button
+            type="submit"
+            name="intent"
+            value="sign"
+            disabled={isPending}
+            style={{ ...primaryButtonStyle(isPending), padding: "10px 20px" }}
+          >
+            {isPending ? "Saving..." : "Save & sign"}
+          </button>
+        </div>
+        <p style={{ fontSize: "13px", color: "#888", marginTop: "8px" }}>
+          Both save the same way — &quot;Save & sign&quot; also shows sign options for this
+          manifest right here afterward, instead of needing to look it up separately.
+        </p>
       </form>
     </div>
   );

@@ -143,6 +143,22 @@ export default function NewManifestPage() {
   const fillTransporterFromSite = (site: SiteSearchResultItem) =>
     setTransporter((t) => ({ ...t, epaSiteId: site.epaSiteId, name: site.name }));
 
+  const fillGeneratorFromSite = (site: SiteSearchResultItem) =>
+    setGenerator((g) => ({
+      ...g,
+      epaSiteId: site.epaSiteId,
+      name: site.name,
+      address1: site.siteAddress?.address1 ?? g.address1,
+      city: site.siteAddress?.city ?? g.city,
+      state: site.siteAddress?.state?.code ?? g.state,
+      zip: site.siteAddress?.zip ?? g.zip,
+      firstName: site.contact?.firstName ?? g.firstName,
+      lastName: site.contact?.lastName ?? g.lastName,
+      phone: site.contact?.phoneNumber?.number ?? g.phone,
+      email: site.contact?.email ?? g.email,
+      emergencyPhone: site.emergencyPhone?.number ?? g.emergencyPhone,
+    }));
+
   const fillFacilityFromSite = (site: SiteSearchResultItem) =>
     setFacility((f) => ({
       ...f,
@@ -238,6 +254,11 @@ export default function NewManifestPage() {
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
           <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Generator</legend>
+          <SiteSearchField
+            siteType="Generator"
+            placeholder="Search registered generators by name…"
+            onSelect={fillGeneratorFromSite}
+          />
           <div style={row}>
             <div style={field}>
               <label style={label}>EPA Site ID</label>

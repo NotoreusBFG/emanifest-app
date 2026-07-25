@@ -1,5 +1,16 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { Manifest } from "@/lib/rcrainfo/types";
+
+/**
+ * Next.js forwards server-side `console.error` calls to the browser's dev
+ * overlay, but a raw PostgrestError object loses its content in that
+ * serialization and shows up as a blank `{}` — logging the actual fields
+ * as a plain string instead so the real error (e.g. a missing column) is
+ * visible without needing terminal access to the dev server.
+ */
+function describePostgrestError(error: PostgrestError): string {
+  return `[${error.code}] ${error.message}${error.details ? ` — ${error.details}` : ""}${error.hint ? ` (hint: ${error.hint})` : ""}`;
+}
 
 export interface LocalManifestRecord {
   id: string;
@@ -47,7 +58,7 @@ export async function recordManifestLocally(
   );
 
   if (error) {
-    console.error("recordManifestLocally failed (non-fatal):", error);
+    console.error("recordManifestLocally failed (non-fatal):", describePostgrestError(error));
   }
 }
 
@@ -64,7 +75,7 @@ export async function listManifestsForUser(
     .order("updated_at", { ascending: false });
 
   if (error) {
-    console.error("listManifestsForUser failed:", error);
+    console.error("listManifestsForUser failed:", describePostgrestError(error));
     return [];
   }
   return data;

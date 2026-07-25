@@ -3,7 +3,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { getRcrainfoClientForUser, NoCredentialsError } from "@/services/manifestService";
 import { RcrainfoApiError, collectManifestOperationWarnings } from "@/lib/rcrainfo/types";
-import type { Manifest, NewManifestInput, SiteSearchParams, SiteSearchResultItem, WasteLine } from "@/lib/rcrainfo/types";
+import type {
+  Manifest,
+  NewManifestInput,
+  QuickerSignParameters,
+  SiteSearchParams,
+  SiteSearchResultItem,
+  WasteLine,
+} from "@/lib/rcrainfo/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 function formatRcrainfoError(err: unknown): string {
   if (err instanceof NoCredentialsError) return err.message;
@@ -16,10 +24,26 @@ function formatRcrainfoError(err: unknown): string {
   return err instanceof Error ? err.message : "Unknown error.";
 }
 
-export type LookupManifestState =
+export type ManifestFetchResult =
   | { success: true; manifest: Manifest }
-  | { success: false; error: string }
-  | null;
+  | { success: false; error: string };
+
+export type LookupManifestState = ManifestFetchResult | null;
+
+/** Shared by the lookup form action and the post-sign refresh call below. */
+async function fetchManifestForCurrentUser(
+  supabase: SupabaseClient,
+  userId: string,
+  mtn: string
+): Promise<ManifestFetchResult> {
+  try {
+    const client = await getRcrainfoClientForUser(supabase, userId);
+    const manifest = await client.getManifest(mtn);
+    return { success: true, manifest };
+  } catch (err) {
+    return { success: false, error: formatRcrainfoError(err) };
+  }
+}
 
 export async function lookupManifestAction(
   prevState: LookupManifestState,
@@ -34,10 +58,74 @@ export async function lookupManifestAction(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not logged in." };
 
+  return fetchManifestForCurrentUser(supabase, user.id, mtn);
+}
+
+/**
+ * Called directly (not via <form action>) after a successful sign, to
+ * refresh the displayed manifest's status/handlers without making the user
+ * re-submit the lookup form.
+ */
+export async function refetchManifestAction(mtn: string): Promise<ManifestFetchResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  return fetchManifestForCurrentUser(supabase, user.id, mtn);
+}
+
+export type SignManifestState =
+  | { success: true; message: string }
+  | { success: false; error: string };
+
+export interface SignManifestParams {
+  manifestTrackingNumber: string;
+  siteId: string;
+  siteType: "Generator" | "Transporter" | "Tsdf";
+  transporterOrder?: number;
+  printedSignatureName: string;
+}
+
+/**
+ * Wraps RcrainfoClient.signManifest() (quicker-sign) — confirmed live in
+ * earlier sessions via test scripts (full Generator -> Transporter -> Tsdf
+ * chain on 100091730ELC), but this is its first exposure in the actual app
+ * UI rather than a standalone script.
+ */
+export async function signManifestAction(params: SignManifestParams): Promise<SignManifestState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  const signParams: QuickerSignParameters = {
+    siteId: params.siteId,
+    siteType: params.siteType,
+    printedSignatureName: params.printedSignatureName,
+    printedSignatureDate: new Date().toISOString(),
+    manifestTrackingNumbers: [params.manifestTrackingNumber],
+    transporterOrder: params.transporterOrder,
+  };
+
   try {
     const client = await getRcrainfoClientForUser(supabase, user.id);
-    const manifest = await client.getManifest(mtn);
-    return { success: true, manifest };
+    const result = await client.signManifest(signParams);
+
+    // A non-2xx HTTP response throws (caught below), but an individual MTN
+    // can still fail within an otherwise-"successful" response — surface
+    // that the same way rather than reporting false success.
+    const report = result.manifestReports[0];
+    if (report?.manifestError) {
+      return { success: false, error: report.manifestError.message };
+    }
+
+    return {
+      success: true,
+      message: report?.manifestSigned?.message ?? `Signed as ${params.siteType}.`,
+    };
   } catch (err) {
     return { success: false, error: formatRcrainfoError(err) };
   }

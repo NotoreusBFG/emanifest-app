@@ -1,10 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { lookupManifestAction, type LookupManifestState } from "@/app/actions/manifestActions";
+import {
+  lookupManifestAction,
+  refetchManifestAction,
+  type LookupManifestState,
+} from "@/app/actions/manifestActions";
 import type { Manifest } from "@/lib/rcrainfo/types";
 import { brand, brandGradient } from "@/lib/brandColors";
+import { SignManifestPanel } from "./SignManifestPanel";
 
 const inputStyle = {
   width: "100%",
@@ -18,6 +23,20 @@ export default function ManifestLookupPage() {
     lookupManifestAction,
     null
   );
+
+  // Held separately from `state` so a post-sign refresh can update what's
+  // displayed without re-running the lookup form's own action/pending state.
+  const [manifest, setManifest] = useState<Manifest | null>(null);
+
+  useEffect(() => {
+    if (state?.success) setManifest(state.manifest);
+  }, [state]);
+
+  const refresh = async () => {
+    if (!manifest) return;
+    const fresh = await refetchManifestAction(manifest.manifestTrackingNumber);
+    if (fresh.success) setManifest(fresh.manifest);
+  };
 
   return (
     <div style={{ maxWidth: "600px", margin: "40px auto", fontFamily: "sans-serif" }}>
@@ -59,14 +78,18 @@ export default function ManifestLookupPage() {
         <p style={{ color: "red" }}>❌ {state.error}</p>
       )}
 
-      {state && state.success && (
-        <ManifestSummary manifest={state.manifest} />
-      )}
+      {manifest && <ManifestSummary manifest={manifest} onSigned={refresh} />}
     </div>
   );
 }
 
-function ManifestSummary({ manifest }: { manifest: Manifest }) {
+function ManifestSummary({
+  manifest,
+  onSigned,
+}: {
+  manifest: Manifest;
+  onSigned: () => void;
+}) {
   return (
     <div style={{ border: `1px solid ${brand.tint}`, borderRadius: "6px", padding: "20px", backgroundColor: "#fff" }}>
       <h2 style={{ marginTop: 0, color: brand.navy }}>{manifest.manifestTrackingNumber}</h2>
@@ -114,6 +137,8 @@ function ManifestSummary({ manifest }: { manifest: Manifest }) {
       >
         Download attachments (PDF + docs, .zip)
       </a>
+
+      <SignManifestPanel manifest={manifest} onSigned={onSigned} />
     </div>
   );
 }

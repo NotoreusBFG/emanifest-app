@@ -1,8 +1,61 @@
 # Delegated Quick-Sign Access — design sketch
 
-**Status: NOT STARTED.** Brainstormed 2026-07-25, sketched for future
-reference — same spirit as `ldr schema.md` at the repo root. Nothing here
-has been built or tested.
+**Status: V1 BUILT 2026-07-26, live-test unconfirmed.** Brainstormed
+2026-07-25, built out autonomously 2026-07-26 while the resolution to the
+open questions below was made by best judgment rather than a live
+conversation — review the "v1 decisions" section before relying on this in
+front of a real customer, and live-test the whole accept → sign flow with
+two real accounts before trusting it. Migration
+`supabase/migrations/20260727_create_quick_sign_delegates.sql` still needs
+to be applied (Supabase Dashboard SQL Editor, same manual process as every
+other migration in this project) before any of this works.
+
+## v1 decisions (answers to the open questions below)
+
+1. **Delegate's manifest visibility**: a delegated sign writes its resulting
+   manifest/document records against the *owner's* account
+   (`effectiveUserId` in `getRcrainfoClientForSigner`,
+   `src/services/manifestService.ts`), so they show up on the owner's
+   dashboard — not a separate delegate-only view. A delegate isn't given
+   their own dashboard of "manifests I've signed" in v1.
+2. **Scoping granularity**: role-type only (`allowed_site_types`), not
+   specific EPA site IDs, as originally sketched. Good enough for an owner
+   with one site; revisit if/when multi-site owners want this.
+3. **"On behalf of" UI**: the sign confirmation dialog
+   (`SignManifestPanel.tsx`) shows a banner naming the owner whenever the
+   signer is an active delegate, before they can confirm.
+4. **Invite delivery**: no transactional email is wired up in this project
+   (checked — nothing beyond Supabase Auth's own account-confirmation
+   emails). Standing up a new email provider wasn't a call to make
+   unilaterally while unsupervised, so v1 invites are a shareable link
+   (`/delegate/accept?token=...`) the owner copies and sends themselves,
+   not an automatic email. Easy to upgrade later without changing the data
+   model.
+5. **One delegation at a time**: a delegate account can hold at most one
+   active delegation (enforced by a partial unique index), to avoid the
+   unresolved question of which owner's data a sign action belongs to if a
+   delegate worked for multiple owners at once.
+6. **Default role scope on invite**: the Settings UI defaults new invites to
+   Transporter-only, with Generator requiring an explicit, visually flagged
+   opt-in — directly reflecting this project's own "whoever signs as
+   generator is the one going to jail" framing from the conversation that
+   led to the sign-confirmation clickwrap in the first place.
+7. **Audit trail**: reuses `signature_consents` (already records the real
+   caller in `user_id`, independent of whose credentials get used) rather
+   than the separate `sign_events` table originally sketched below — that
+   table didn't exist yet when this doc was first written, but does now
+   (built 2026-07-26 for the clickwrap audit trail). Added one column,
+   `signed_for_owner_user_id`, to make the "acting on behalf of" link
+   explicit.
+
+## What's genuinely unverified
+
+Nothing in this feature has been exercised against real Supabase or
+RCRAInfo state yet — it's typechecked and route-smoke-tested (pages render,
+no server errors) only. Before showing this to a real user: apply the
+migration, create a real invite, accept it with a second real account, and
+confirm an actual delegated `signManifest()` call succeeds and lands in
+`signature_consents` with `signed_for_owner_user_id` set correctly.
 
 ## The idea
 

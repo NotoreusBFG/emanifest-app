@@ -10,7 +10,7 @@ import type { RcrainfoClient } from "@/lib/rcrainfo/client";
  * as a plain string instead so the real error (e.g. a missing column) is
  * visible without needing terminal access to the dev server.
  */
-function describePostgrestError(error: PostgrestError): string {
+export function describePostgrestError(error: PostgrestError): string {
   return `[${error.code}] ${error.message}${error.details ? ` — ${error.details}` : ""}${error.hint ? ` (hint: ${error.hint})` : ""}`;
 }
 
@@ -246,6 +246,11 @@ export interface SignatureConsentRecord {
   signSucceeded: boolean;
   epaReportId?: string;
   epaError?: string;
+  /** Set when this sign happened through a Quick-Sign delegation — the
+   * account whose credentials were actually used, distinct from userId
+   * (the real person who triggered it). Null for ordinary, non-delegated
+   * signs. */
+  signedForOwnerUserId?: string | null;
 }
 
 /**
@@ -281,6 +286,7 @@ export async function recordSignatureConsent(
     sign_succeeded: consent.signSucceeded,
     epa_report_id: consent.epaReportId ?? null,
     epa_error: consent.epaError ?? null,
+    signed_for_owner_user_id: consent.signedForOwnerUserId ?? null,
   });
 
   if (error) {

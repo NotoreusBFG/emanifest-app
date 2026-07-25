@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signManifestAction, type SignManifestParams } from "@/app/actions/manifestActions";
+import { getMyDelegationStatusAction } from "@/app/actions/delegateActions";
 import type { Manifest } from "@/lib/rcrainfo/types";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { brand } from "@/lib/brandColors";
@@ -71,6 +72,16 @@ export function SignManifestPanel({
   // of Generator) from immediately submitting a real signature to EPA.
   const [confirmingRole, setConfirmingRole] = useState<SignableRole | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
+
+  // Only set if the current account is itself an active Quick-Sign
+  // delegate for someone else — see docs/delegate-quick-sign-design.md.
+  // Purely informational here (the server enforces the real access check);
+  // this just makes sure a delegate always sees whose authority they're
+  // acting under before they confirm a signature.
+  const [delegationOwnerEmail, setDelegationOwnerEmail] = useState<string | null>(null);
+  useEffect(() => {
+    getMyDelegationStatusAction().then((status) => setDelegationOwnerEmail(status?.ownerEmail ?? null));
+  }, []);
 
   const roles = rolesFor(manifest);
 
@@ -166,6 +177,7 @@ export function SignManifestPanel({
           onAcknowledgedChange={setAcknowledged}
           onCancel={cancelSign}
           onConfirm={confirmSign}
+          delegationOwnerEmail={delegationOwnerEmail}
         />
       )}
 
@@ -192,12 +204,14 @@ function SignConfirmationDialog({
   onAcknowledgedChange,
   onCancel,
   onConfirm,
+  delegationOwnerEmail,
 }: {
   role: SignableRole;
   acknowledged: boolean;
   onAcknowledgedChange: (value: boolean) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  delegationOwnerEmail: string | null;
 }) {
   const certification = certificationTextFor(role.siteType);
 
@@ -232,6 +246,23 @@ function SignConfirmationDialog({
           This submits a real, legally binding electronic signature to EPA&apos;s RCRAInfo system
           and cannot be undone.
         </p>
+
+        {delegationOwnerEmail && (
+          <p
+            style={{
+              fontSize: "13px",
+              color: brand.navy,
+              backgroundColor: "#fff4d9",
+              border: "1px solid #f0d488",
+              borderRadius: "6px",
+              padding: "10px 12px",
+            }}
+          >
+            You&apos;re signing on behalf of <strong>{delegationOwnerEmail}</strong>, using their
+            EPA credentials — EPA&apos;s own record will show them, not you, as the signer.
+            ManifestMate separately records that you were the one who triggered this signature.
+          </p>
+        )}
 
         <div
           style={{

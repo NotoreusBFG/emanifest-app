@@ -2,7 +2,11 @@
 
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { getRcrainfoClientForUser, NoCredentialsError } from "@/services/manifestService";
+import {
+  getRcrainfoClientForUser,
+  getRcrainfoClientForSigner,
+  NoCredentialsError,
+} from "@/services/manifestService";
 import {
   recordManifestLocally,
   fetchAndStoreManifestDocuments,
@@ -133,6 +137,13 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
   const userAgent = headersList.get("user-agent");
   const certification = certificationTextFor(params.siteType);
 
+  // Resolved inside the try block below (it can itself throw — e.g. a
+  // delegate whose access doesn't cover this role), but declared here so
+  // the catch block's recordConsent call can still attribute the attempt
+  // correctly if resolution succeeded but a later step failed.
+  let effectiveUserId = user.id;
+  let signedForOwnerUserId: string | null = null;
+
   const recordConsent = (
     outcome: { signSucceeded: boolean; epaReportId?: string; epaError?: string },
     manifestId: string | null
@@ -150,6 +161,7 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
       certificationIsVerbatim: certification.isVerbatim,
       ipAddress,
       userAgent,
+      signedForOwnerUserId,
       ...outcome,
     });
 
@@ -163,7 +175,18 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
   };
 
   try {
-    const client = await getRcrainfoClientForUser(supabase, user.id);
+    // Delegation-aware: falls back to a Quick-Sign delegation owner's
+    // credentials if the caller has none of their own (see
+    // docs/delegate-quick-sign-design.md). effectiveUserId is whose
+    // account the resulting manifest/document records belong to — the
+    // owner's, when this is a delegated sign — so recordConsent above
+    // (which always uses the real caller, user.id) stays the only place
+    // that records who actually triggered this.
+    const signer = await getRcrainfoClientForSigner(supabase, user.id, params.siteType);
+    const client = signer.client;
+    effectiveUserId = signer.effectiveUserId;
+    signedForOwnerUserId = signer.delegation?.ownerUserId ?? null;
+
     const result = await client.signManifest(signParams);
 
     // A non-2xx HTTP response throws (caught below), but an individual MTN
@@ -184,12 +207,12 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
     let localId: string | null = null;
     try {
       const freshManifest = await client.getManifest(params.manifestTrackingNumber);
-      localId = await recordManifestLocally(supabase, user.id, freshManifest);
+      localId = await recordManifestLocally(supabase, effectiveUserId, freshManifest);
       if (localId) {
         await fetchAndStoreManifestDocuments(
           supabase,
           client,
-          user.id,
+          effectiveUserId,
           localId,
           params.manifestTrackingNumber
         );

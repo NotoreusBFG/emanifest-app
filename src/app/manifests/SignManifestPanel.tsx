@@ -13,6 +13,55 @@ interface SignableRole {
   transporterOrder?: number;
 }
 
+interface CertificationText {
+  heading: string;
+  paragraphs: string[];
+  /** Whether `paragraphs` is EPA's own quoted form language vs. a plain-English paraphrase of the regulatory obligation. */
+  isVerbatim: boolean;
+}
+
+/**
+ * Only the Generator's certification (Item 15 on EPA Form 8700-22) is a
+ * formal, quoted first-person statement in EPA's own manifest instructions
+ * — reproduced here verbatim, confirmed against both the official
+ * instructions PDF and a real generated manifest PDF. Transporter (Item
+ * 17) and designated facility (Item 20) only have a described obligation
+ * in the instructions, not a quoted certification paragraph, so their text
+ * below is a plain-English paraphrase of that obligation — not EPA's own
+ * wording — flagged as such via `isVerbatim` so this distinction doesn't
+ * get lost later.
+ */
+function certificationTextFor(role: SignableRole): CertificationText {
+  if (role.siteType === "Generator") {
+    return {
+      heading: "Generator's/Offeror's Certification",
+      isVerbatim: true,
+      paragraphs: [
+        "I hereby declare that the contents of this consignment are fully and accurately described above by the proper shipping name, and are classified, packaged, marked and labeled/placarded, and are in all respects in proper condition for transport according to applicable international and national governmental regulations. If export shipment and I am the Primary Exporter, I certify that the contents of this consignment conform to the terms of the attached EPA Acknowledgment of Consent.",
+        "I certify that the waste minimization statement identified in 40 CFR 262.27(a) (if I am a large quantity generator) or (b) (if I am a small quantity generator) is true.",
+      ],
+    };
+  }
+
+  if (role.siteType === "Transporter") {
+    return {
+      heading: "Transporter's Acknowledgment of Receipt",
+      isVerbatim: false,
+      paragraphs: [
+        "By signing, I acknowledge acceptance of the hazardous materials described on this manifest, and certify the date of receipt entered with this signature, on behalf of the transporter named above.",
+      ],
+    };
+  }
+
+  return {
+    heading: "Designated Facility Certification of Receipt",
+    isVerbatim: false,
+    paragraphs: [
+      "By signing, I certify receipt of the hazardous materials covered by this manifest, except as noted in any discrepancy recorded for this shipment, on behalf of the facility named above.",
+    ],
+  };
+}
+
 function rolesFor(manifest: Manifest): SignableRole[] {
   const roles: SignableRole[] = [
     {
@@ -63,16 +112,37 @@ export function SignManifestPanel({
   const [result, setResult] = useState<{ role: string; success: boolean; message: string } | null>(
     null
   );
+  // Set when a "Sign as X" button is clicked, cleared on cancel/confirm —
+  // the actual sign call only fires from the confirmation dialog, never
+  // directly from the button click. This is the fix for a real gap: there
+  // was previously nothing stopping a misclick (e.g. Transporter instead
+  // of Generator) from immediately submitting a real signature to EPA.
+  const [confirmingRole, setConfirmingRole] = useState<SignableRole | null>(null);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   const roles = rolesFor(manifest);
 
-  const handleSign = async (role: SignableRole) => {
+  const requestSign = (role: SignableRole) => {
     if (!printedName.trim()) {
       setResult({ role: role.label, success: false, message: "Enter your printed name first." });
       return;
     }
-    setPendingRole(role.label);
     setResult(null);
+    setAcknowledged(false);
+    setConfirmingRole(role);
+  };
+
+  const cancelSign = () => {
+    setConfirmingRole(null);
+    setAcknowledged(false);
+  };
+
+  const confirmSign = async () => {
+    const role = confirmingRole;
+    if (!role) return;
+
+    setConfirmingRole(null);
+    setPendingRole(role.label);
 
     const state = await signManifestAction({
       manifestTrackingNumber: manifest.manifestTrackingNumber,
@@ -117,7 +187,7 @@ export function SignManifestPanel({
             key={role.label}
             type="button"
             disabled={pendingRole !== null}
-            onClick={() => handleSign(role)}
+            onClick={() => requestSign(role)}
             style={{ alignSelf: "flex-start", ...primaryButtonStyle(pendingRole !== null) }}
           >
             {pendingRole === role.label ? "Signing…" : `Sign as ${role.label}`}
@@ -125,11 +195,137 @@ export function SignManifestPanel({
         ))}
       </div>
 
+      {confirmingRole && (
+        <SignConfirmationDialog
+          role={confirmingRole}
+          acknowledged={acknowledged}
+          onAcknowledgedChange={setAcknowledged}
+          onCancel={cancelSign}
+          onConfirm={confirmSign}
+        />
+      )}
+
       {result && (
         <p style={{ color: result.success ? "green" : "red", marginTop: "10px" }}>
           {result.success ? "✅" : "❌"} {result.role}: {result.message}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * The "signing your life away" clickwrap — a real gap this closes: nothing
+ * previously stopped a misclick from immediately submitting a real
+ * signature to EPA. Requires an explicit checkbox acknowledgment of the
+ * role-appropriate certification text before "Confirm & sign" is even
+ * clickable, for every role, not just Generator (though Generator's is the
+ * one with real EPA-quoted certification language).
+ */
+function SignConfirmationDialog({
+  role,
+  acknowledged,
+  onAcknowledgedChange,
+  onCancel,
+  onConfirm,
+}: {
+  role: SignableRole;
+  acknowledged: boolean;
+  onAcknowledgedChange: (value: boolean) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const certification = certificationTextFor(role);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(10, 34, 70, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 100,
+        padding: "20px",
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "white",
+          borderRadius: "8px",
+          padding: "24px",
+          maxWidth: "520px",
+          width: "100%",
+          maxHeight: "80vh",
+          overflowY: "auto",
+        }}
+      >
+        <h3 style={{ color: brand.navy, marginTop: 0 }}>Confirm signature — {role.label}</h3>
+        <p style={{ fontSize: "13px", color: "#666" }}>
+          This submits a real, legally binding electronic signature to EPA&apos;s RCRAInfo system
+          and cannot be undone.
+        </p>
+
+        <div
+          style={{
+            backgroundColor: brand.tint,
+            borderRadius: "6px",
+            padding: "14px",
+            margin: "16px 0",
+          }}
+        >
+          <p style={{ fontWeight: 600, color: brand.navy, marginTop: 0, fontSize: "14px" }}>
+            {certification.heading}
+            {!certification.isVerbatim && (
+              <span style={{ fontWeight: 400, color: "#666" }}> (summary of the acknowledgment required by this signature)</span>
+            )}
+          </p>
+          {certification.paragraphs.map((paragraph, i) => (
+            <p key={i} style={{ fontSize: "14px", color: "#333", lineHeight: 1.5 }}>
+              {paragraph}
+            </p>
+          ))}
+        </div>
+
+        <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "14px", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={acknowledged}
+            onChange={(e) => onAcknowledgedChange(e.target.checked)}
+            style={{ marginTop: "3px" }}
+          />
+          I have read and agree to the statement above, and I am signing as {role.label}.
+        </label>
+
+        <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "white",
+              color: brand.blue,
+              border: `1px solid ${brand.blue}`,
+              borderRadius: "4px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!acknowledged}
+            onClick={onConfirm}
+            style={{ ...primaryButtonStyle(!acknowledged), padding: "8px 16px" }}
+          >
+            Confirm &amp; sign
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

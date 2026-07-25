@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
-import type { Manifest } from "@/lib/rcrainfo/types";
+import { getHandlerSignatureStatus, type Manifest } from "@/lib/rcrainfo/types";
 import type { RcrainfoClient } from "@/lib/rcrainfo/client";
 
 /**
@@ -22,9 +22,30 @@ export interface LocalManifestRecord {
   generator_epa_site_id: string | null;
   designated_facility_name: string | null;
   designated_facility_epa_site_id: string | null;
+  generator_signed_at: string | null;
+  transporter_signed_at: string | null;
+  facility_signed_at: string | null;
   created_at: string;
   updated_at: string;
   last_synced_at: string;
+}
+
+/**
+ * `transporter_signed_at` represents ALL transporters having signed (the
+ * latest of their signature dates), not just the first — the "transport
+ * leg is complete" checkmark, meaningful even once multi-transporter
+ * manifests are supported. Empty transporters array (shouldn't happen on
+ * a real manifest, but the type allows it) counts as not signed rather
+ * than vacuously signed.
+ */
+function latestTransporterSignedAt(transporters: Manifest["transporters"]): string | null {
+  if (!transporters || transporters.length === 0) return null;
+  const statuses = transporters.map(getHandlerSignatureStatus);
+  if (!statuses.every((s) => s.signed)) return null;
+  return statuses.reduce<string | null>((latest, s) => {
+    if (!s.signatureDate) return latest;
+    return !latest || s.signatureDate > latest ? s.signatureDate : latest;
+  }, null);
 }
 
 /**
@@ -44,8 +65,11 @@ export interface LocalManifestRecord {
 export async function recordManifestLocally(
   supabase: SupabaseClient,
   userId: string,
-  manifest: Pick<Manifest, "manifestTrackingNumber" | "status" | "generator" | "designatedFacility">
+  manifest: Pick<Manifest, "manifestTrackingNumber" | "status" | "generator" | "transporters" | "designatedFacility">
 ): Promise<string | null> {
+  const generatorStatus = getHandlerSignatureStatus(manifest.generator);
+  const facilityStatus = getHandlerSignatureStatus(manifest.designatedFacility);
+
   const { data, error } = await supabase
     .from("manifests")
     .upsert(
@@ -57,6 +81,9 @@ export async function recordManifestLocally(
         generator_epa_site_id: manifest.generator?.epaSiteId ?? null,
         designated_facility_name: manifest.designatedFacility?.name ?? null,
         designated_facility_epa_site_id: manifest.designatedFacility?.epaSiteId ?? null,
+        generator_signed_at: generatorStatus.signed ? generatorStatus.signatureDate ?? null : null,
+        transporter_signed_at: latestTransporterSignedAt(manifest.transporters),
+        facility_signed_at: facilityStatus.signed ? facilityStatus.signatureDate ?? null : null,
         last_synced_at: new Date().toISOString(),
       },
       { onConflict: "epa_mtn" }
@@ -78,7 +105,7 @@ export async function listManifestsForUser(
   const { data, error } = await supabase
     .from("manifests")
     .select(
-      "id, epa_mtn, epa_status, generator_name, generator_epa_site_id, designated_facility_name, designated_facility_epa_site_id, created_at, updated_at, last_synced_at"
+      "id, epa_mtn, epa_status, generator_name, generator_epa_site_id, designated_facility_name, designated_facility_epa_site_id, generator_signed_at, transporter_signed_at, facility_signed_at, created_at, updated_at, last_synced_at"
     )
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });

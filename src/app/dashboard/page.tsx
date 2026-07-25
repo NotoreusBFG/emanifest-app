@@ -40,6 +40,7 @@ export default async function DashboardPage() {
             <tr style={{ borderBottom: `2px solid ${brand.tint}`, textAlign: "left" }}>
               <th style={{ padding: "8px" }}>MTN</th>
               <th style={{ padding: "8px" }}>Status</th>
+              <th style={{ padding: "8px" }}>Signatures</th>
               <th style={{ padding: "8px" }}>Generator</th>
               <th style={{ padding: "8px" }}>Designated facility</th>
               <th style={{ padding: "8px" }}>Last updated</th>
@@ -54,6 +55,13 @@ export default async function DashboardPage() {
                   </Link>
                 </td>
                 <td style={{ padding: "8px" }}>{m.epa_status ?? "—"}</td>
+                <td style={{ padding: "8px" }}>
+                  <SignatureDots
+                    generatorSignedAt={m.generator_signed_at}
+                    transporterSignedAt={m.transporter_signed_at}
+                    facilitySignedAt={m.facility_signed_at}
+                  />
+                </td>
                 <td style={{ padding: "8px" }}>{m.generator_name ?? "—"}</td>
                 <td style={{ padding: "8px" }}>{m.designated_facility_name ?? "—"}</td>
                 <td style={{ padding: "8px", color: "#666", fontSize: "13px" }}>
@@ -65,5 +73,59 @@ export default async function DashboardPage() {
         </table>
       )}
     </div>
+  );
+}
+
+/**
+ * Compact G/T/F checkmarks for the dashboard's overview table — the full
+ * checkmark-plus-name-plus-date version lives on the lookup page
+ * (SignatureChecklistItem in manifests/page.tsx). Reads from the local
+ * mirror's generator_signed_at/transporter_signed_at/facility_signed_at
+ * columns rather than live EPA data, so it can lag slightly behind until
+ * the manifest is next looked up or signed (recordManifestLocally is what
+ * refreshes these).
+ */
+function SignatureDots({
+  generatorSignedAt,
+  transporterSignedAt,
+  facilitySignedAt,
+}: {
+  generatorSignedAt: string | null;
+  transporterSignedAt: string | null;
+  facilitySignedAt: string | null;
+}) {
+  const roles: Array<{ label: string; signedAt: string | null }> = [
+    { label: "G", signedAt: generatorSignedAt },
+    { label: "T", signedAt: transporterSignedAt },
+    { label: "F", signedAt: facilitySignedAt },
+  ];
+
+  return (
+    <span style={{ display: "inline-flex", gap: "6px" }}>
+      {roles.map((role) => (
+        <span
+          key={role.label}
+          title={
+            role.signedAt
+              ? `Signed ${new Date(role.signedAt).toLocaleString()}`
+              : "Not signed yet"
+          }
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "20px",
+            height: "20px",
+            borderRadius: "999px",
+            fontSize: "11px",
+            fontWeight: 700,
+            color: role.signedAt ? "white" : "#999",
+            backgroundColor: role.signedAt ? "green" : "#eee",
+          }}
+        >
+          {role.label}
+        </span>
+      ))}
+    </span>
   );
 }

@@ -457,6 +457,7 @@ export async function createManifestAction(
       manifestTrackingNumber: result.manifestTrackingNumber,
       status: input.status,
       generator: input.generator,
+      transporters: input.transporters,
       designatedFacility: input.designatedFacility,
     });
 

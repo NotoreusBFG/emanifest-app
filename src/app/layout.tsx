@@ -59,6 +59,9 @@ export default async function RootLayout({
 
           {user && (
             <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+              <Link href="/dashboard" className="text-brand-navy hover:text-brand-blue">
+                Dashboard
+              </Link>
               <Link href="/manifests/new" className="text-brand-navy hover:text-brand-blue">
                 Create manifest
               </Link>

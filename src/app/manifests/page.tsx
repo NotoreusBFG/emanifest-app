@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { Suspense, useActionState, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   lookupManifestAction,
   refetchManifestAction,
@@ -12,7 +13,17 @@ import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { SignManifestPanel } from "./SignManifestPanel";
 
+// useSearchParams() (for the ?mtn= deep link from /dashboard) requires a
+// Suspense boundary in the App Router, or the build fails.
 export default function ManifestLookupPage() {
+  return (
+    <Suspense fallback={null}>
+      <ManifestLookupPageInner />
+    </Suspense>
+  );
+}
+
+function ManifestLookupPageInner() {
   const [state, formAction, isPending] = useActionState<LookupManifestState, FormData>(
     lookupManifestAction,
     null
@@ -31,6 +42,20 @@ export default function ManifestLookupPage() {
     const fresh = await refetchManifestAction(manifest.manifestTrackingNumber);
     if (fresh.success) setManifest(fresh.manifest);
   };
+
+  // Deep link from the dashboard (/manifests?mtn=...) — loads straight into
+  // full detail without the user re-typing/pasting the MTN into the form.
+  const searchParams = useSearchParams();
+  const deepLinkMtn = searchParams.get("mtn");
+
+  useEffect(() => {
+    if (deepLinkMtn) {
+      refetchManifestAction(deepLinkMtn).then((result) => {
+        if (result.success) setManifest(result.manifest);
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the URL's mtn param itself changes
+  }, [deepLinkMtn]);
 
   return (
     <div style={{ maxWidth: "600px", margin: "40px auto", fontFamily: "sans-serif" }}>

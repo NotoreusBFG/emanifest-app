@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getRcrainfoClientForUser, NoCredentialsError } from "@/services/manifestService";
+import { recordManifestLocally } from "@/services/manifestRepository";
 import { RcrainfoApiError, collectManifestOperationWarnings } from "@/lib/rcrainfo/types";
 import type {
   FederalWasteCode,
@@ -40,6 +41,15 @@ async function fetchManifestForCurrentUser(
   try {
     const client = await getRcrainfoClientForUser(supabase, userId);
     const manifest = await client.getManifest(mtn);
+
+    // Piggybacks on every fetch (initial lookup, post-sign refresh, the
+    // Save & Sign flow's refetch) to keep the local mirror table
+    // reasonably fresh, rather than adding separate sync calls at each
+    // call site. This is real EPA-confirmed data (status included), unlike
+    // the initial record written straight after save, which only knows
+    // the submitted "NotAssigned" status until a fetch like this corrects it.
+    await recordManifestLocally(supabase, userId, manifest);
+
     return { success: true, manifest };
   } catch (err) {
     return { success: false, error: formatRcrainfoError(err) };
@@ -415,6 +425,14 @@ export async function createManifestAction(
   try {
     const client = await getRcrainfoClientForUser(supabase, user.id);
     const result = await client.saveManifest(input);
+
+    await recordManifestLocally(supabase, user.id, {
+      manifestTrackingNumber: result.manifestTrackingNumber,
+      status: input.status,
+      generator: input.generator,
+      designatedFacility: input.designatedFacility,
+    });
+
     return {
       success: true,
       manifestTrackingNumber: result.manifestTrackingNumber,

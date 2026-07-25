@@ -72,21 +72,28 @@ preprod sandbox, is explicit — `E_SystemError: "User does not have Site
 Services Permission"` when an account without that permission tries to
 sign for a site, even a real, registered one.
 
-## Caveat — verify before relying on this for product decisions
+## Confirmed live — 2026-07-25
 
-The create-side finding above comes from reading EPA's documentation, not
-from a live test. This project has already caught EPA's own docs
-disagreeing with themselves once before (the `quicker-sign` payload field
-being documented as both `siteId` and `siteID` in two different official
-sources — `siteId` turned out to be correct, confirmed live). Before this
-assumption drives roadmap or pricing decisions, run the live test: save a
-`FullElectronic` manifest via a test account that has *no* Site Services
-Permission for the named generator, and confirm the save succeeds and the
-manifest reaches `Scheduled` / awaiting-signature status.
+Verified directly against preprod with `scripts/test-create-without-generator-permission.ts`,
+naming `VATEST000004` ("TEST GENERATOR OF VA") as the generator — a site this
+account has never held Site Services Permission for:
+
+- **Save succeeded cleanly**, no permission error: `POST /emanifest/manifest/save`
+  returned `operationStatus: "Saved"`, MTN `100092104ELC`, only the already-known
+  warnings (transporter site override, wasteDescription ignored for hazardous
+  lines).
+- **Signing as that same generator then failed as expected**: `POST
+  /emanifest/manifest/quicker-sign` for `siteId: "VATEST000004"` returned
+  `E_SystemError: "User does not have Site Services Permission"` — on the *same*
+  manifest just created.
+
+Both halves of the claim now independently confirmed live, on the same manifest,
+not just read from documentation. The "prepare vs. sign are different permissions"
+model is real, not a doc-reading assumption.
 
 ## Future idea
 
 This explanation — "prepare vs. sign are different permissions, here's the
 chain" — is a strong candidate for an actual customer-facing page (e.g. a
-"How e-Manifest signing works" section on the marketing site), once the
+"How e-Manifest signing works" section on the marketing site), now that the
 live-test caveat above is closed out. Not built yet.

@@ -31,6 +31,22 @@ function continuationLabel(index: number): string {
   return `continuation sheet ${sheetNumber}`;
 }
 
+// EPA's real form only has 2 transporter slots (Items 6/7) — a 3rd+
+// transporter goes on the continuation sheet (Items 25/26), 2 per sheet.
+// Matches the same "main form vs continuation sheet" labeling pattern
+// already used for waste lines above, purely for the user's mental model —
+// RCRAInfo auto-paginates the generated PDF regardless.
+const MAIN_PAGE_TRANSPORTER_COUNT = 2;
+const CONTINUATION_SHEET_TRANSPORTER_COUNT = 2;
+
+function transporterContinuationLabel(index: number): string {
+  if (index < MAIN_PAGE_TRANSPORTER_COUNT) return "main form";
+  const sheetNumber = Math.ceil(
+    (index - MAIN_PAGE_TRANSPORTER_COUNT + 1) / CONTINUATION_SHEET_TRANSPORTER_COUNT
+  );
+  return `continuation sheet ${sheetNumber}`;
+}
+
 interface HandlerFormState {
   epaSiteId: string;
   name: string;
@@ -60,14 +76,18 @@ const DEFAULT_SITE: HandlerFormState = {
 };
 
 interface TransporterFormState {
+  id: number;
   epaSiteId: string;
   name: string;
 }
 
-const DEFAULT_TRANSPORTER: TransporterFormState = {
-  epaSiteId: "VATEST000001",
-  name: "TEST TRANSPORTER 1 OF VA",
-};
+function emptyTransporter(id: number, prefill: boolean): TransporterFormState {
+  return {
+    id,
+    epaSiteId: prefill ? "VATEST000001" : "",
+    name: prefill ? "TEST TRANSPORTER 1 OF VA" : "",
+  };
+}
 
 interface WasteLineFormState {
   id: number;
@@ -129,7 +149,7 @@ export default function NewManifestPage() {
 
   const [generator, setGenerator] = useState<HandlerFormState>(DEFAULT_SITE);
   const [facility, setFacility] = useState<HandlerFormState>(DEFAULT_SITE);
-  const [transporter, setTransporter] = useState<TransporterFormState>(DEFAULT_TRANSPORTER);
+  const [transporters, setTransporters] = useState<TransporterFormState[]>([emptyTransporter(0, true)]);
 
   // Starts at the system default (used synchronously above, before this
   // fetch can possibly resolve) and is replaced by the user's own saved
@@ -182,8 +202,20 @@ export default function NewManifestPage() {
     if (result.success) setSignableManifest(result.manifest);
   };
 
-  const fillTransporterFromSite = (site: SiteSearchResultItem) =>
-    setTransporter((t) => ({ ...t, epaSiteId: site.epaSiteId, name: site.name }));
+  const updateTransporter = (id: number, patch: Partial<TransporterFormState>) =>
+    setTransporters((list) => list.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+
+  const fillTransporterFromSite = (id: number, site: SiteSearchResultItem) =>
+    updateTransporter(id, { epaSiteId: site.epaSiteId, name: site.name });
+
+  const addTransporter = () => {
+    const nextId = transporters.length ? Math.max(...transporters.map((t) => t.id)) + 1 : 0;
+    setTransporters((list) => [...list, emptyTransporter(nextId, false)]);
+  };
+
+  const removeTransporter = (id: number) => {
+    setTransporters((list) => (list.length > 1 ? list.filter((t) => t.id !== id) : list));
+  };
 
   /**
    * Generator and designated facility share the same form shape
@@ -304,6 +336,11 @@ export default function NewManifestPage() {
           type="hidden"
           name="wasteLineIds"
           value={wasteLines.map((l) => l.id).join(",")}
+        />
+        <input
+          type="hidden"
+          name="transporterIds"
+          value={transporters.map((t) => t.id).join(",")}
         />
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
@@ -433,36 +470,69 @@ export default function NewManifestPage() {
           </div>
         </fieldset>
 
-        <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
-          <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Transporter</legend>
-          <SiteSearchField
-            siteType="Transporter"
-            placeholder="Search registered transporters by name…"
-            onSelect={fillTransporterFromSite}
-          />
-          <div style={row}>
-            <div style={field}>
-              <label style={label}>EPA Site ID</label>
-              <input
-                name="transporterEpaSiteId"
-                required
-                value={transporter.epaSiteId}
-                onChange={(e) => setTransporter((t) => ({ ...t, epaSiteId: e.target.value }))}
-                style={inputStyle}
-              />
+        {transporters.map((t, index) => (
+          <fieldset
+            key={t.id}
+            style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}
+          >
+            <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>
+              Transporter {index + 1} ({transporterContinuationLabel(index)})
+            </legend>
+            <SiteSearchField
+              siteType="Transporter"
+              placeholder="Search registered transporters by name…"
+              onSelect={(site) => fillTransporterFromSite(t.id, site)}
+            />
+            <div style={row}>
+              <div style={field}>
+                <label style={label}>EPA Site ID</label>
+                <input
+                  name={`transporterEpaSiteId_${t.id}`}
+                  required
+                  value={t.epaSiteId}
+                  onChange={(e) => updateTransporter(t.id, { epaSiteId: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={field}>
+                <label style={label}>Name</label>
+                <input
+                  name={`transporterName_${t.id}`}
+                  required
+                  value={t.name}
+                  onChange={(e) => updateTransporter(t.id, { name: e.target.value })}
+                  style={inputStyle}
+                />
+              </div>
             </div>
-            <div style={field}>
-              <label style={label}>Name</label>
-              <input
-                name="transporterName"
-                required
-                value={transporter.name}
-                onChange={(e) => setTransporter((t) => ({ ...t, name: e.target.value }))}
-                style={inputStyle}
-              />
-            </div>
-          </div>
-        </fieldset>
+            {transporters.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeTransporter(t.id)}
+                style={{ background: "none", border: "none", color: "#c00", cursor: "pointer", padding: 0 }}
+              >
+                Remove this transporter
+              </button>
+            )}
+          </fieldset>
+        ))}
+
+        <button
+          type="button"
+          onClick={addTransporter}
+          style={{
+            marginBottom: "20px",
+            padding: "8px 16px",
+            backgroundColor: "white",
+            color: brand.blue,
+            border: `1px solid ${brand.blue}`,
+            borderRadius: "4px",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          + Add another transporter
+        </button>
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
           <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Designated facility</legend>

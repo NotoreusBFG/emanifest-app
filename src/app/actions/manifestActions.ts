@@ -289,13 +289,8 @@ export async function createManifestAction(
       },
       emergencyPhone: { number: f("generatorEmergencyPhone") },
     },
-    transporters: [
-      {
-        epaSiteId: f("transporterEpaSiteId"),
-        name: f("transporterName"),
-        order: 1,
-      },
-    ],
+    // Filled in below, after validation -- matches the wasteLineIds pattern.
+    transporters: [],
     designatedFacility: {
       epaSiteId: f("facilityEpaSiteId"),
       name: f("facilityName"),
@@ -335,6 +330,18 @@ export async function createManifestAction(
   // RCRAInfo hard-rejects it with an empty-string schema error. Validated
   // here, before calling the API, so the user gets a specific "line 3 is
   // missing X" message instead of a raw API error dump.
+  // Every transporter row the user added is required (unlike waste lines,
+  // there's no "blank optional slot" concept here — each one is explicitly
+  // added via "+ Add another transporter"). `order` is the array position,
+  // matching EPA's own "Transporter 1"/"Transporter 2"/... numbering
+  // (Items 6/7 on the main form, Items 25/26 on continuation sheets).
+  const transporterIds = (formData.get("transporterIds") as string).split(",").filter(Boolean);
+  input.transporters = transporterIds.map((id, index) => ({
+    epaSiteId: (formData.get(`transporterEpaSiteId_${id}`) as string)?.trim() ?? "",
+    name: (formData.get(`transporterName_${id}`) as string)?.trim() ?? "",
+    order: index + 1,
+  }));
+
   const wasteLineIds = (formData.get("wasteLineIds") as string).split(",").filter(Boolean);
   const wastes: WasteLine[] = [];
   const lineErrors: string[] = [];

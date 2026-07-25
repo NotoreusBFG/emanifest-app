@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getRcrainfoClientForUser, NoCredentialsError } from "@/services/manifestService";
 import {
@@ -7,7 +8,9 @@ import {
   fetchAndStoreManifestDocuments,
   listDocumentsForManifest,
   getDocumentDownloadUrl,
+  recordSignatureConsent,
 } from "@/services/manifestRepository";
+import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { RcrainfoApiError, collectManifestOperationWarnings } from "@/lib/rcrainfo/types";
 import type {
   FederalWasteCode,
@@ -117,6 +120,39 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not logged in." };
 
+  // The "signing your life away" audit trail — recorded regardless of
+  // whether the sign attempt actually succeeds, since a failed attempt is
+  // still evidence of what this user tried to do and agreed to. The
+  // certification text is recomputed here from `params.siteType`, not
+  // trusted as a value from the client — the whole point of this record is
+  // proof of what was actually shown, so it has to come from the same
+  // source of truth the UI itself renders from (certificationText.ts).
+  const headersList = await headers();
+  const ipAddress =
+    headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? headersList.get("x-real-ip") ?? null;
+  const userAgent = headersList.get("user-agent");
+  const certification = certificationTextFor(params.siteType);
+
+  const recordConsent = (
+    outcome: { signSucceeded: boolean; epaReportId?: string; epaError?: string },
+    manifestId: string | null
+  ) =>
+    recordSignatureConsent(supabase, {
+      userId: user.id,
+      manifestId,
+      epaMtn: params.manifestTrackingNumber,
+      siteType: params.siteType,
+      transporterOrder: params.transporterOrder,
+      siteId: params.siteId,
+      printedSignatureName: params.printedSignatureName,
+      certificationHeading: certification.heading,
+      certificationText: certification.paragraphs.join("\n\n"),
+      certificationIsVerbatim: certification.isVerbatim,
+      ipAddress,
+      userAgent,
+      ...outcome,
+    });
+
   const signParams: QuickerSignParameters = {
     siteId: params.siteId,
     siteType: params.siteType,
@@ -135,6 +171,7 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
     // that the same way rather than reporting false success.
     const report = result.manifestReports[0];
     if (report?.manifestError) {
+      await recordConsent({ signSucceeded: false, epaError: report.manifestError.message }, null);
       return { success: false, error: report.manifestError.message };
     }
 
@@ -144,9 +181,10 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
     // Needs the full manifest (for recordManifestLocally's denormalized
     // fields), so this is a second live call beyond the sign itself, but
     // signing is a deliberate, infrequent user action, not a hot path.
+    let localId: string | null = null;
     try {
       const freshManifest = await client.getManifest(params.manifestTrackingNumber);
-      const localId = await recordManifestLocally(supabase, user.id, freshManifest);
+      localId = await recordManifestLocally(supabase, user.id, freshManifest);
       if (localId) {
         await fetchAndStoreManifestDocuments(
           supabase,
@@ -160,12 +198,16 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
       console.error("Post-sign document sync failed (non-fatal):", syncErr);
     }
 
+    await recordConsent({ signSucceeded: true, epaReportId: result.reportId }, localId);
+
     return {
       success: true,
       message: report?.manifestSigned?.message ?? `Signed as ${params.siteType}.`,
     };
   } catch (err) {
-    return { success: false, error: formatRcrainfoError(err) };
+    const errorMessage = formatRcrainfoError(err);
+    await recordConsent({ signSucceeded: false, epaError: errorMessage }, null);
+    return { success: false, error: errorMessage };
   }
 }
 

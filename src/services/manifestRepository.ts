@@ -229,3 +229,61 @@ export async function getDocumentDownloadUrl(
   }
   return data.signedUrl;
 }
+
+export interface SignatureConsentRecord {
+  userId: string;
+  manifestId: string | null;
+  epaMtn: string;
+  siteType: string;
+  transporterOrder?: number;
+  siteId: string;
+  printedSignatureName: string;
+  certificationHeading: string;
+  certificationText: string;
+  certificationIsVerbatim: boolean;
+  ipAddress: string | null;
+  userAgent: string | null;
+  signSucceeded: boolean;
+  epaReportId?: string;
+  epaError?: string;
+}
+
+/**
+ * Records the "signing your life away" clickwrap audit trail — see the
+ * migration's comment for why this exists alongside, not instead of,
+ * EPA's own CROMERR signature record. Called from signManifestAction after
+ * every confirmed sign attempt, success or failure, so the record captures
+ * what was actually shown and what actually happened either way.
+ *
+ * Deliberately does NOT swallow-and-continue silently the way
+ * recordManifestLocally does for a failed write — logs loudly (still
+ * doesn't throw, so a DB hiccup can't turn a real EPA signature into a
+ * user-facing error) since losing an audit record is a bigger problem than
+ * losing a denormalized display cache.
+ */
+export async function recordSignatureConsent(
+  supabase: SupabaseClient,
+  consent: SignatureConsentRecord
+): Promise<void> {
+  const { error } = await supabase.from("signature_consents").insert({
+    user_id: consent.userId,
+    manifest_id: consent.manifestId,
+    epa_mtn: consent.epaMtn,
+    site_type: consent.siteType,
+    transporter_order: consent.transporterOrder ?? null,
+    site_id: consent.siteId,
+    printed_signature_name: consent.printedSignatureName,
+    certification_heading: consent.certificationHeading,
+    certification_text: consent.certificationText,
+    certification_is_verbatim: consent.certificationIsVerbatim,
+    ip_address: consent.ipAddress,
+    user_agent: consent.userAgent,
+    sign_succeeded: consent.signSucceeded,
+    epa_report_id: consent.epaReportId ?? null,
+    epa_error: consent.epaError ?? null,
+  });
+
+  if (error) {
+    console.error("recordSignatureConsent FAILED — audit trail gap:", describePostgrestError(error));
+  }
+}

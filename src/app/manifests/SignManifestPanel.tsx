@@ -119,7 +119,19 @@ export function SignManifestPanel({
       <p style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>
         Your account needs Site Services Permission for whichever site you sign as — signing
         fails with a clear error if it doesn&apos;t, or if it&apos;s not that role&apos;s turn yet
-        (RCRAInfo enforces Generator → Transporter → Designated facility order).
+        (RCRAInfo enforces Generator → Transporter → Designated facility order). Not sure which
+        sites you&apos;re authorized for? Check &quot;My Sites&quot; under your account on{" "}
+        <a
+          href="https://rcrainfopreprod.epa.gov/rcrainfo/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: brand.blue }}
+        >
+          RCRAInfo
+        </a>
+        . The example data pre-filled when creating a manifest is placeholder — a role using it
+        will only sign successfully if it happens to match a site you&apos;re actually authorized
+        for.
       </p>
 
       <div style={{ marginBottom: "12px" }}>

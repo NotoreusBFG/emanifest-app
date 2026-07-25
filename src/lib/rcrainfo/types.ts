@@ -225,6 +225,29 @@ export interface ManifestContact {
 }
 
 /** Shared "site" shape — reused by RCRAInfo for generator, transporter, and designated facility. */
+/**
+ * One entry per signature "slot" for a handler. CONFIRMED LIVE 2026-07-25:
+ * this array is present on GET once the workflow reaches a handler, but an
+ * entry's mere presence does NOT mean that handler has signed — an
+ * unsigned transporter already had one entry containing only
+ * `humanReadableDocument`, with no `signer`/`signatureDate` at all. Use
+ * `getHandlerSignatureStatus()` below rather than checking this array
+ * directly for presence/length.
+ */
+export interface ElectronicSignatureInfo {
+  signer?: { firstName?: string; lastName?: string; userId?: string };
+  signatureDate?: string;
+  signerRole?: string;
+  signatureMethod?: string;
+  humanReadableDocument?: { name?: string; size?: number; mimeType?: string };
+}
+
+/** Paper-signing equivalent of ElectronicSignatureInfo — untested by this project (only QuickerSign/electronic has been used), modeled for completeness since it appears in the same GET responses. */
+export interface PaperSignatureInfo {
+  printedName?: string;
+  signatureDate?: string;
+}
+
 export interface Handler {
   epaSiteId: string;
   /**
@@ -241,6 +264,44 @@ export interface Handler {
   emergencyPhone?: PhoneNumber;
   /** Only present on a transporter entry — its position in the transport chain. */
   order?: number;
+  electronicSignaturesInfo?: ElectronicSignatureInfo[];
+  paperSignatureInfo?: PaperSignatureInfo;
+}
+
+export interface HandlerSignatureStatus {
+  signed: boolean;
+  signerName?: string;
+  signatureDate?: string;
+}
+
+/**
+ * See ElectronicSignatureInfo's comment for why this can't just check
+ * array presence — an unsigned handler can already have a placeholder
+ * entry with no real signer.
+ */
+export function getHandlerSignatureStatus(handler: Handler): HandlerSignatureStatus {
+  const realSignature = handler.electronicSignaturesInfo?.find(
+    (entry) => entry.signer && entry.signatureDate
+  );
+  if (realSignature) {
+    return {
+      signed: true,
+      signerName:
+        [realSignature.signer?.firstName, realSignature.signer?.lastName].filter(Boolean).join(" ") ||
+        undefined,
+      signatureDate: realSignature.signatureDate,
+    };
+  }
+
+  if (handler.paperSignatureInfo?.signatureDate) {
+    return {
+      signed: true,
+      signerName: handler.paperSignatureInfo.printedName,
+      signatureDate: handler.paperSignatureInfo.signatureDate,
+    };
+  }
+
+  return { signed: false };
 }
 
 export interface WasteQuantity {

@@ -10,7 +10,7 @@ import {
   type LookupManifestState,
   type StoredDocument,
 } from "@/app/actions/manifestActions";
-import type { Manifest } from "@/lib/rcrainfo/types";
+import { getHandlerSignatureStatus, type Handler, type Manifest } from "@/lib/rcrainfo/types";
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { SignManifestPanel } from "./SignManifestPanel";
@@ -113,6 +113,22 @@ function ManifestSummary({
         {manifest.receivedDate && <> · Received {formatDate(manifest.receivedDate)}</>}
       </p>
 
+      <h3 style={{ color: brand.navy }}>Signatures</h3>
+      <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px" }}>
+        <SignatureChecklistItem label={`Generator — ${manifest.generator.name}`} handler={manifest.generator} />
+        {manifest.transporters.map((t, i) => (
+          <SignatureChecklistItem
+            key={i}
+            label={`Transporter${t.order ? ` ${t.order}` : ""} — ${t.name}`}
+            handler={t}
+          />
+        ))}
+        <SignatureChecklistItem
+          label={`Designated facility — ${manifest.designatedFacility.name}`}
+          handler={manifest.designatedFacility}
+        />
+      </ul>
+
       <h3 style={{ color: brand.navy }}>Generator</h3>
       <p>{manifest.generator.name} ({manifest.generator.epaSiteId})</p>
 
@@ -197,6 +213,32 @@ function StoredDocumentsList({ manifestTrackingNumber }: { manifestTrackingNumbe
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * See getHandlerSignatureStatus's comment in types.ts — a handler can have
+ * a placeholder electronicSignaturesInfo entry before actually signing, so
+ * this deliberately doesn't just check for the array's presence.
+ */
+function SignatureChecklistItem({ label, handler }: { label: string; handler: Handler }) {
+  const status = getHandlerSignatureStatus(handler);
+  return (
+    <li style={{ display: "flex", alignItems: "baseline", gap: "8px", padding: "3px 0" }}>
+      <span style={{ color: status.signed ? "green" : "#bbb", fontSize: "16px" }}>
+        {status.signed ? "✅" : "⬜"}
+      </span>
+      <span>
+        {label}
+        {status.signed && (
+          <span style={{ color: "#666", fontSize: "13px" }}>
+            {" — "}
+            {status.signerName ? `signed by ${status.signerName}` : "signed"}
+            {status.signatureDate ? ` on ${formatDate(status.signatureDate)}` : ""}
+          </span>
+        )}
+      </span>
+    </li>
   );
 }
 

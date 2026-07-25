@@ -46,18 +46,33 @@ export default async function RootLayout({
           aria-hidden
           className="pointer-events-none fixed -right-32 -top-32 h-96 w-[40rem] rounded-full bg-gradient-to-r from-brand-green to-brand-teal opacity-10 blur-3xl"
         />
-        <header className="relative flex items-center justify-between px-6 py-6 sm:px-12">
-          <Link href="/">
+        <header className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-4 px-6 py-4 sm:px-12 bg-brand-tint/95 backdrop-blur-sm shadow-sm">
+          <Link href="/" className="shrink-0">
             <Image
               src="/manifestmate-logo.jpg"
               alt="ManifestMate"
-              width={340}
-              height={95}
+              width={220}
+              height={62}
               priority
             />
           </Link>
+
+          {user && (
+            <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+              <Link href="/manifests/new" className="text-brand-navy hover:text-brand-blue">
+                Create manifest
+              </Link>
+              <Link href="/manifests" className="text-brand-navy hover:text-brand-blue">
+                Look up manifest
+              </Link>
+              <Link href="/settings" className="text-brand-navy hover:text-brand-blue">
+                Settings
+              </Link>
+            </nav>
+          )}
+
           {user ? (
-            <form action={signOutAction}>
+            <form action={signOutAction} className="shrink-0">
               <button
                 type="submit"
                 className="font-medium text-brand-blue hover:underline cursor-pointer bg-transparent border-none"
@@ -66,7 +81,7 @@ export default async function RootLayout({
               </button>
             </form>
           ) : (
-            <Link href="/login" className="font-medium text-brand-blue hover:underline">
+            <Link href="/login" className="shrink-0 font-medium text-brand-blue hover:underline">
               Sign in
             </Link>
           )}

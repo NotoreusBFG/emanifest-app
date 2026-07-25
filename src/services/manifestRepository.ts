@@ -1,5 +1,7 @@
+import JSZip from "jszip";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { Manifest } from "@/lib/rcrainfo/types";
+import type { RcrainfoClient } from "@/lib/rcrainfo/client";
 
 /**
  * Next.js forwards server-side `console.error` calls to the browser's dev
@@ -38,28 +40,35 @@ export interface LocalManifestRecord {
  * Logs to the server console so a broken mirror doesn't fail silently
  * forever, just not in the user's face.
  */
+/** Returns the local row's id on success, or null (logged, non-fatal) on failure. */
 export async function recordManifestLocally(
   supabase: SupabaseClient,
   userId: string,
   manifest: Pick<Manifest, "manifestTrackingNumber" | "status" | "generator" | "designatedFacility">
-): Promise<void> {
-  const { error } = await supabase.from("manifests").upsert(
-    {
-      user_id: userId,
-      epa_mtn: manifest.manifestTrackingNumber,
-      epa_status: manifest.status,
-      generator_name: manifest.generator?.name ?? null,
-      generator_epa_site_id: manifest.generator?.epaSiteId ?? null,
-      designated_facility_name: manifest.designatedFacility?.name ?? null,
-      designated_facility_epa_site_id: manifest.designatedFacility?.epaSiteId ?? null,
-      last_synced_at: new Date().toISOString(),
-    },
-    { onConflict: "epa_mtn" }
-  );
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("manifests")
+    .upsert(
+      {
+        user_id: userId,
+        epa_mtn: manifest.manifestTrackingNumber,
+        epa_status: manifest.status,
+        generator_name: manifest.generator?.name ?? null,
+        generator_epa_site_id: manifest.generator?.epaSiteId ?? null,
+        designated_facility_name: manifest.designatedFacility?.name ?? null,
+        designated_facility_epa_site_id: manifest.designatedFacility?.epaSiteId ?? null,
+        last_synced_at: new Date().toISOString(),
+      },
+      { onConflict: "epa_mtn" }
+    )
+    .select("id")
+    .single();
 
   if (error) {
     console.error("recordManifestLocally failed (non-fatal):", describePostgrestError(error));
+    return null;
   }
+  return data.id;
 }
 
 export async function listManifestsForUser(
@@ -79,4 +88,117 @@ export async function listManifestsForUser(
     return [];
   }
   return data;
+}
+
+export interface ManifestDocumentRecord {
+  id: string;
+  filename: string;
+  storage_path: string;
+  file_size_bytes: number | null;
+  fetched_at: string;
+}
+
+/**
+ * Fetches RCRAInfo's document zip (GET .../attachments — confirmed live to
+ * return 2 PDFs + one HTML per signer) and stores each file in Supabase
+ * Storage plus a `manifest_documents` row, so documents can be viewed/
+ * printed later without re-fetching from EPA every time. Same
+ * best-effort/non-fatal error handling as `recordManifestLocally` — called
+ * after a real, already-successful sign, so a storage failure shouldn't
+ * turn that into a user-facing error.
+ *
+ * `upsert: true` on both the Storage write and the DB row means calling
+ * this again for the same manifest (e.g. after a later signature adds a
+ * new HTML cert) safely overwrites rather than duplicating.
+ */
+export async function fetchAndStoreManifestDocuments(
+  supabase: SupabaseClient,
+  rcrainfoClient: RcrainfoClient,
+  userId: string,
+  manifestId: string,
+  mtn: string
+): Promise<void> {
+  try {
+    const parts = await rcrainfoClient.getManifestAttachments(mtn);
+    const zipPart = parts.find((p) => p.contentType === "application/octet-stream");
+    if (!zipPart || !Buffer.isBuffer(zipPart.data)) {
+      console.error(`fetchAndStoreManifestDocuments: no document zip in attachments response for ${mtn}`);
+      return;
+    }
+
+    const zip = await JSZip.loadAsync(zipPart.data);
+
+    for (const [filename, file] of Object.entries(zip.files)) {
+      if (file.dir) continue;
+
+      const bytes = await file.async("uint8array");
+      const storagePath = `${userId}/${manifestId}/${filename}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("manifest-documents")
+        .upload(storagePath, bytes, {
+          contentType: filename.endsWith(".pdf") ? "application/pdf" : "text/html",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error(`fetchAndStoreManifestDocuments: upload failed for ${filename}:`, uploadError.message);
+        continue;
+      }
+
+      const { error: dbError } = await supabase.from("manifest_documents").upsert(
+        {
+          manifest_id: manifestId,
+          filename,
+          storage_path: storagePath,
+          file_size_bytes: bytes.length,
+          fetched_at: new Date().toISOString(),
+        },
+        { onConflict: "manifest_id,filename" }
+      );
+
+      if (dbError) {
+        console.error(
+          `fetchAndStoreManifestDocuments: db record failed for ${filename}:`,
+          describePostgrestError(dbError)
+        );
+      }
+    }
+  } catch (err) {
+    console.error(
+      `fetchAndStoreManifestDocuments failed for ${mtn} (non-fatal):`,
+      err instanceof Error ? err.message : err
+    );
+  }
+}
+
+export async function listDocumentsForManifest(
+  supabase: SupabaseClient,
+  manifestId: string
+): Promise<ManifestDocumentRecord[]> {
+  const { data, error } = await supabase
+    .from("manifest_documents")
+    .select("id, filename, storage_path, file_size_bytes, fetched_at")
+    .eq("manifest_id", manifestId)
+    .order("filename");
+
+  if (error) {
+    console.error("listDocumentsForManifest failed:", describePostgrestError(error));
+    return [];
+  }
+  return data;
+}
+
+/** Short-lived signed URL — the bucket is private, so documents aren't reachable without one. */
+export async function getDocumentDownloadUrl(
+  supabase: SupabaseClient,
+  storagePath: string
+): Promise<string | null> {
+  const { data, error } = await supabase.storage.from("manifest-documents").createSignedUrl(storagePath, 600);
+
+  if (error) {
+    console.error("getDocumentDownloadUrl failed:", error.message);
+    return null;
+  }
+  return data.signedUrl;
 }

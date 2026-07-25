@@ -2,7 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getRcrainfoClientForUser, NoCredentialsError } from "@/services/manifestService";
-import { recordManifestLocally } from "@/services/manifestRepository";
+import {
+  recordManifestLocally,
+  fetchAndStoreManifestDocuments,
+  listDocumentsForManifest,
+  getDocumentDownloadUrl,
+} from "@/services/manifestRepository";
 import { RcrainfoApiError, collectManifestOperationWarnings } from "@/lib/rcrainfo/types";
 import type {
   FederalWasteCode,
@@ -131,6 +136,28 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
     const report = result.manifestReports[0];
     if (report?.manifestError) {
       return { success: false, error: report.manifestError.message };
+    }
+
+    // Best-effort: capture whatever documents RCRAInfo has right after this
+    // signature (confirmed live in earlier testing that documents become
+    // available progressively, not only once every party has signed).
+    // Needs the full manifest (for recordManifestLocally's denormalized
+    // fields), so this is a second live call beyond the sign itself, but
+    // signing is a deliberate, infrequent user action, not a hot path.
+    try {
+      const freshManifest = await client.getManifest(params.manifestTrackingNumber);
+      const localId = await recordManifestLocally(supabase, user.id, freshManifest);
+      if (localId) {
+        await fetchAndStoreManifestDocuments(
+          supabase,
+          client,
+          user.id,
+          localId,
+          params.manifestTrackingNumber
+        );
+      }
+    } catch (syncErr) {
+      console.error("Post-sign document sync failed (non-fatal):", syncErr);
     }
 
     return {
@@ -442,4 +469,41 @@ export async function createManifestAction(
   } catch (err) {
     return { success: false, error: formatRcrainfoError(err) };
   }
+}
+
+export interface StoredDocument {
+  filename: string;
+  url: string;
+}
+
+/**
+ * Documents only exist locally once fetchAndStoreManifestDocuments() has
+ * run at least once (currently: after a successful sign) — returns an
+ * empty array otherwise, same "nothing here yet" semantics as an empty
+ * dashboard rather than an error.
+ */
+export async function listStoredDocumentsAction(mtn: string): Promise<StoredDocument[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: manifestRow } = await supabase
+    .from("manifests")
+    .select("id")
+    .eq("epa_mtn", mtn)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!manifestRow) return [];
+
+  const docs = await listDocumentsForManifest(supabase, manifestRow.id);
+  const withUrls = await Promise.all(
+    docs.map(async (doc) => ({
+      filename: doc.filename,
+      url: await getDocumentDownloadUrl(supabase, doc.storage_path),
+    }))
+  );
+
+  return withUrls.filter((doc): doc is StoredDocument => doc.url !== null);
 }

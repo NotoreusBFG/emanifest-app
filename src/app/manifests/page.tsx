@@ -6,7 +6,9 @@ import { useSearchParams } from "next/navigation";
 import {
   lookupManifestAction,
   refetchManifestAction,
+  listStoredDocumentsAction,
   type LookupManifestState,
+  type StoredDocument,
 } from "@/app/actions/manifestActions";
 import type { Manifest } from "@/lib/rcrainfo/types";
 import { brand } from "@/lib/brandColors";
@@ -144,8 +146,56 @@ function ManifestSummary({
       >
         Download attachments (PDF + docs, .zip)
       </a>
+      <p style={{ fontSize: "13px", color: "#888", marginTop: "2px" }}>
+        Live from EPA — always current, but re-fetches from RCRAInfo every time.
+      </p>
+
+      <StoredDocumentsList manifestTrackingNumber={manifest.manifestTrackingNumber} />
 
       <SignManifestPanel manifest={manifest} onSigned={onSigned} />
+    </div>
+  );
+}
+
+/**
+ * Documents ManifestMate has already fetched and stored (currently:
+ * populated after a successful sign — see fetchAndStoreManifestDocuments
+ * in manifestRepository.ts). Separate from the "Download attachments"
+ * link above, which always re-fetches live from EPA — this is the
+ * "repository" half: works even if EPA's attachments endpoint is slow or
+ * unavailable, since it's serving ManifestMate's own stored copy.
+ */
+function StoredDocumentsList({ manifestTrackingNumber }: { manifestTrackingNumber: string }) {
+  const [documents, setDocuments] = useState<StoredDocument[] | null>(null);
+
+  useEffect(() => {
+    setDocuments(null);
+    listStoredDocumentsAction(manifestTrackingNumber).then(setDocuments);
+  }, [manifestTrackingNumber]);
+
+  if (documents === null) return null;
+  if (documents.length === 0) {
+    return (
+      <p style={{ fontSize: "13px", color: "#888", marginTop: "10px" }}>
+        No documents stored yet — these get saved automatically the next time this manifest is signed.
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: "10px" }}>
+      <p style={{ fontWeight: 600, color: brand.navy, fontSize: "14px", marginBottom: "4px" }}>
+        Stored documents
+      </p>
+      <ul style={{ margin: 0, paddingLeft: "20px" }}>
+        {documents.map((doc) => (
+          <li key={doc.filename}>
+            <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ color: brand.blue }}>
+              {doc.filename}
+            </a>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

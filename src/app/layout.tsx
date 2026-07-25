@@ -57,7 +57,7 @@ export default async function RootLayout({
             />
           </Link>
 
-          {user && (
+          {user ? (
             <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
               <Link href="/dashboard" className="text-brand-navy hover:text-brand-blue">
                 Dashboard
@@ -70,6 +70,15 @@ export default async function RootLayout({
               </Link>
               <Link href="/settings" className="text-brand-navy hover:text-brand-blue">
                 Settings
+              </Link>
+              <Link href="/faq" className="text-brand-navy hover:text-brand-blue">
+                FAQ
+              </Link>
+            </nav>
+          ) : (
+            <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+              <Link href="/faq" className="text-brand-navy hover:text-brand-blue">
+                FAQ
               </Link>
             </nav>
           )}

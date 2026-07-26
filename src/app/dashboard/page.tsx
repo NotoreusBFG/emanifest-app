@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listManifestsForUser } from "@/services/manifestRepository";
 import { brand } from "@/lib/brandColors";
+import { SendSignLink } from "@/components/SendSignLink";
 
 /**
  * Reads from the local `manifests` mirror table rather than RCRAInfo's API
@@ -42,8 +43,10 @@ export default async function DashboardPage() {
               <th style={{ padding: "8px" }}>Status</th>
               <th style={{ padding: "8px" }}>Signatures</th>
               <th style={{ padding: "8px" }}>Generator</th>
+              <th style={{ padding: "8px" }}>Transporter</th>
               <th style={{ padding: "8px" }}>Designated facility</th>
               <th style={{ padding: "8px" }}>Last updated</th>
+              <th style={{ padding: "8px" }} />
             </tr>
           </thead>
           <tbody>
@@ -63,9 +66,13 @@ export default async function DashboardPage() {
                   />
                 </td>
                 <td style={{ padding: "8px" }}>{m.generator_name ?? "—"}</td>
+                <td style={{ padding: "8px" }}>{m.transporter_names ?? "—"}</td>
                 <td style={{ padding: "8px" }}>{m.designated_facility_name ?? "—"}</td>
                 <td style={{ padding: "8px", color: "#666", fontSize: "13px" }}>
                   {new Date(m.updated_at).toLocaleString()}
+                </td>
+                <td style={{ padding: "8px" }}>
+                  <SendSignLink mtn={m.epa_mtn} />
                 </td>
               </tr>
             ))}

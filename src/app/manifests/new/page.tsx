@@ -13,6 +13,7 @@ import { SiteSearchField } from "./SiteSearchField";
 import { HazmatSearchField } from "./HazmatSearchField";
 import { FederalWasteCodeField } from "./FederalWasteCodeField";
 import { SignManifestPanel } from "../SignManifestPanel";
+import { SendSignLink } from "@/components/SendSignLink";
 import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { Manifest, SiteSearchResultItem } from "@/lib/rcrainfo/types";
@@ -307,6 +308,9 @@ export default function NewManifestPage() {
             ✅ Saved as <strong>{state.manifestTrackingNumber}</strong> —{" "}
             <Link href="/manifests" style={{ color: brand.blue }}>look it up</Link>
           </p>
+          <div style={{ marginTop: "10px" }}>
+            <SendSignLink mtn={state.manifestTrackingNumber} />
+          </div>
           {state.warnings.length > 0 && (
             <div style={{ marginTop: "10px" }}>
               <p style={{ margin: "0 0 4px", fontWeight: "bold", color: "#946c00" }}>

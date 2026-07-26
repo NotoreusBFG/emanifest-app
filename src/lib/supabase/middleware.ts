@@ -36,8 +36,15 @@ export async function updateSession(request: NextRequest) {
   const isProtected = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
   if (!user && isProtected) {
+    // Preserves the original destination (path + query, e.g. a shared
+    // "?mtn=..." sign link) as `next`, so /login can send them back where
+    // they meant to go instead of dropping them at a bare login screen —
+    // same `next` convention the delegate-invite flow uses (see
+    // authActions.ts's safeNextPath).
+    const originalPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = `?next=${encodeURIComponent(originalPath)}`;
     return NextResponse.redirect(url);
   }
 

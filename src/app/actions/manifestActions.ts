@@ -215,7 +215,11 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
     let localId: string | null = null;
     try {
       const freshManifest = await client.getManifest(params.manifestTrackingNumber);
-      localId = await recordManifestLocally(supabase, effectiveUserId, freshManifest);
+      localId = await recordManifestLocally(supabase, effectiveUserId, freshManifest, {
+        siteType: params.siteType,
+        transporterOrder: params.transporterOrder,
+        signedAt: new Date().toISOString(),
+      });
       if (localId) {
         await fetchAndStoreManifestDocuments(
           supabase,

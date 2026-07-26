@@ -14,6 +14,7 @@ import { getHandlerSignatureStatus, type Handler, type Manifest } from "@/lib/rc
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { SignManifestPanel } from "./SignManifestPanel";
+import { SendSignLink } from "@/components/SendSignLink";
 
 // useSearchParams() (for the ?mtn= deep link from /dashboard) requires a
 // Suspense boundary in the App Router, or the build fails.
@@ -101,7 +102,10 @@ function ManifestSummary({
 }) {
   return (
     <div style={{ border: `1px solid ${brand.tint}`, borderRadius: "6px", padding: "20px", backgroundColor: "#fff" }}>
-      <h2 style={{ marginTop: 0, color: brand.navy }}>{manifest.manifestTrackingNumber}</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+        <h2 style={{ marginTop: 0, color: brand.navy }}>{manifest.manifestTrackingNumber}</h2>
+        <SendSignLink mtn={manifest.manifestTrackingNumber} />
+      </div>
       <p>
         <strong>Status:</strong> {manifest.status}
         {" · "}

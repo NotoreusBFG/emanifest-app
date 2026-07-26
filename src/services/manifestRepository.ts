@@ -20,6 +20,7 @@ export interface LocalManifestRecord {
   epa_status: string | null;
   generator_name: string | null;
   generator_epa_site_id: string | null;
+  transporter_names: string | null;
   designated_facility_name: string | null;
   designated_facility_epa_site_id: string | null;
   generator_signed_at: string | null;
@@ -61,14 +62,53 @@ function latestTransporterSignedAt(transporters: Manifest["transporters"]): stri
  * Logs to the server console so a broken mirror doesn't fail silently
  * forever, just not in the user's face.
  */
+export interface JustSigned {
+  siteType: "Generator" | "Transporter" | "Tsdf";
+  transporterOrder?: number;
+  signedAt: string;
+}
+
 /** Returns the local row's id on success, or null (logged, non-fatal) on failure. */
 export async function recordManifestLocally(
   supabase: SupabaseClient,
   userId: string,
-  manifest: Pick<Manifest, "manifestTrackingNumber" | "status" | "generator" | "transporters" | "designatedFacility">
+  manifest: Pick<Manifest, "manifestTrackingNumber" | "status" | "generator" | "transporters" | "designatedFacility">,
+  // Set by signManifestAction right after a signature succeeds -- EPA's own
+  // API can lag between a sign succeeding and a subsequent GET reflecting
+  // it (confirmed live: a dashboard row didn't show a just-completed
+  // Generator signature until a later, separate lookup re-synced it), so
+  // when we already KNOW a specific role just signed, that's trusted over
+  // what an immediate re-fetch says, rather than risk overwriting a real
+  // signature with a stale "not signed" read.
+  justSigned?: JustSigned
 ): Promise<string | null> {
   const generatorStatus = getHandlerSignatureStatus(manifest.generator);
   const facilityStatus = getHandlerSignatureStatus(manifest.designatedFacility);
+
+  const generatorSignedAt = generatorStatus.signed
+    ? generatorStatus.signatureDate ?? null
+    : justSigned?.siteType === "Generator"
+      ? justSigned.signedAt
+      : null;
+
+  const facilitySignedAt = facilityStatus.signed
+    ? facilityStatus.signatureDate ?? null
+    : justSigned?.siteType === "Tsdf"
+      ? justSigned.signedAt
+      : null;
+
+  let transporterSignedAt = latestTransporterSignedAt(manifest.transporters);
+  // Only safe to trust the override when there's exactly one transporter —
+  // transporter_signed_at means ALL transporters have signed, which can't
+  // be inferred from a single just-signed role on a multi-transporter
+  // manifest without knowing the others' true state too.
+  if (
+    !transporterSignedAt &&
+    justSigned?.siteType === "Transporter" &&
+    (manifest.transporters?.length ?? 0) === 1
+  ) {
+    transporterSignedAt = justSigned.signedAt;
+  }
 
   const { data, error } = await supabase
     .from("manifests")
@@ -79,11 +119,16 @@ export async function recordManifestLocally(
         epa_status: manifest.status,
         generator_name: manifest.generator?.name ?? null,
         generator_epa_site_id: manifest.generator?.epaSiteId ?? null,
+        transporter_names:
+          manifest.transporters
+            ?.map((t) => t.name)
+            .filter(Boolean)
+            .join(", ") || null,
         designated_facility_name: manifest.designatedFacility?.name ?? null,
         designated_facility_epa_site_id: manifest.designatedFacility?.epaSiteId ?? null,
-        generator_signed_at: generatorStatus.signed ? generatorStatus.signatureDate ?? null : null,
-        transporter_signed_at: latestTransporterSignedAt(manifest.transporters),
-        facility_signed_at: facilityStatus.signed ? facilityStatus.signatureDate ?? null : null,
+        generator_signed_at: generatorSignedAt,
+        transporter_signed_at: transporterSignedAt,
+        facility_signed_at: facilitySignedAt,
         last_synced_at: new Date().toISOString(),
       },
       { onConflict: "epa_mtn" }
@@ -105,7 +150,7 @@ export async function listManifestsForUser(
   const { data, error } = await supabase
     .from("manifests")
     .select(
-      "id, epa_mtn, epa_status, generator_name, generator_epa_site_id, designated_facility_name, designated_facility_epa_site_id, generator_signed_at, transporter_signed_at, facility_signed_at, created_at, updated_at, last_synced_at"
+      "id, epa_mtn, epa_status, generator_name, generator_epa_site_id, transporter_names, designated_facility_name, designated_facility_epa_site_id, generator_signed_at, transporter_signed_at, facility_signed_at, created_at, updated_at, last_synced_at"
     )
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });

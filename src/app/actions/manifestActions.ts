@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
   getRcrainfoClientForUser,
-  getRcrainfoClientForSigner,
+  getRcrainfoClientForAction,
   NoCredentialsError,
 } from "@/services/manifestService";
 import {
@@ -44,14 +44,18 @@ export type ManifestFetchResult =
 
 export type LookupManifestState = ManifestFetchResult | null;
 
-/** Shared by the lookup form action and the post-sign refresh call below. */
+/** Shared by the lookup form action and the post-sign refresh call below.
+ * Delegation-aware (no siteType — lookup isn't role-specific): a Quick-Sign
+ * delegate with no EPA credentials of their own can still look up whatever
+ * their delegation owner can see, which is what lets them find a manifest
+ * to sign in the first place. */
 async function fetchManifestForCurrentUser(
   supabase: SupabaseClient,
   userId: string,
   mtn: string
 ): Promise<ManifestFetchResult> {
   try {
-    const client = await getRcrainfoClientForUser(supabase, userId);
+    const { client, effectiveUserId } = await getRcrainfoClientForAction(supabase, userId);
     const manifest = await client.getManifest(mtn);
 
     // Piggybacks on every fetch (initial lookup, post-sign refresh, the
@@ -60,7 +64,11 @@ async function fetchManifestForCurrentUser(
     // call site. This is real EPA-confirmed data (status included), unlike
     // the initial record written straight after save, which only knows
     // the submitted "NotAssigned" status until a fetch like this corrects it.
-    await recordManifestLocally(supabase, userId, manifest);
+    // Recorded under effectiveUserId (the delegation owner, when acting as
+    // a delegate) so this stays consistent with where a delegated sign's
+    // data lands — one account, one picture, regardless of who looked or
+    // signed.
+    await recordManifestLocally(supabase, effectiveUserId, manifest);
 
     return { success: true, manifest };
   } catch (err) {
@@ -182,7 +190,7 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
     // owner's, when this is a delegated sign — so recordConsent above
     // (which always uses the real caller, user.id) stays the only place
     // that records who actually triggered this.
-    const signer = await getRcrainfoClientForSigner(supabase, user.id, params.siteType);
+    const signer = await getRcrainfoClientForAction(supabase, user.id, params.siteType);
     const client = signer.client;
     effectiveUserId = signer.effectiveUserId;
     signedForOwnerUserId = signer.delegation?.ownerUserId ?? null;
@@ -562,11 +570,14 @@ export async function listStoredDocumentsAction(mtn: string): Promise<StoredDocu
   } = await supabase.auth.getUser();
   if (!user) return [];
 
+  // No explicit user_id filter — RLS already restricts this to rows the
+  // caller owns or is an active Quick-Sign delegate for (see
+  // 20260728_add_delegate_read_access.sql), so a delegate can see documents
+  // recorded under their delegation owner's account too.
   const { data: manifestRow } = await supabase
     .from("manifests")
     .select("id")
     .eq("epa_mtn", mtn)
-    .eq("user_id", user.id)
     .maybeSingle();
   if (!manifestRow) return [];
 

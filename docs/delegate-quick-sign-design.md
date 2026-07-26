@@ -12,12 +12,14 @@ other migration in this project) before any of this works.
 
 ## v1 decisions (answers to the open questions below)
 
-1. **Delegate's manifest visibility**: a delegated sign writes its resulting
-   manifest/document records against the *owner's* account
-   (`effectiveUserId` in `getRcrainfoClientForSigner`,
+1. **Delegate's manifest visibility**: a delegated lookup or sign writes its
+   resulting manifest/document records against the *owner's* account
+   (`effectiveUserId` in `getRcrainfoClientForAction`,
    `src/services/manifestService.ts`), so they show up on the owner's
    dashboard — not a separate delegate-only view. A delegate isn't given
-   their own dashboard of "manifests I've signed" in v1.
+   their own dashboard of "manifests I've signed" in v1 — they find what
+   needs signing via Look Up Manifest (by MTN), not the Dashboard, which
+   stays scoped to literal `user_id` ownership.
 2. **Scoping granularity**: role-type only (`allowed_site_types`), not
    specific EPA site IDs, as originally sketched. Good enough for an owner
    with one site; revisit if/when multi-site owners want this.
@@ -47,6 +49,45 @@ other migration in this project) before any of this works.
    (built 2026-07-26 for the clickwrap audit trail). Added one column,
    `signed_for_owner_user_id`, to make the "acting on behalf of" link
    explicit.
+
+## Live-test round 1 findings (2026-07-26)
+
+Real two-account testing (owner: notoreusbfg@gmail.com, delegate invited at
+matt.gemmell@outlook.com) surfaced a real gap the design/typecheck pass
+missed: **a delegate couldn't do anything at all**, because only
+`signManifestAction` had been made delegation-aware — manifest *lookup*
+(how a delegate would find something to sign in the first place) still
+demanded the delegate's own EPA credentials, which they by design don't
+have. Fixed:
+
+- `getRcrainfoClientForSigner` renamed to `getRcrainfoClientForAction` and
+  widened to take an optional `siteType` (omitted = no role check) so both
+  lookup and signing can share one delegation-aware resolver.
+  `fetchManifestForCurrentUser` (backs both the lookup form and the
+  post-sign refresh) now goes through it, recording the result under the
+  *owner's* account either way — consistent with how a delegated sign
+  already worked, so lookup and sign always agree on whose data this is.
+- New migration `20260728_add_delegate_read_access.sql`: the first
+  migration only granted delegates INSERT/UPDATE on
+  manifests/manifest_documents/storage.objects, not SELECT — which
+  silently breaks `recordManifestLocally`'s `.upsert().select()` (Postgres
+  RLS needs a SELECT policy to return the affected row) and blocks
+  `listStoredDocumentsAction` outright. Needs to be applied after
+  `20260727_create_quick_sign_delegates.sql`.
+- Confirmed manifest *creation* staying owner-only (not delegable) was the
+  right call, not a gap — asked directly during live-testing, and it
+  matches the "Quick-Sign" framing: delegates act on manifests that
+  already exist, they don't originate new EPA filings.
+- Also confirmed **the "email/text credentials to the delegate" concern
+  this feature exists to solve was never actually a risk in the built
+  code** — a delegate's browser never receives the owner's API
+  credentials; they're decrypted only server-side inside
+  `getRcrainfoClientForAction`. The "you need API credentials" error the
+  delegate hit was purely the lookup gap above, not a design flaw.
+- Settings UI: the invite form's role checkboxes now start fully
+  unchecked (previously defaulted Transporter checked) and are ordered
+  Generator/Transporter/Tsdf to match the manifest's own handler order,
+  per direct user feedback.
 
 ## What's genuinely unverified
 

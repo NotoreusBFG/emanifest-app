@@ -169,13 +169,13 @@ export default function EpaSettingsPage() {
 }
 
 const SITE_TYPE_OPTIONS: { value: DelegateSiteType; label: string; warn?: boolean }[] = [
-  { value: 'Transporter', label: 'Transporter (e.g. a driver)' },
-  { value: 'Tsdf', label: 'Designated facility' },
   {
     value: 'Generator',
     label: 'Generator — the "cradle to grave" signature; grant carefully',
     warn: true,
   },
+  { value: 'Transporter', label: 'Transporter (e.g. a driver)' },
+  { value: 'Tsdf', label: 'Designated facility' },
 ];
 
 /**
@@ -254,7 +254,10 @@ function DelegatesSection() {
         </div>
 
         <div>
-          <p style={{ marginBottom: '5px', fontSize: '14px' }}>Allow signing as:</p>
+          <p style={{ marginBottom: '2px', fontSize: '14px' }}>Allow signing as:</p>
+          <p style={{ marginBottom: '5px', fontSize: '12px', color: '#888' }}>
+            Leave all unchecked to allow any role your own credentials permit.
+          </p>
           {SITE_TYPE_OPTIONS.map((opt) => (
             <label
               key={opt.value}
@@ -271,7 +274,6 @@ function DelegatesSection() {
                 type="checkbox"
                 name="allowedSiteTypes"
                 value={opt.value}
-                defaultChecked={opt.value === 'Transporter'}
                 style={{ marginTop: '2px' }}
               />
               {opt.label}

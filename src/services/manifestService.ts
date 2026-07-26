@@ -26,43 +26,44 @@ function clientFor(credentials: { apiId: string; apiKey: string }) {
   });
 }
 
-/** Builds an RcrainfoClient using the logged-in user's own stored credentials.
- * Deliberately NOT delegation-aware — used for lookups, search, and manifest
- * creation, which stay scoped to a user's own EPA registration. Only signing
- * (getRcrainfoClientForSigner below) can act through a delegated owner's
- * credentials, matching this feature's actual scope: "Quick-Sign," not
- * full account access. */
+/** Builds an RcrainfoClient using the logged-in user's own stored credentials
+ * only — never falls back to a delegation. Used for manifest *creation*
+ * specifically, which stays a bigger permission than "Quick-Sign" and is
+ * deliberately not delegable in v1 (see docs/delegate-quick-sign-design.md).
+ * Lookup/search/sign all go through getRcrainfoClientForAction below. */
 export async function getRcrainfoClientForUser(supabase: SupabaseClient, userId: string) {
   const credentials = await getEpaCredentials(supabase, userId);
   if (!credentials) throw new NoCredentialsError();
   return clientFor(credentials);
 }
 
-export interface SignerResolution {
+export interface ResolvedClient {
   client: RcrainfoClient;
-  /** Whose account this sign action's data belongs to — the delegate's own
-   * account normally, or the delegation owner's when signing on their
+  /** Whose account this action's local data belongs to — the caller's own
+   * account normally, or the delegation owner's when acting on their
    * behalf. Callers should record manifests/documents against this id, not
-   * blindly against the caller's own id, so an owner's dashboard shows
-   * everything their delegates signed. */
+   * blindly against the caller's own id, so an owner's dashboard (and their
+   * delegates' later lookups) shows everything consistently in one place. */
   effectiveUserId: string;
-  /** Set only when this sign is happening through a delegation. */
+  /** Set only when this action is happening through a delegation. */
   delegation: { ownerUserId: string; ownerEmail: string } | null;
 }
 
 /**
- * Resolves credentials for a sign action specifically: the caller's own
- * credentials if they have them, otherwise an active Quick-Sign delegation's
- * owner credentials (see docs/delegate-quick-sign-design.md). Throws
- * DelegationScopeError if the delegate's allowed_site_types doesn't cover
- * the role they're trying to sign as — checked here, not left to RCRAInfo's
- * own (coarser, account-level) permission check.
+ * Resolves credentials for any action a Quick-Sign delegate can legitimately
+ * perform — looking up a manifest to find what needs signing, and signing
+ * itself. Uses the caller's own credentials if they have them, otherwise an
+ * active delegation's owner credentials (see
+ * docs/delegate-quick-sign-design.md). Pass `siteType` when the action is
+ * role-specific (signing) so DelegationScopeError can reject a delegate
+ * trying to sign a role outside their allowed_site_types; omit it for
+ * role-agnostic actions (lookup) where there's nothing to scope yet.
  */
-export async function getRcrainfoClientForSigner(
+export async function getRcrainfoClientForAction(
   supabase: SupabaseClient,
   userId: string,
-  siteType: DelegateSiteType
-): Promise<SignerResolution> {
+  siteType?: DelegateSiteType
+): Promise<ResolvedClient> {
   const ownCredentials = await getEpaCredentials(supabase, userId);
   if (ownCredentials) {
     return { client: clientFor(ownCredentials), effectiveUserId: userId, delegation: null };
@@ -71,7 +72,7 @@ export async function getRcrainfoClientForSigner(
   const delegation = await getActiveDelegationForUser(supabase, userId);
   if (!delegation) throw new NoCredentialsError();
 
-  if (delegation.allowedSiteTypes && !delegation.allowedSiteTypes.includes(siteType)) {
+  if (siteType && delegation.allowedSiteTypes && !delegation.allowedSiteTypes.includes(siteType)) {
     throw new DelegationScopeError(siteType);
   }
 

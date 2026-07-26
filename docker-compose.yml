@@ -1,0 +1,12 @@
+# Rough draft for local testing of the Dockerfile -- see
+# docs/docker-deployment.md. Real secrets belong in a local .env file
+# (gitignored), never committed here.
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=production

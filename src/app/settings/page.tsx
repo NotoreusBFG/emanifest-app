@@ -192,6 +192,17 @@ function DelegatesSection() {
   );
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokeMessage, setRevokeMessage] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const inviteLinkFor = (token: string) =>
+    typeof window !== 'undefined' ? `${window.location.origin}/delegate/accept?token=${token}` : '';
+
+  const handleCopy = (id: string, link: string) => {
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 2000);
+    });
+  };
 
   const refreshDelegates = () => {
     listMyDelegatesAction().then(setDelegates);
@@ -308,9 +319,43 @@ function DelegatesSection() {
           <tbody>
             {delegates.map((d) => {
               const status = d.revoked_at ? 'Revoked' : d.accepted_at ? 'Active' : 'Pending';
+              const link = status === 'Pending' ? inviteLinkFor(d.invite_token) : null;
               return (
                 <tr key={d.id} style={{ borderTop: '1px solid #eee' }}>
-                  <td style={{ padding: '6px 0' }}>{d.invited_email}</td>
+                  <td style={{ padding: '6px 0' }}>
+                    {d.invited_email}
+                    {link && (
+                      <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <code
+                          style={{
+                            fontSize: '11px',
+                            color: '#888',
+                            wordBreak: 'break-all',
+                            background: '#f5f5f5',
+                            padding: '2px 5px',
+                            borderRadius: '3px',
+                          }}
+                        >
+                          {link}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(d.id, link)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: brand.blue,
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {copiedId === d.id ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                    )}
+                  </td>
                   <td style={{ padding: '6px 0' }}>{status}</td>
                   <td style={{ padding: '6px 0' }}>{d.allowed_site_types?.join(', ') || 'All'}</td>
                   <td style={{ padding: '6px 0', textAlign: 'right' }}>

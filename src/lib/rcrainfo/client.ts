@@ -132,6 +132,18 @@ export class RcrainfoClient {
     return (await res.json()) as T;
   }
 
+  /**
+   * Confirms the stored API ID/Key actually authenticate, without touching
+   * any manifest or site data — just exchanges them for a bearer token
+   * (the cheapest real call this API supports). Used by the EPA
+   * registration wizard's final "validate" step. Throws RcrainfoApiError on
+   * bad credentials; callers should catch and surface `.message`.
+   */
+  async verifyCredentials(): Promise<void> {
+    this.cachedToken = null; // force a fresh exchange, not a cached token from other credentials
+    await this.getToken();
+  }
+
   /** GET /site-details/{siteId} */
   async getSiteDetails(siteId: string): Promise<SiteDetails> {
     return this.request<SiteDetails>(`/site-details/${encodeURIComponent(siteId)}`);

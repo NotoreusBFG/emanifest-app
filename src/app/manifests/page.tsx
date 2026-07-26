@@ -15,6 +15,9 @@ import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { SignManifestPanel } from "./SignManifestPanel";
 import { SendSignLink } from "@/components/SendSignLink";
+import { findActiveLdrNoticeAction } from "@/app/actions/ldrActions";
+import type { LdrNotice, LdrWasteLineEntry } from "@/lib/ldr/types";
+import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR } from "@/lib/transporterTiming";
 
 // useSearchParams() (for the ?mtn= deep link from /dashboard) requires a
 // Suspense boundary in the App Router, or the build fails.
@@ -133,6 +136,8 @@ function ManifestSummary({
         />
       </ul>
 
+      <TransporterElapsedNote manifest={manifest} />
+
       <h3 style={{ color: brand.navy }}>Generator</h3>
       <p>{manifest.generator.name} ({manifest.generator.epaSiteId})</p>
 
@@ -160,6 +165,8 @@ function ManifestSummary({
         ))}
       </ul>
 
+      <LdrStatus manifest={manifest} />
+
       <a
         href={`/api/manifests/${manifest.manifestTrackingNumber}/attachments`}
         style={{ color: brand.blue }}
@@ -173,6 +180,97 @@ function ManifestSummary({
       <StoredDocumentsList manifestTrackingNumber={manifest.manifestTrackingNumber} />
 
       <SignManifestPanel manifest={manifest} onSigned={onSigned} />
+    </div>
+  );
+}
+
+/**
+ * Simple first slice of the deferred "72-hour relay timing" feature (see
+ * docs/NEXT_SESSION.md item 6) -- elapsed time since the LATEST
+ * transporter signature (matching the same "latest of all transporters"
+ * convention as the dashboard's local mirror), color-cued against a rough
+ * 48h/72h scale. Renders nothing until at least one transporter has signed.
+ */
+function TransporterElapsedNote({ manifest }: { manifest: Manifest }) {
+  const transporterSignedAt = manifest.transporters
+    .map((t) => getHandlerSignatureStatus(t).signatureDate)
+    .filter((d): d is string => !!d)
+    .sort()
+    .at(-1);
+  const facilitySignedAt = getHandlerSignatureStatus(manifest.designatedFacility).signatureDate ?? null;
+
+  const info = getTransporterTimingInfo(transporterSignedAt ?? null, facilitySignedAt);
+  if (!info) return null;
+
+  return (
+    <p style={{ fontSize: "13px", color: TRANSPORTER_TIMING_COLOR[info.severity], marginTop: "-8px", marginBottom: "16px" }}>
+      {info.delivered ? "Delivered " : ""}
+      {formatElapsedHours(info.hours)}
+      {info.delivered ? " after the last transporter signature" : " since the last transporter signature — still in transit"}
+    </p>
+  );
+}
+
+/**
+ * Land Disposal Restriction status for this manifest (40 CFR 268.7(a)) --
+ * see "ldr schema.md" at the repo root. Entirely separate from EPA's
+ * e-Manifest system; this only checks ManifestMate's own `ldr_notices`
+ * table for an active notice matching this manifest's generator, facility,
+ * and waste codes. Renders nothing if the manifest has no hazardous waste
+ * codes at all -- LDR notices don't apply to a shipment with none.
+ */
+function LdrStatus({ manifest }: { manifest: Manifest }) {
+  const [notice, setNotice] = useState<LdrNotice | null | undefined>(undefined);
+
+  const wasteLines: LdrWasteLineEntry[] = (() => {
+    const codes = new Set<string>();
+    for (const w of manifest.wastes) {
+      for (const c of w.hazardousWaste?.federalWasteCodes ?? []) codes.add(c.code);
+    }
+    // Only epaHazardousWasteNumbers actually matters here (this feeds
+    // computeWasteCodeKey for the active-notice lookup, not notice
+    // creation) -- manifestLineNumber/howManaged are placeholders to
+    // satisfy the type.
+    return codes.size > 0
+      ? [{ manifestLineNumber: null, epaHazardousWasteNumbers: Array.from(codes), howManaged: "A" as const, wastewaterCategory: "nonwastewater" as const }]
+      : [];
+  })();
+
+  useEffect(() => {
+    if (wasteLines.length === 0) {
+      setNotice(null);
+      return;
+    }
+    findActiveLdrNoticeAction(manifest.generator.epaSiteId, manifest.designatedFacility.epaSiteId, wasteLines).then(
+      setNotice
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-check only when the manifest itself (and thus its waste codes) changes
+  }, [manifest.manifestTrackingNumber]);
+
+  if (wasteLines.length === 0 || notice === undefined) return null;
+
+  return (
+    <div style={{ margin: "16px 0", padding: "10px 14px", background: brand.tint, borderRadius: "6px", fontSize: "13px" }}>
+      <strong style={{ color: brand.navy }}>Land Disposal Restriction (LDR):</strong>{" "}
+      {notice ? (
+        <span>
+          ✅ Active notice on file (prepared {notice.preparedDate}
+          {notice.certifications.length > 0
+            ? `, with ${notice.certifications.length} certification${notice.certifications.length > 1 ? "s" : ""}`
+            : ""}
+          ).{" "}
+          <Link href={`/ldr/${notice.id}`} style={{ color: brand.blue }}>
+            View →
+          </Link>
+        </span>
+      ) : (
+        <span>
+          No LDR notice on file for this generator/facility/waste combination yet.{" "}
+          <Link href={`/ldr/new?mtn=${encodeURIComponent(manifest.manifestTrackingNumber)}`} style={{ color: brand.blue }}>
+            File one →
+          </Link>
+        </span>
+      )}
     </div>
   );
 }

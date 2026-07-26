@@ -46,7 +46,7 @@ export default async function RootLayout({
           aria-hidden
           className="pointer-events-none fixed -right-32 -top-32 h-96 w-[40rem] rounded-full bg-gradient-to-r from-brand-green to-brand-teal opacity-10 blur-3xl"
         />
-        <header className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-4 px-6 py-4 sm:px-12 bg-brand-tint/95 backdrop-blur-sm shadow-sm">
+        <header className="no-print sticky top-0 z-50 flex flex-wrap items-center justify-between gap-4 px-6 py-4 sm:px-12 bg-brand-tint/95 backdrop-blur-sm shadow-sm">
           <Link href="/" className="shrink-0">
             <Image
               src="/manifestmate-logo.jpg"
@@ -59,6 +59,9 @@ export default async function RootLayout({
 
           {user ? (
             <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+              <Link href="/onboarding" className="text-brand-navy hover:text-brand-blue">
+                Get set up with EPA
+              </Link>
               <Link href="/dashboard" className="text-brand-navy hover:text-brand-blue">
                 Dashboard
               </Link>
@@ -68,8 +71,14 @@ export default async function RootLayout({
               <Link href="/manifests" className="text-brand-navy hover:text-brand-blue">
                 Look up manifest
               </Link>
+              <Link href="/ldr" className="text-brand-navy hover:text-brand-blue">
+                LDR notices
+              </Link>
               <Link href="/settings" className="text-brand-navy hover:text-brand-blue">
                 Settings
+              </Link>
+              <Link href="/university" className="text-brand-navy hover:text-brand-blue">
+                Haz Waste University
               </Link>
               <Link href="/faq" className="text-brand-navy hover:text-brand-blue">
                 FAQ
@@ -77,6 +86,9 @@ export default async function RootLayout({
             </nav>
           ) : (
             <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+              <Link href="/university" className="text-brand-navy hover:text-brand-blue">
+                Haz Waste University
+              </Link>
               <Link href="/faq" className="text-brand-navy hover:text-brand-blue">
                 FAQ
               </Link>

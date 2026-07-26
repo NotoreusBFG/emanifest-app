@@ -4,20 +4,24 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   createManifestAction,
+  getSiteDetailsAction,
   refetchManifestAction,
   type CreateManifestState,
 } from "@/app/actions/manifestActions";
-import { brand } from "@/lib/brandColors";
+import { brand, brandGradient } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { SiteSearchField } from "./SiteSearchField";
 import { HazmatSearchField } from "./HazmatSearchField";
 import { FederalWasteCodeField } from "./FederalWasteCodeField";
+import { ImportManifestData } from "./ImportManifestData";
 import { SignManifestPanel } from "../SignManifestPanel";
 import { SendSignLink } from "@/components/SendSignLink";
 import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
+import { getOnboardingProgressAction } from "@/app/actions/onboardingActions";
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { Manifest, SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
+import type { ImportedManifestPayload } from "@/lib/import/types";
 
 const row = { display: "flex", gap: "10px" };
 const field = { flex: 1, marginBottom: "12px" };
@@ -106,6 +110,15 @@ interface WasteLineFormState {
   packingGroup: string;
   idNumberCode: string;
   federalWasteCode: string;
+  /** ManifestMate-only -- RCRAInfo's schema has no such field. Captured
+   * here so an LDR notice filed later for this manifest (40 CFR 268.40)
+   * doesn't have to guess. Only meaningful once a federal waste code is
+   * entered, so the field is hidden until then. */
+  wastewaterCategory: "wastewater" | "nonwastewater";
+  /** ManifestMate-only, same reasoning as wastewaterCategory -- lets an
+   * LDR notice filed later default straight to the lab pack certification
+   * (40 CFR 268.42(c)) instead of the generic "requires treatment" default. */
+  isLabPack: boolean;
   wasteDescription: string;
   quantity: string;
   unitCode: string;
@@ -126,6 +139,8 @@ function emptyWasteLine(id: number, prefill: boolean): WasteLineFormState {
     packingGroup: prefill ? "II" : "",
     idNumberCode: prefill ? "UN1993" : "",
     federalWasteCode: prefill ? "D001" : "",
+    wastewaterCategory: "nonwastewater",
+    isLabPack: false,
     wasteDescription: "",
     quantity: prefill ? "1" : "",
     unitCode: prefill ? "P" : "",
@@ -185,6 +200,9 @@ export default function NewManifestPage() {
   // registered — it silently overrides submitted names/addresses with its
   // own on-file records, so the freshly-fetched copy is the accurate one.
   const [signableManifest, setSignableManifest] = useState<Manifest | null>(null);
+  // Tracks the user's answer to the LDR decision prompt below, keyed by
+  // MTN so it resets correctly if this page is reused for another save.
+  const [ldrDecision, setLdrDecision] = useState<{ mtn: string; choice: "prepare" | "facility" } | null>(null);
 
   useEffect(() => {
     if (state?.success && state.intent === "sign") {
@@ -256,6 +274,88 @@ export default function NewManifestPage() {
   const fillFacilityFromSite = (site: SiteSearchResultItem) =>
     setFacility((f) => fillHandlerFromSite(site, f));
 
+  /**
+   * Manifest data import (docs/manifest-data-import-design.md, Option B) --
+   * populates this form's existing state exactly as if a human had typed
+   * it. Nothing here saves or submits anything; the user still reviews and
+   * clicks Save/Save & Sign as normal. Generator/facility get a live
+   * RCRAInfo lookup (same as manual site search) so imported data ends up
+   * with real name/address instead of just an EPA ID; falls back to
+   * whatever the import file provided if that lookup fails (e.g. not yet
+   * authorized for that site).
+   */
+  const handleImport = async (payload: ImportedManifestPayload) => {
+    const [genResult, facResult] = await Promise.all([
+      getSiteDetailsAction(payload.generator.epaSiteId),
+      getSiteDetailsAction(payload.designatedFacility.epaSiteId),
+    ]);
+
+    if (genResult.success) {
+      setGenerator((g) => fillHandlerFromSite(genResult.site, g));
+    } else {
+      setGenerator((g) => ({ ...g, epaSiteId: payload.generator.epaSiteId, name: payload.generator.name ?? g.name }));
+    }
+
+    if (facResult.success) {
+      setFacility((f) => fillHandlerFromSite(facResult.site, f));
+    } else {
+      setFacility((f) => ({
+        ...f,
+        epaSiteId: payload.designatedFacility.epaSiteId,
+        name: payload.designatedFacility.name ?? f.name,
+      }));
+    }
+
+    if (payload.transporters.length > 0) {
+      setTransporters(
+        payload.transporters.map((t, i) => ({ id: i, epaSiteId: t.epaSiteId, name: t.name ?? "" }))
+      );
+    }
+
+    setWasteLines(
+      payload.wastes.map((w, i) => ({
+        id: i,
+        dotHazardous: w.dotHazardous,
+        isRcraWaste: w.dotHazardous,
+        properShippingName: w.dotHazardous ? w.description : "",
+        rqIndicator: w.rqIndicator ?? false,
+        hazardClass: w.hazardClass ?? "",
+        packingGroup: w.packingGroup ?? "",
+        idNumberCode: w.idNumberCode ?? "",
+        federalWasteCode: (w.federalWasteCodes ?? []).join(", "),
+        wastewaterCategory: "nonwastewater",
+        isLabPack: false,
+        wasteDescription: !w.dotHazardous ? w.description : "",
+        quantity: String(w.quantity),
+        unitCode: w.unitCode,
+        containerNumber: String(w.containerNumber),
+        containerTypeCode: w.containerTypeCode,
+        specialInstructions: "",
+      }))
+    );
+  };
+
+  // Prefills the generator from the EPA ID number captured during
+  // onboarding (docs/epa-registration-wizard-design.md open question #2)
+  // -- only when it's still the untouched dev default, same "don't clobber
+  // a manual edit" guard as the emergency-phone effect above. Silently
+  // does nothing if the user has no EPA ID saved yet, or if the lookup
+  // fails (e.g. not yet authorized for that site) -- this is a convenience
+  // prefill, not something that should surface an error on page load.
+  useEffect(() => {
+    getOnboardingProgressAction().then((progress) => {
+      const epaId = progress?.epaIdNumber?.trim();
+      if (!epaId) return;
+      getSiteDetailsAction(epaId).then((result) => {
+        if (!result.success) return;
+        setGenerator((g) =>
+          g.epaSiteId === DEFAULT_SITE.epaSiteId ? fillHandlerFromSite(result.site, g) : g
+        );
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time prefill on mount, same pattern as the emergency-phone effect
+  }, []);
+
   const updateWasteLine = (id: number, patch: Partial<WasteLineFormState>) =>
     setWasteLines((lines) => lines.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
@@ -301,6 +401,8 @@ export default function NewManifestPage() {
         most of the 4 main-form slots blank; you don&apos;t need to delete unused lines.
       </p>
 
+      <ImportManifestData onImport={handleImport} />
+
       {state && !state.success && <p style={{ color: "red" }}>❌ {state.error}</p>}
       {state && state.success && (
         <div style={{ border: "1px solid #cde9cd", borderRadius: "6px", padding: "12px", marginBottom: "10px" }}>
@@ -311,6 +413,69 @@ export default function NewManifestPage() {
           <div style={{ marginTop: "10px" }}>
             <SendSignLink mtn={state.manifestTrackingNumber} />
           </div>
+          {wasteLines.some((l) => l.federalWasteCode.trim().length > 0) &&
+            (ldrDecision?.mtn !== state.manifestTrackingNumber ? (
+              <div
+                style={{
+                  marginTop: "10px",
+                  padding: "12px 14px",
+                  background: brand.tint,
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                }}
+              >
+                <p style={{ margin: "0 0 8px", fontWeight: 600, color: brand.navy }}>
+                  This waste is subject to Land Disposal Restrictions (40 CFR 268.7). Should
+                  ManifestMate prepare the LDR notice, or will the receiving facility handle a
+                  separate one for this shipment?
+                </p>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <Link
+                    href={`/ldr/new?mtn=${encodeURIComponent(state.manifestTrackingNumber)}`}
+                    onClick={() => setLdrDecision({ mtn: state.manifestTrackingNumber, choice: "prepare" })}
+                    style={{
+                      background: brandGradient,
+                      color: "white",
+                      padding: "6px 12px",
+                      borderRadius: "4px",
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      fontSize: "13px",
+                    }}
+                  >
+                    Prepare LDR notice
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setLdrDecision({ mtn: state.manifestTrackingNumber, choice: "facility" })}
+                    style={{
+                      background: "none",
+                      border: `1px solid ${brand.blue}`,
+                      color: brand.blue,
+                      padding: "6px 12px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                    }}
+                  >
+                    Facility will handle it
+                  </button>
+                </div>
+              </div>
+            ) : (
+              ldrDecision.choice === "facility" && (
+                <p style={{ marginTop: "10px", fontSize: "13px", color: "#666" }}>
+                  Noted — the receiving facility will handle the LDR notice for this shipment.{" "}
+                  <button
+                    type="button"
+                    onClick={() => setLdrDecision(null)}
+                    style={{ background: "none", border: "none", color: brand.blue, cursor: "pointer", padding: 0, fontSize: "13px" }}
+                  >
+                    Changed your mind?
+                  </button>
+                </p>
+              )
+            ))}
           {state.warnings.length > 0 && (
             <div style={{ marginTop: "10px" }}>
               <p style={{ margin: "0 0 4px", fontWeight: "bold", color: "#946c00" }}>
@@ -775,12 +940,55 @@ export default function NewManifestPage() {
                     />
                   </div>
                   <div style={field}>
-                    <label style={label}>Federal waste codes (optional)</label>
+                    <label style={label}>
+                      Federal waste codes (optional) —{" "}
+                      <Link href="/university/waste-determination" style={{ color: brand.blue, fontWeight: 400 }}>
+                        which apply?
+                      </Link>
+                    </label>
                     <FederalWasteCodeField
                       name={`federalWasteCode_${line.id}`}
                       value={line.federalWasteCode}
                       onChange={(v) => updateWasteLine(line.id, { federalWasteCode: v })}
                     />
+                    {line.federalWasteCode.trim().length > 0 && (
+                      <div style={{ marginTop: "6px" }}>
+                        <label style={{ ...label, marginBottom: "2px" }}>
+                          Wastewater or nonwastewater? (for a future LDR notice)
+                        </label>
+                        <div style={{ display: "flex", gap: "14px" }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13px" }}>
+                            <input
+                              type="radio"
+                              name={`wastewaterCategory_${line.id}`}
+                              value="nonwastewater"
+                              checked={line.wastewaterCategory === "nonwastewater"}
+                              onChange={() => updateWasteLine(line.id, { wastewaterCategory: "nonwastewater" })}
+                            />
+                            Nonwastewater
+                          </label>
+                          <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13px" }}>
+                            <input
+                              type="radio"
+                              name={`wastewaterCategory_${line.id}`}
+                              value="wastewater"
+                              checked={line.wastewaterCategory === "wastewater"}
+                              onChange={() => updateWasteLine(line.id, { wastewaterCategory: "wastewater" })}
+                            />
+                            Wastewater
+                          </label>
+                        </div>
+                        <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", marginTop: "6px" }}>
+                          <input
+                            type="checkbox"
+                            name={`labPack_${line.id}`}
+                            checked={line.isLabPack}
+                            onChange={(e) => updateWasteLine(line.id, { isLabPack: e.target.checked })}
+                          />
+                          This is a lab pack (40 CFR 268.42(c))
+                        </label>
+                      </div>
+                    )}
                   </div>
                 </div>
               </>

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { listManifestsForUser } from "@/services/manifestRepository";
+import { listManifestIdsWithDocuments, listManifestsForUser } from "@/services/manifestRepository";
+import { listActiveLdrNoticesByMtn } from "@/services/ldrRepository";
 import { brand } from "@/lib/brandColors";
 import { SendSignLink } from "@/components/SendSignLink";
+import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR } from "@/lib/transporterTiming";
 
 /**
  * Reads from the local `manifests` mirror table rather than RCRAInfo's API
@@ -19,6 +21,16 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   const manifests = user ? await listManifestsForUser(supabase, user.id) : [];
+
+  // Both batched (one query each, not one per row) so the dashboard stays
+  // fast and local-only regardless of list length -- see each function's
+  // own comment for why.
+  const manifestIdsWithDocuments = user
+    ? await listManifestIdsWithDocuments(supabase, manifests.map((m) => m.id))
+    : new Set<string>();
+  const ldrNoticesByMtn = user
+    ? await listActiveLdrNoticesByMtn(supabase, user.id, manifests.map((m) => m.epa_mtn))
+    : {};
 
   return (
     <div style={{ maxWidth: "900px", margin: "40px auto", fontFamily: "sans-serif" }}>
@@ -64,6 +76,10 @@ export default async function DashboardPage() {
                     transporterSignedAt={m.transporter_signed_at}
                     facilitySignedAt={m.facility_signed_at}
                   />
+                  <TransporterElapsed
+                    transporterSignedAt={m.transporter_signed_at}
+                    facilitySignedAt={m.facility_signed_at}
+                  />
                 </td>
                 <td style={{ padding: "8px" }}>{m.generator_name ?? "—"}</td>
                 <td style={{ padding: "8px" }}>{m.transporter_names ?? "—"}</td>
@@ -72,7 +88,67 @@ export default async function DashboardPage() {
                   {new Date(m.updated_at).toLocaleString()}
                 </td>
                 <td style={{ padding: "8px" }}>
-                  <SendSignLink mtn={m.epa_mtn} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      <SendSignLink mtn={m.epa_mtn} />
+                      {manifestIdsWithDocuments.has(m.id) && (
+                        <Link
+                          href={`/api/manifests/${encodeURIComponent(m.epa_mtn)}/attachments`}
+                          title="View/print the signed manifest"
+                          aria-label="View/print the signed manifest"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "26px",
+                            height: "26px",
+                            borderRadius: "4px",
+                            border: `1px solid ${brand.blue}`,
+                            fontSize: "13px",
+                            textDecoration: "none",
+                          }}
+                        >
+                          🖨️
+                        </Link>
+                      )}
+                      {ldrNoticesByMtn[m.epa_mtn] && (
+                        <Link
+                          href={`/ldr/${ldrNoticesByMtn[m.epa_mtn].id}`}
+                          title="View/print the LDR notice"
+                          aria-label="View/print the LDR notice"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "26px",
+                            height: "26px",
+                            borderRadius: "4px",
+                            border: `1px solid ${brand.green}`,
+                            fontSize: "13px",
+                            textDecoration: "none",
+                          }}
+                        >
+                          📋
+                        </Link>
+                      )}
+                    </div>
+                    <Link
+                      href={`/ldr/new?mtn=${encodeURIComponent(m.epa_mtn)}`}
+                      style={{
+                        background: "none",
+                        border: `1px solid ${brand.blue}`,
+                        color: brand.blue,
+                        borderRadius: "4px",
+                        padding: "5px 10px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        textDecoration: "none",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Create LDR notice
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -134,5 +210,37 @@ function SignatureDots({
         </span>
       ))}
     </span>
+  );
+}
+
+/**
+ * Simple first slice of the deferred "72-hour relay timing" feature (see
+ * docs/NEXT_SESSION.md item 6) -- just surfaces elapsed time since the
+ * last transporter signed, color-cued against a rough 48h/72h scale.
+ * Renders nothing until a transporter has actually signed.
+ */
+function TransporterElapsed({
+  transporterSignedAt,
+  facilitySignedAt,
+}: {
+  transporterSignedAt: string | null;
+  facilitySignedAt: string | null;
+}) {
+  const info = getTransporterTimingInfo(transporterSignedAt, facilitySignedAt);
+  if (!info) return null;
+
+  return (
+    <div
+      style={{ marginTop: "4px", fontSize: "11px", color: TRANSPORTER_TIMING_COLOR[info.severity] }}
+      title={
+        info.delivered
+          ? "Time between the last transporter signature and the facility's signature"
+          : "Time since the last transporter signature -- still in transit"
+      }
+    >
+      {info.delivered ? "Delivered after " : ""}
+      {formatElapsedHours(info.hours)}
+      {!info.delivered ? " in transit" : ""}
+    </div>
   );
 }

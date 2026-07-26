@@ -14,6 +14,11 @@ import {
   getDocumentDownloadUrl,
   recordSignatureConsent,
 } from "@/services/manifestRepository";
+import {
+  getWasteLineMetadataForManifest,
+  upsertWasteLineMetadata,
+  type WasteLineMetadata,
+} from "@/services/wasteLineMetadataRepository";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { RcrainfoApiError, collectManifestOperationWarnings } from "@/lib/rcrainfo/types";
 import type {
@@ -246,6 +251,54 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
   }
 }
 
+export type SiteDetailsState =
+  | { success: true; site: SiteSearchResultItem }
+  | { success: false; error: string };
+
+/**
+ * Looks up a single site by its exact EPA ID — used to prefill the
+ * generator fields from the EPA ID number captured during onboarding
+ * (docs/epa-registration-wizard-design.md), where the user knows their
+ * exact ID rather than searching by name. Wraps `getSiteDetails()`;
+ * `SiteSearchResultItem` and `SiteDetails` are the same type (see
+ * types.ts), so the result feeds straight into the form's existing
+ * `fillHandlerFromSite` helper.
+ */
+export async function getSiteDetailsAction(epaSiteId: string): Promise<SiteDetailsState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  try {
+    const client = await getRcrainfoClientForUser(supabase, user.id);
+    const site = await client.getSiteDetails(epaSiteId);
+    return { success: true, site };
+  } catch (err) {
+    return { success: false, error: formatRcrainfoError(err) };
+  }
+}
+
+/**
+ * Wastewater/nonwastewater category and lab-pack flag captured per waste
+ * line at manifest creation time (see wasteLineMetadataRepository.ts) --
+ * used by the LDR notice's `?mtn=` prefill so it doesn't have to guess.
+ * Returns an empty map (not an error) for a manifest created before this
+ * existed, or if nothing was captured -- callers should fall back to
+ * sensible defaults.
+ */
+export async function getWasteLineMetadataAction(
+  epaMtn: string
+): Promise<Record<number, WasteLineMetadata>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {};
+  return getWasteLineMetadataForManifest(supabase, user.id, epaMtn);
+}
+
 export type SiteSearchState =
   | { success: true; sites: SiteSearchResultItem[] }
   | { success: false; error: string };
@@ -423,6 +476,13 @@ export async function createManifestAction(
   const wastes: WasteLine[] = [];
   const lineErrors: string[] = [];
   const lineInstructionNotes: string[] = [];
+  // Wastewater/nonwastewater per line -- a ManifestMate-only concept
+  // (RCRAInfo's schema has no field for it), captured here so it's known
+  // and accurate later if an LDR notice gets filed for this manifest,
+  // instead of guessing. Keyed by the same displayLineNumber sent to EPA,
+  // so it matches back up against manifest.wastes[].lineNumber on a
+  // subsequent GET.
+  const wasteLineMetadata: { lineNumber: number; wastewaterCategory: "wastewater" | "nonwastewater"; isLabPack: boolean }[] = [];
 
   for (const id of wasteLineIds) {
     const w = (name: string) => (formData.get(`${name}_${id}`) as string)?.trim() ?? "";
@@ -464,6 +524,12 @@ export async function createManifestAction(
       .map((c) => c.trim())
       .filter(Boolean)
       .map((code) => ({ code }));
+
+    if (federalWasteCodes.length > 0) {
+      const wastewaterCategory = formData.get(`wastewaterCategory_${id}`) === "wastewater" ? "wastewater" : "nonwastewater";
+      const isLabPack = formData.get(`labPack_${id}`) === "on";
+      wasteLineMetadata.push({ lineNumber: displayLineNumber, wastewaterCategory, isLabPack });
+    }
 
     if (isHazardous) {
       const idNumberCode = w("idNumberCode");
@@ -544,6 +610,7 @@ export async function createManifestAction(
       transporters: input.transporters,
       designatedFacility: input.designatedFacility,
     });
+    await upsertWasteLineMetadata(supabase, user.id, result.manifestTrackingNumber, wasteLineMetadata);
 
     return {
       success: true,

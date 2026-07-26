@@ -411,7 +411,13 @@ export interface NewManifestInput {
 }
 
 /** Full manifest record shape as returned by GET /emanifest/manifest/{mtn}. Loosely typed — see note above. */
-export interface Manifest extends NewManifestInput {
+export interface Manifest extends Omit<NewManifestInput, "status"> {
+  // A fetched manifest's status ranges over the full lifecycle
+  // (ManifestStatus) — NewManifestInput.status is deliberately narrower
+  // ("NotAssigned" | "Pending" | "Scheduled"), the only values valid to
+  // SEND when saving one. Overriding here rather than inheriting avoids
+  // silently mistyping every fetched manifest's actual status.
+  status: ManifestStatus;
   manifestTrackingNumber: string;
   createdDate?: string;
   updatedDate?: string;

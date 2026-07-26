@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
-import { getHandlerSignatureStatus, type Manifest } from "@/lib/rcrainfo/types";
+import { getHandlerSignatureStatus, type Manifest, type ManifestStatus } from "@/lib/rcrainfo/types";
 import type { RcrainfoClient } from "@/lib/rcrainfo/client";
 
 /**
@@ -72,7 +72,14 @@ export interface JustSigned {
 export async function recordManifestLocally(
   supabase: SupabaseClient,
   userId: string,
-  manifest: Pick<Manifest, "manifestTrackingNumber" | "status" | "generator" | "transporters" | "designatedFacility">,
+  manifest: Pick<Manifest, "manifestTrackingNumber" | "generator" | "transporters" | "designatedFacility"> & {
+    // Broader than Manifest["status"] alone -- the initial write right after
+    // a save legitimately only knows the submitted "NotAssigned" placeholder
+    // (see fetchManifestForCurrentUser's comment above), corrected by the
+    // next real fetch. A real ManifestStatus is always what's passed once
+    // record comes from an actual GET.
+    status: ManifestStatus | "NotAssigned";
+  },
   // Set by signManifestAction right after a signature succeeds -- EPA's own
   // API can lag between a sign succeeding and a subsequent GET reflecting
   // it (confirmed live: a dashboard row didn't show a just-completed
@@ -242,6 +249,28 @@ export async function fetchAndStoreManifestDocuments(
       err instanceof Error ? err.message : err
     );
   }
+}
+
+/** Returns the subset of the given local manifest ids that have at least
+ * one stored document -- one batched query rather than one per row, so the
+ * dashboard's "signed manifest ready to print" icon stays cheap regardless
+ * of list length. */
+export async function listManifestIdsWithDocuments(
+  supabase: SupabaseClient,
+  manifestIds: string[]
+): Promise<Set<string>> {
+  if (manifestIds.length === 0) return new Set();
+
+  const { data, error } = await supabase
+    .from("manifest_documents")
+    .select("manifest_id")
+    .in("manifest_id", manifestIds);
+
+  if (error) {
+    console.error("listManifestIdsWithDocuments failed:", describePostgrestError(error));
+    return new Set();
+  }
+  return new Set(data.map((row) => row.manifest_id as string));
 }
 
 export async function listDocumentsForManifest(

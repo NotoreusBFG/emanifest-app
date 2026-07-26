@@ -1,0 +1,67 @@
+<!--
+  Source for Supabase's "Confirm signup" email template.
+  Paste the HTML below into: Supabase Dashboard -> Authentication ->
+  Email Templates -> Confirm signup -> Message body.
+  Suggested subject line: Confirm your ManifestMate account
+
+  Supabase template variables used (Go template syntax, resolved by
+  Supabase itself when it sends the email -- do not edit these):
+    {{ .ConfirmationURL }} -- the confirm link
+    {{ .SiteURL }}         -- this app's configured Site URL, used below to
+                              pull the real hosted logo once this project is
+                              live on a real domain (falls back gracefully
+                              to alt text if the image can't load).
+
+  Kept as plain inline-styled HTML (no external stylesheet, no flexbox/grid)
+  since email clients -- especially Outlook -- only reliably render a very
+  old subset of CSS. Not wired into the app's build; this is a manual-paste
+  artifact, same as the SQL migrations in ../migrations.
+-->
+<div style="background-color:#e8eef4; padding:32px 16px; font-family:Arial, Helvetica, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; margin:0 auto; background-color:#ffffff; border-radius:8px; overflow:hidden;">
+    <tr>
+      <td style="background:linear-gradient(to right, #0058b8, #24bc90); padding:24px 32px; text-align:center;">
+        <img
+          src="{{ .SiteURL }}/manifestmate-logo.jpg"
+          alt="ManifestMate"
+          width="180"
+          style="display:block; margin:0 auto; max-width:180px; height:auto; border:0;"
+        />
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:32px;">
+        <h1 style="margin:0 0 16px; font-size:20px; color:#0a2246;">Confirm your email address</h1>
+        <p style="margin:0 0 24px; font-size:15px; line-height:1.5; color:#333333;">
+          Thanks for creating a ManifestMate account. Click below to confirm your email address
+          and finish setting up your account.
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+          <tr>
+            <td style="border-radius:6px; background:linear-gradient(to right, #0058b8, #24bc90);">
+              <a
+                href="{{ .ConfirmationURL }}"
+                style="display:inline-block; padding:12px 28px; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none;"
+              >
+                Confirm email address
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:0 0 8px; font-size:13px; line-height:1.5; color:#888888;">
+          If the button above doesn&rsquo;t work, copy and paste this link into your browser:
+        </p>
+        <p style="margin:0; font-size:12px; line-height:1.5; color:#0058b8; word-break:break-all;">
+          {{ .ConfirmationURL }}
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:20px 32px; border-top:1px solid #e8eef4;">
+        <p style="margin:0; font-size:12px; line-height:1.5; color:#888888;">
+          If you didn&rsquo;t create a ManifestMate account, you can safely ignore this email.
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>

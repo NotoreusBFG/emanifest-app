@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { signInAction, signUpAction } from "@/app/actions/authActions";
 import { brand, brandGradient } from "@/lib/brandColors";
 
@@ -20,7 +21,21 @@ function SubmitState({ state }: { state: ActionState }) {
   );
 }
 
+// useSearchParams() (for the ?next= redirect target, e.g. from a delegate
+// invite link) requires a Suspense boundary in the App Router, or the
+// build fails — same pattern as /manifests's ?mtn= deep link.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next");
+
   const [signInState, signInFormAction, signInPending] = useActionState<ActionState, FormData>(
     signInAction,
     null
@@ -37,6 +52,7 @@ export default function LoginPage() {
         action={signInFormAction}
         style={{ display: "flex", flexDirection: "column", gap: "15px" }}
       >
+        {next && <input type="hidden" name="next" value={next} />}
         <div>
           <label htmlFor="email" style={{ display: "block", marginBottom: "5px" }}>
             Email
@@ -82,10 +98,17 @@ export default function LoginPage() {
       <hr style={{ margin: "30px 0", borderColor: brand.tint }} />
 
       <h2 style={{ color: brand.navy }}>New here?</h2>
+      {next && (
+        <p style={{ fontSize: "13px", color: "#666", marginTop: "-5px" }}>
+          After you confirm your email, the confirmation link will bring you back here to finish
+          what you came for.
+        </p>
+      )}
       <form
         action={signUpFormAction}
         style={{ display: "flex", flexDirection: "column", gap: "15px" }}
       >
+        {next && <input type="hidden" name="next" value={next} />}
         <div>
           <label htmlFor="signup-email" style={{ display: "block", marginBottom: "5px" }}>
             Email

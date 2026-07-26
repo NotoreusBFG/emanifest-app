@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getInviteStatusAction } from "@/app/actions/delegateActions";
+import { signOutAction } from "@/app/actions/authActions";
 import { AcceptInviteButton } from "./AcceptInviteButton";
-import { brand } from "@/lib/brandColors";
+import { brand, brandGradient } from "@/lib/brandColors";
 
 export default async function AcceptDelegateInvitePage({
   searchParams,
@@ -18,16 +19,23 @@ export default async function AcceptDelegateInvitePage({
     );
   }
 
+  // Round-trips back to this exact invite after login/signup/sign-out —
+  // see the `next` handling in authActions.ts.
+  const acceptPath = `/delegate/accept?token=${encodeURIComponent(token)}`;
+
   const status = await getInviteStatusAction(token);
 
   if (status.status === "not-logged-in") {
     return (
       <Shell>
         <p>
-          Sign in or create a ManifestMate account with the email address the invite was sent to,
-          then come back to this exact link to accept.
+          Sign in or create a ManifestMate account with the email address the invite was sent to
+          — you&apos;ll be brought straight back here afterward to accept.
         </p>
-        <Link href="/login" style={{ color: brand.blue, fontWeight: 600 }}>
+        <Link
+          href={`/login?next=${encodeURIComponent(acceptPath)}`}
+          style={{ color: brand.blue, fontWeight: 600 }}
+        >
           Go to sign in →
         </Link>
       </Shell>
@@ -43,9 +51,26 @@ export default async function AcceptDelegateInvitePage({
           <strong>{status.currentEmail}</strong>.
         </p>
         <p style={{ color: "#666", fontSize: "14px" }}>
-          Sign out and sign back in (or create an account) with the invited email address, then
-          revisit this link.
+          Sign out and sign back in (or create an account) with the invited email address — you&apos;ll
+          be brought straight back here afterward.
         </p>
+        <form action={signOutAction}>
+          <input type="hidden" name="next" value={`/login?next=${encodeURIComponent(acceptPath)}`} />
+          <button
+            type="submit"
+            style={{
+              padding: "8px 16px",
+              background: brandGradient,
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Sign out and switch accounts
+          </button>
+        </form>
       </Shell>
     );
   }

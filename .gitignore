@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local scratch files (e.g. downloaded manifest PDFs for viewing)
 /.scratch
+
+# private business/internal notes -- never public, see private-notes/README.md
+/private-notes

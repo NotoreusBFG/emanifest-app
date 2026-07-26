@@ -84,14 +84,17 @@ export default async function RootLayout({
           )}
 
           {user ? (
-            <form action={signOutAction} className="shrink-0">
-              <button
-                type="submit"
-                className="font-medium text-brand-blue hover:underline cursor-pointer bg-transparent border-none"
-              >
-                Sign out
-              </button>
-            </form>
+            <div className="shrink-0 flex flex-col items-end gap-0.5">
+              <span className="text-xs text-brand-navy/70">{user.email}</span>
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  className="font-medium text-brand-blue hover:underline cursor-pointer bg-transparent border-none"
+                >
+                  Sign out
+                </button>
+              </form>
+            </div>
           ) : (
             <Link href="/login" className="shrink-0 font-medium text-brand-blue hover:underline">
               Sign in

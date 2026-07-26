@@ -1,0 +1,61 @@
+{
+  "testBased": [
+    {
+      "code": "D001 -- Ignitability",
+      "trigger": "Liquid with flash point < 60C (140F); non-liquid that can cause fire through friction/moisture/spontaneous reaction and burns vigorously/persistently; ignitable compressed gas; DOT oxidizer.",
+      "commonHazardClasses": "Class 3 (Flammable liquid) most commonly; also Division 4.1, 2.1, 5.1 -- but only if the actual flash-point/burn test is met, not automatically."
+    },
+    {
+      "code": "D002 -- Corrosivity",
+      "trigger": "Aqueous, pH <= 2 or >= 12.5; OR liquid that corrodes steel (SAE 1020) at >= 6.35 mm/year at 55C.",
+      "commonHazardClasses": "Class 8 (Corrosive) most commonly -- but not every Class 8 material meets the specific pH/corrosion-rate test."
+    },
+    {
+      "code": "D003 -- Reactivity",
+      "trigger": "Normally unstable/reacts violently; reacts violently with water; forms explosive mixtures with water; generates toxic gas with water at pH 2-12.5; capable of detonation; DOT Class 1 explosive; cyanide/sulfide-bearing waste that releases toxic gas at low pH.",
+      "commonHazardClasses": "Division 4.2, 4.3, 5.2, Class 1 -- again, characteristic-based, not automatic from class alone."
+    }
+  ],
+  "tclpMetals": [
+    {
+      "code": "D004",
+      "metalAndTclpLevel": "Arsenic -- 5.0 mg/L",
+      "notes": "UN number varies by compound (e.g. UN1561 Arsenic trioxide)."
+    },
+    {
+      "code": "D005",
+      "metalAndTclpLevel": "Barium -- 100.0 mg/L",
+      "notes": "UN1564 Barium compound, n.o.s. or specific barium salt entries."
+    },
+    {
+      "code": "D006",
+      "metalAndTclpLevel": "Cadmium -- 1.0 mg/L",
+      "notes": "UN2570 Cadmium compound."
+    },
+    {
+      "code": "D007",
+      "metalAndTclpLevel": "Chromium -- 5.0 mg/L",
+      "notes": "UN3288 or specific chromium compound entries -- hexavalent vs. trivalent ship differently."
+    },
+    {
+      "code": "D008",
+      "metalAndTclpLevel": "Lead -- 5.0 mg/L",
+      "notes": "UN2291 Lead compound, soluble, n.o.s. or specific lead salt entries."
+    },
+    {
+      "code": "D009",
+      "metalAndTclpLevel": "Mercury -- 0.2 mg/L",
+      "notes": "UN2809 Mercury (also U151 if unused product)."
+    },
+    {
+      "code": "D010",
+      "metalAndTclpLevel": "Selenium -- 1.0 mg/L",
+      "notes": "UN3283 Selenium compound, n.o.s."
+    },
+    {
+      "code": "D011",
+      "metalAndTclpLevel": "Silver -- 5.0 mg/L",
+      "notes": "UN1493 Silver compound, oxidizing, n.o.s. or non-oxidizing entries."
+    }
+  ]
+}

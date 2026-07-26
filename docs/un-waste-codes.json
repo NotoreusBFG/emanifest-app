@@ -1,0 +1,1375 @@
+[
+  {
+    "unNumber": "UN1090",
+    "shippingName": "Acetone",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [
+      "U002"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Spent acetone = F003; unused/off-spec product = U002."
+  },
+  {
+    "unNumber": "UN1114",
+    "shippingName": "Benzene",
+    "hazardClass": "3",
+    "fCodes": [
+      "F005"
+    ],
+    "uCodes": [
+      "U019"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D018"
+    ],
+    "notes": "F005 spent solvent; D018 toxicity characteristic; U019 unused product."
+  },
+  {
+    "unNumber": "UN1120",
+    "shippingName": "n-Butyl alcohol (Butanols)",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [
+      "U031"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F003 spent solvent; U031 unused product."
+  },
+  {
+    "unNumber": "UN1131",
+    "shippingName": "Carbon disulfide",
+    "hazardClass": "3",
+    "fCodes": [
+      "F005"
+    ],
+    "uCodes": [],
+    "pCodes": [
+      "P022"
+    ],
+    "dCodes": [],
+    "notes": "F005 spent solvent; P022 acutely hazardous unused product."
+  },
+  {
+    "unNumber": "UN1134",
+    "shippingName": "Chlorobenzene",
+    "hazardClass": "3",
+    "fCodes": [
+      "F002"
+    ],
+    "uCodes": [
+      "U037"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D021"
+    ],
+    "notes": "F002 spent halogenated solvent; D021 TC; U037 unused product."
+  },
+  {
+    "unNumber": "UN1155",
+    "shippingName": "Diethyl ether (Ethyl ether)",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [
+      "U117"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F003 spent solvent; U117 unused product."
+  },
+  {
+    "unNumber": "UN1173",
+    "shippingName": "Ethyl acetate",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [
+      "U112"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F003 spent solvent; U112 unused product."
+  },
+  {
+    "unNumber": "UN1175",
+    "shippingName": "Ethylbenzene",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F003 spent non-halogenated solvent; not separately U-listed."
+  },
+  {
+    "unNumber": "UN1184",
+    "shippingName": "Ethylene dichloride (1,2-Dichloroethane)",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U077"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D028"
+    ],
+    "notes": "D028 TC; U077 unused product."
+  },
+  {
+    "unNumber": "UN1193",
+    "shippingName": "Methyl ethyl ketone (MEK)",
+    "hazardClass": "3",
+    "fCodes": [
+      "F005"
+    ],
+    "uCodes": [
+      "U159"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D035"
+    ],
+    "notes": "F005 spent solvent; D035 TC; U159 unused product."
+  },
+  {
+    "unNumber": "UN1230",
+    "shippingName": "Methanol",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [
+      "U154"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F003 spent solvent; U154 unused product."
+  },
+  {
+    "unNumber": "UN1245",
+    "shippingName": "Methyl isobutyl ketone (MIBK)",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [
+      "U161"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F003 spent solvent; U161 unused product."
+  },
+  {
+    "unNumber": "UN1282",
+    "shippingName": "Pyridine",
+    "hazardClass": "3",
+    "fCodes": [
+      "F005"
+    ],
+    "uCodes": [
+      "U196"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D038"
+    ],
+    "notes": "F005 spent solvent; D038 TC; U196 unused product (name-only match, not re-verified live this session)."
+  },
+  {
+    "unNumber": "UN1294",
+    "shippingName": "Toluene",
+    "hazardClass": "3",
+    "fCodes": [
+      "F005"
+    ],
+    "uCodes": [
+      "U220"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F005 spent solvent; U220 unused product."
+  },
+  {
+    "unNumber": "UN1307",
+    "shippingName": "Xylenes",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [
+      "U239"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F003 spent solvent; U239 unused product."
+  },
+  {
+    "unNumber": "UN1591",
+    "shippingName": "o-Dichlorobenzene",
+    "hazardClass": "6.1",
+    "fCodes": [
+      "F002"
+    ],
+    "uCodes": [
+      "U070"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F002 spent halogenated solvent; U070 unused product."
+  },
+  {
+    "unNumber": "UN1593",
+    "shippingName": "Dichloromethane (Methylene chloride)",
+    "hazardClass": "6.1",
+    "fCodes": [
+      "F001",
+      "F002"
+    ],
+    "uCodes": [
+      "U080"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F001/F002 depending on use; U080 unused product."
+  },
+  {
+    "unNumber": "UN1662",
+    "shippingName": "Nitrobenzene",
+    "hazardClass": "6.1",
+    "fCodes": [
+      "F004"
+    ],
+    "uCodes": [
+      "U169"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D036"
+    ],
+    "notes": "F004 spent solvent; D036 TC; U169 unused product."
+  },
+  {
+    "unNumber": "UN1710",
+    "shippingName": "Trichloroethylene",
+    "hazardClass": "6.1",
+    "fCodes": [
+      "F001",
+      "F002"
+    ],
+    "uCodes": [
+      "U228"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D040"
+    ],
+    "notes": "F001/F002; D040 TC; U228 unused product (U228 confirmed via secondary source)."
+  },
+  {
+    "unNumber": "UN1846",
+    "shippingName": "Carbon tetrachloride",
+    "hazardClass": "6.1",
+    "fCodes": [
+      "F001",
+      "F002"
+    ],
+    "uCodes": [
+      "U211"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D019"
+    ],
+    "notes": "F001/F002; D019 TC; U211 unused product (confirmed via secondary source)."
+  },
+  {
+    "unNumber": "UN1897",
+    "shippingName": "Tetrachloroethylene (Perc)",
+    "hazardClass": "6.1",
+    "fCodes": [
+      "F001",
+      "F002"
+    ],
+    "uCodes": [
+      "U210"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D039"
+    ],
+    "notes": "F001/F002; D039 TC; U210 unused product (confirmed via secondary source)."
+  },
+  {
+    "unNumber": "UN1915",
+    "shippingName": "Cyclohexanone",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [
+      "U057"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F003 spent solvent; U057 unused product."
+  },
+  {
+    "unNumber": "UN2076",
+    "shippingName": "Cresols / Cresylic acid",
+    "hazardClass": "6.1",
+    "fCodes": [
+      "F004"
+    ],
+    "uCodes": [
+      "U052"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D023",
+      "D024",
+      "D025",
+      "D026"
+    ],
+    "notes": "F004; isomer determines which D-code; U052 unused product."
+  },
+  {
+    "unNumber": "UN2608",
+    "shippingName": "2-Nitropropane",
+    "hazardClass": "3",
+    "fCodes": [
+      "F005"
+    ],
+    "uCodes": [
+      "U171"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F005 spent solvent; U171 unused product."
+  },
+  {
+    "unNumber": "UN2831",
+    "shippingName": "1,1,1-Trichloroethane",
+    "hazardClass": "6.1",
+    "fCodes": [
+      "F001",
+      "F002"
+    ],
+    "uCodes": [
+      "U226"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F001/F002; U226 unused product (confirmed via secondary source)."
+  },
+  {
+    "unNumber": "UN1001",
+    "shippingName": "Acetylene, dissolved",
+    "hazardClass": "2.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "No RCRA listing; fuel gas, not typically a RCRA waste stream."
+  },
+  {
+    "unNumber": "UN1005",
+    "shippingName": "Ammonia, anhydrous",
+    "hazardClass": "2.3",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Not U/P-listed; possible D002/D003 by property only -- see D001-D003 tab."
+  },
+  {
+    "unNumber": "UN1017",
+    "shippingName": "Chlorine",
+    "hazardClass": "2.3",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Not U/P-listed; DOT poison gas -- generally not shipped as RCRA waste under this UN."
+  },
+  {
+    "unNumber": "UN1040",
+    "shippingName": "Ethylene oxide",
+    "hazardClass": "2.3",
+    "fCodes": [],
+    "uCodes": [
+      "U115"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U115 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1053",
+    "shippingName": "Hydrogen sulfide",
+    "hazardClass": "2.3",
+    "fCodes": [],
+    "uCodes": [
+      "U135"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U135 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1063",
+    "shippingName": "Methyl chloride",
+    "hazardClass": "2.1",
+    "fCodes": [],
+    "uCodes": [
+      "U045"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U045 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1076",
+    "shippingName": "Phosgene",
+    "hazardClass": "2.3",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P095"
+    ],
+    "dCodes": [],
+    "notes": "P095 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN1089",
+    "shippingName": "Acetaldehyde",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U001"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U001 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1092",
+    "shippingName": "Acrolein",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P003"
+    ],
+    "dCodes": [],
+    "notes": "P003 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN1093",
+    "shippingName": "Acrylonitrile",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U009"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U009 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1098",
+    "shippingName": "Allyl alcohol",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P005"
+    ],
+    "dCodes": [],
+    "notes": "P005 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN1145",
+    "shippingName": "Cyclohexane",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U056"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U056 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1165",
+    "shippingName": "1,4-Dioxane",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U108"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U108 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1170",
+    "shippingName": "Ethanol",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Not U/P-listed; possible D001 by property only -- see D001-D003 tab."
+  },
+  {
+    "unNumber": "UN1198",
+    "shippingName": "Formaldehyde solution (<=25%)",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [
+      "U122"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U122 unused/off-spec product; same chemical as UN2209 at higher concentration."
+  },
+  {
+    "unNumber": "UN1199",
+    "shippingName": "Furfural",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U125"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U125 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1203",
+    "shippingName": "Gasoline",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Not U/P-listed; possible D001 by property only -- see D001-D003 tab."
+  },
+  {
+    "unNumber": "UN1212",
+    "shippingName": "Isobutanol (Isobutyl alcohol)",
+    "hazardClass": "3",
+    "fCodes": [
+      "F003"
+    ],
+    "uCodes": [
+      "U140"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "F003 spent solvent; U140 unused product."
+  },
+  {
+    "unNumber": "UN1223",
+    "shippingName": "Kerosene",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Not U/P-listed; possible D001 by property only -- see D001-D003 tab."
+  },
+  {
+    "unNumber": "UN1238",
+    "shippingName": "Methyl chloroformate",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U156"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U156 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1247",
+    "shippingName": "Methyl methacrylate",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U162"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U162 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1264",
+    "shippingName": "Paraldehyde",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U182"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U182 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1280",
+    "shippingName": "Propylene oxide",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U-list code not confirmed this session -- an earlier assumption of U008 was WRONG (U008 = acrylic acid); verify propylene oxide's actual U-code before use."
+  },
+  {
+    "unNumber": "UN1547",
+    "shippingName": "Aniline",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U012"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U012 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1561",
+    "shippingName": "Arsenic trioxide",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P012"
+    ],
+    "dCodes": [
+      "D004"
+    ],
+    "notes": "P012 acutely hazardous; D004 TC (arsenic)."
+  },
+  {
+    "unNumber": "UN1595",
+    "shippingName": "Dimethyl sulfate",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U103"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U103 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1600",
+    "shippingName": "2,4-Dinitrotoluene",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U105"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D030"
+    ],
+    "notes": "D030 TC; U105 unused product."
+  },
+  {
+    "unNumber": "UN1654",
+    "shippingName": "Nicotine",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P075"
+    ],
+    "dCodes": [],
+    "notes": "P075 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN1663",
+    "shippingName": "Nitrophenols",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U170 (p-nitrophenol)"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U170 for p-nitrophenol specifically; verify isomer."
+  },
+  {
+    "unNumber": "UN1669",
+    "shippingName": "Pentachloroethane",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U184"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U184 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1671",
+    "shippingName": "Phenol, solid",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U188"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U188 unused/off-spec product (name-only match, not re-verified live this session)."
+  },
+  {
+    "unNumber": "UN1680",
+    "shippingName": "Potassium cyanide",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P098"
+    ],
+    "dCodes": [],
+    "notes": "P098 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN1689",
+    "shippingName": "Sodium cyanide",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P106"
+    ],
+    "dCodes": [],
+    "notes": "P106 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN1692",
+    "shippingName": "Strychnine",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P108"
+    ],
+    "dCodes": [],
+    "notes": "P108 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN1708",
+    "shippingName": "Toluidine (o- or p-)",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U328 (o-)",
+      "U353 (p-)"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Isomer determines code; name-only match, not re-verified live this session."
+  },
+  {
+    "unNumber": "UN1717",
+    "shippingName": "Acetyl chloride",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U006"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U006 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1738",
+    "shippingName": "Benzyl chloride",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P028"
+    ],
+    "dCodes": [],
+    "notes": "P028 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN1790",
+    "shippingName": "Hydrofluoric acid",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [
+      "U134"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U134 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1832",
+    "shippingName": "Sulfuric acid, spent",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Not U/P-listed; possible D002 by property only -- see D001-D003 tab."
+  },
+  {
+    "unNumber": "UN1888",
+    "shippingName": "Chloroform",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U044"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D022"
+    ],
+    "notes": "D022 TC; U044 unused product."
+  },
+  {
+    "unNumber": "UN1918",
+    "shippingName": "Cumene",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U055"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U055 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN1993",
+    "shippingName": "Flammable liquid, n.o.s.",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Generic DOT catch-all commonly used for waste solvent blends -- possible D001 by property; verify actual constituents for any listed code."
+  },
+  {
+    "unNumber": "UN2023",
+    "shippingName": "Epichlorohydrin",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U041"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U041 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN2029",
+    "shippingName": "Hydrazine, anhydrous",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [
+      "U133"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U133 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN2030",
+    "shippingName": "Hydrazine, aqueous solution",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [
+      "U133"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Same chemical as UN2029, aqueous form."
+  },
+  {
+    "unNumber": "UN2056",
+    "shippingName": "Tetrahydrofuran",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U213"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U213 unused/off-spec product (name-only match, not re-verified live this session)."
+  },
+  {
+    "unNumber": "UN2209",
+    "shippingName": "Formaldehyde solution (>25%)",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [
+      "U122"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Same chemical as UN1198, higher concentration."
+  },
+  {
+    "unNumber": "UN2215",
+    "shippingName": "Maleic anhydride, molten or solid",
+    "hazardClass": "8 / 6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U147"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U147 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN2225",
+    "shippingName": "Benzenesulfonyl chloride",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [
+      "U020"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U020 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN2226",
+    "shippingName": "Benzotrichloride",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [
+      "U023"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U023 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN2277",
+    "shippingName": "Ethyl methacrylate",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U118"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U118 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN2279",
+    "shippingName": "Hexachlorobutadiene",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U128"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D033"
+    ],
+    "notes": "D033 TC; U128 unused product."
+  },
+  {
+    "unNumber": "UN2291",
+    "shippingName": "Lead compounds, n.o.s.",
+    "hazardClass": "6.1 / 9",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [
+      "D008"
+    ],
+    "notes": "D008 TC (lead); specific compound may have its own U/P listing by CAS."
+  },
+  {
+    "unNumber": "UN2382",
+    "shippingName": "Dimethylhydrazine, symmetrical",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U098"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U098 unused/off-spec product (1,1-dimethylhydrazine)."
+  },
+  {
+    "unNumber": "UN2383",
+    "shippingName": "Dipropylamine",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U110"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U110 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN2471",
+    "shippingName": "Osmium tetroxide",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P087"
+    ],
+    "dCodes": [],
+    "notes": "P087 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN2480",
+    "shippingName": "Methyl isocyanate",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "P064"
+    ],
+    "dCodes": [],
+    "notes": "P064 acutely hazardous listed chemical."
+  },
+  {
+    "unNumber": "UN2515",
+    "shippingName": "Bromoform",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U225"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U225 unused/off-spec product (name-only match, not re-verified live this session)."
+  },
+  {
+    "unNumber": "UN2646",
+    "shippingName": "Hexachlorocyclopentadiene",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U130"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U130 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN2650",
+    "shippingName": "Hexachloroethane",
+    "hazardClass": "9",
+    "fCodes": [],
+    "uCodes": [
+      "U131"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D034"
+    ],
+    "notes": "D034 TC; U131 unused product."
+  },
+  {
+    "unNumber": "UN2729",
+    "shippingName": "Hexachlorobenzene",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U127"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D032"
+    ],
+    "notes": "D032 TC; U127 unused product."
+  },
+  {
+    "unNumber": "UN2761",
+    "shippingName": "Organochlorine pesticides, solid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "varies (e.g. U129 Lindane)"
+    ],
+    "pCodes": [
+      "varies"
+    ],
+    "dCodes": [
+      "varies (e.g. D013 Lindane)"
+    ],
+    "notes": "Generic DOT entry -- identify the specific active ingredient for the correct code."
+  },
+  {
+    "unNumber": "UN2762",
+    "shippingName": "Chlordane",
+    "hazardClass": "6.1 / 9",
+    "fCodes": [],
+    "uCodes": [
+      "U036"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D020"
+    ],
+    "notes": "D020 TC; U036 unused product."
+  },
+  {
+    "unNumber": "UN2765",
+    "shippingName": "Chlorophenoxy herbicides (e.g. 2,4-D)",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U240 (2,4-D esters)"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D016"
+    ],
+    "notes": "D016 TC for 2,4-D specifically; U240 for esters."
+  },
+  {
+    "unNumber": "UN2783",
+    "shippingName": "Organophosphorus pesticide, solid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "varies (e.g. P089 Parathion)"
+    ],
+    "dCodes": [],
+    "notes": "Generic DOT entry -- identify active ingredient."
+  },
+  {
+    "unNumber": "UN2784",
+    "shippingName": "Organophosphorus pesticide, liquid, flammable, toxic, n.o.s.",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "varies (e.g. P089 Parathion)"
+    ],
+    "dCodes": [],
+    "notes": "Generic DOT entry -- identify active ingredient."
+  },
+  {
+    "unNumber": "UN2809",
+    "shippingName": "Mercury",
+    "hazardClass": "8",
+    "fCodes": [],
+    "uCodes": [
+      "U151"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D009"
+    ],
+    "notes": "D009 TC; U151 unused product."
+  },
+  {
+    "unNumber": "UN2810",
+    "shippingName": "Toxic liquid, organic, n.o.s.",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "varies"
+    ],
+    "pCodes": [
+      "varies"
+    ],
+    "dCodes": [
+      "varies"
+    ],
+    "notes": "Generic DOT catch-all -- identify actual constituent for any listed code."
+  },
+  {
+    "unNumber": "UN2811",
+    "shippingName": "Toxic solid, organic, n.o.s.",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "varies"
+    ],
+    "pCodes": [
+      "varies"
+    ],
+    "dCodes": [
+      "varies"
+    ],
+    "notes": "Generic DOT catch-all -- identify actual constituent for any listed code."
+  },
+  {
+    "unNumber": "UN2872",
+    "shippingName": "Dibromochloropropane",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U066"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U066 unused/off-spec product (1,2-dibromo-3-chloropropane)."
+  },
+  {
+    "unNumber": "UN2902",
+    "shippingName": "Pesticide, liquid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "varies"
+    ],
+    "pCodes": [
+      "varies"
+    ],
+    "dCodes": [
+      "varies"
+    ],
+    "notes": "Generic DOT entry -- identify active ingredient."
+  },
+  {
+    "unNumber": "UN2903",
+    "shippingName": "Pesticide, liquid, toxic, flammable, n.o.s.",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "varies"
+    ],
+    "pCodes": [
+      "varies"
+    ],
+    "dCodes": [
+      "varies"
+    ],
+    "notes": "Generic DOT entry -- identify active ingredient."
+  },
+  {
+    "unNumber": "UN3018",
+    "shippingName": "Organophosphorus pesticide, liquid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [
+      "varies (e.g. P089 Parathion)"
+    ],
+    "dCodes": [],
+    "notes": "Generic DOT entry -- identify active ingredient."
+  },
+  {
+    "unNumber": "UN3053",
+    "shippingName": "Zinc phosphide, stabilized",
+    "hazardClass": "4.3",
+    "fCodes": [],
+    "uCodes": [
+      "U249"
+    ],
+    "pCodes": [
+      "P122"
+    ],
+    "dCodes": [],
+    "notes": "P122/U249 depending on concentration (>10% = P122; <=10% = U249)."
+  },
+  {
+    "unNumber": "UN3082",
+    "shippingName": "Environmentally hazardous substance, liquid, n.o.s.",
+    "hazardClass": "9",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Generic DOT catch-all -- no code without identifying actual constituent."
+  },
+  {
+    "unNumber": "UN3077",
+    "shippingName": "Environmentally hazardous substance, solid, n.o.s.",
+    "hazardClass": "9",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Generic DOT catch-all -- no code without identifying actual constituent."
+  },
+  {
+    "unNumber": "UN3155",
+    "shippingName": "Pentachlorophenol",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U242"
+    ],
+    "pCodes": [],
+    "dCodes": [
+      "D037"
+    ],
+    "notes": "D037 TC; U242 unused product."
+  },
+  {
+    "unNumber": "UN3251",
+    "shippingName": "Isosafrole, stabilized",
+    "hazardClass": "3",
+    "fCodes": [],
+    "uCodes": [
+      "U141"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "U141 unused/off-spec product."
+  },
+  {
+    "unNumber": "UN3283",
+    "shippingName": "Selenium compound, n.o.s.",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [],
+    "pCodes": [],
+    "dCodes": [
+      "D010"
+    ],
+    "notes": "D010 TC (selenium); specific compound may have its own listing by CAS."
+  },
+  {
+    "unNumber": "UN3288",
+    "shippingName": "Toxic solid, inorganic, n.o.s.",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "varies"
+    ],
+    "pCodes": [
+      "varies"
+    ],
+    "dCodes": [
+      "D004-D011 (metals, if applicable)"
+    ],
+    "notes": "Generic DOT catch-all -- identify actual inorganic constituent."
+  },
+  {
+    "unNumber": "UN3293",
+    "shippingName": "Hydrazine, aqueous solution, <=37% hydrazine",
+    "hazardClass": "6.1",
+    "fCodes": [],
+    "uCodes": [
+      "U133"
+    ],
+    "pCodes": [],
+    "dCodes": [],
+    "notes": "Same chemical as UN2029/2030, lower concentration."
+  }
+]

@@ -13,6 +13,7 @@ import {
 import { getHandlerSignatureStatus, type Handler, type Manifest } from "@/lib/rcrainfo/types";
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
+import { Card } from "@/components/ui/Card";
 import { SignManifestPanel } from "./SignManifestPanel";
 import { SendSignLink } from "@/components/SendSignLink";
 import { findActiveLdrNoticeAction } from "@/app/actions/ldrActions";
@@ -104,9 +105,11 @@ function ManifestSummary({
   onSigned: () => void;
 }) {
   return (
-    <div style={{ border: `1px solid ${brand.tint}`, borderRadius: "6px", padding: "20px", backgroundColor: "#fff" }}>
+    <Card className="p-5">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
-        <h2 style={{ marginTop: 0, color: brand.navy }}>{manifest.manifestTrackingNumber}</h2>
+        <h2 style={{ margin: 0, color: brand.navy, fontSize: "28px", fontWeight: 800 }}>
+          {manifest.manifestTrackingNumber}
+        </h2>
         <SendSignLink mtn={manifest.manifestTrackingNumber} />
       </div>
       <p>
@@ -180,7 +183,7 @@ function ManifestSummary({
       <StoredDocumentsList manifestTrackingNumber={manifest.manifestTrackingNumber} />
 
       <SignManifestPanel manifest={manifest} onSigned={onSigned} />
-    </div>
+    </Card>
   );
 }
 

@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { SendSignLink } from "@/components/SendSignLink";
-import { ManifestRowActions } from "@/components/dashboard/ManifestRowActions";
 import { deriveManifestBadge } from "@/lib/manifestStatusBadge";
 import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR } from "@/lib/transporterTiming";
 
@@ -105,19 +104,44 @@ export default async function DashboardPage() {
                       transporterSignedAt={m.transporter_signed_at}
                       facilitySignedAt={m.facility_signed_at}
                     />
-                    <ManifestRowActions
-                      mtn={m.epa_mtn}
-                      hasDocuments={manifestIdsWithDocuments.has(m.id)}
-                      ldrNoticeId={ldrNotice?.id ?? null}
-                    />
+                    {manifestIdsWithDocuments.has(m.id) && (
+                      <Link
+                        href={`/api/manifests/${encodeURIComponent(m.epa_mtn)}/attachments`}
+                        title="View/print the signed manifest"
+                        aria-label="View/print the signed manifest"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border text-sm"
+                        style={{ borderColor: brand.blue }}
+                      >
+                        🖨️
+                      </Link>
+                    )}
                   </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3">
-                  <TransporterElapsed
-                    transporterSignedAt={m.transporter_signed_at}
-                    facilitySignedAt={m.facility_signed_at}
-                  />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <TransporterElapsed
+                      transporterSignedAt={m.transporter_signed_at}
+                      facilitySignedAt={m.facility_signed_at}
+                    />
+                    {ldrNotice ? (
+                      <Link
+                        href={`/ldr/${ldrNotice.id}`}
+                        className="text-xs font-semibold hover:underline"
+                        style={{ color: brand.green }}
+                      >
+                        📋 LDR notice on file
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/ldr/new?mtn=${encodeURIComponent(m.epa_mtn)}`}
+                        className="text-xs font-semibold hover:underline"
+                        style={{ color: brand.blue }}
+                      >
+                        + Create LDR notice
+                      </Link>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span>Updated {new Date(m.updated_at).toLocaleString()}</span>
                     <SendSignLink mtn={m.epa_mtn} />

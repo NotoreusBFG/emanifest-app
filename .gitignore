@@ -45,3 +45,10 @@ next-env.d.ts
 
 # private business/internal notes -- never public, see private-notes/README.md
 /private-notes
+
+# raw design-tool handoff exports, staged for review before anything gets
+# integrated into real src/ components -- never committed as-is
+/design-handoff
+
+# personal Claude Code permission overrides -- not shared config
+/.claude/settings.local.json

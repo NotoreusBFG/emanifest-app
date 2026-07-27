@@ -36,7 +36,12 @@
 }
 
 body {
-  background: var(--background);
+  /* MM1.1: the layout's `bg-brand-tint` Tailwind class on <body> was
+     always losing to this unlayered rule (Tailwind v4 utilities sit in a
+     @layer, which unlayered CSS always beats regardless of source order),
+     so every app screen was rendering on plain white despite the class
+     being present. Point this at the same brand-tint token instead. */
+  background: var(--brand-tint);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

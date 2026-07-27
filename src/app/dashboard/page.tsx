@@ -3,7 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { listManifestIdsWithDocuments, listManifestsForUser } from "@/services/manifestRepository";
 import { listActiveLdrNoticesByMtn } from "@/services/ldrRepository";
 import { brand } from "@/lib/brandColors";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { SendSignLink } from "@/components/SendSignLink";
+import { ManifestRowActions } from "@/components/dashboard/ManifestRowActions";
+import { deriveManifestBadge } from "@/lib/manifestStatusBadge";
 import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR } from "@/lib/transporterTiming";
 
 /**
@@ -32,141 +37,111 @@ export default async function DashboardPage() {
     ? await listActiveLdrNoticesByMtn(supabase, user.id, manifests.map((m) => m.epa_mtn))
     : {};
 
+  const receivedCount = manifests.filter(
+    (m) => deriveManifestBadge(m.generator_signed_at, m.transporter_signed_at, m.facility_signed_at)?.variant === "received"
+  ).length;
+  const overdueCount = manifests.filter(
+    (m) => deriveManifestBadge(m.generator_signed_at, m.transporter_signed_at, m.facility_signed_at)?.variant === "overdue"
+  ).length;
+  const activeCount = manifests.length - receivedCount;
+
   return (
-    <div style={{ maxWidth: "900px", margin: "40px auto", fontFamily: "sans-serif" }}>
-      <h1 style={{ color: brand.navy }}>Your manifests</h1>
-      <p style={{ color: "#666" }}>
-        Every manifest you&apos;ve saved or signed through ManifestMate, in one place.
-      </p>
+    <div className="mx-auto w-full max-w-3xl px-6 py-10">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-navy">Your manifests</h1>
+          <p className="mt-1 text-gray-600">
+            Every manifest you&apos;ve saved or signed through ManifestMate, in one place.
+          </p>
+          {manifests.length > 0 && (
+            <p className="mt-1 text-sm text-gray-500">
+              {activeCount} active{overdueCount > 0 ? `, ${overdueCount} overdue` : ""}
+            </p>
+          )}
+        </div>
+        <Button href="/manifests/new">+ New manifest</Button>
+      </div>
 
       {manifests.length === 0 ? (
-        <p style={{ color: "#666" }}>
+        <p className="mt-8 text-gray-600">
           No manifests yet —{" "}
-          <Link href="/manifests/new" style={{ color: brand.blue }}>
+          <Link href="/manifests/new" className="text-brand-blue hover:underline">
             create your first one
           </Link>
           .
         </p>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "20px" }}>
-          <thead>
-            <tr style={{ borderBottom: `2px solid ${brand.tint}`, textAlign: "left" }}>
-              <th style={{ padding: "8px" }}>MTN</th>
-              <th style={{ padding: "8px" }}>Status</th>
-              <th style={{ padding: "8px" }}>Signatures</th>
-              <th style={{ padding: "8px" }}>Generator</th>
-              <th style={{ padding: "8px" }}>Transporter</th>
-              <th style={{ padding: "8px" }}>Designated facility</th>
-              <th style={{ padding: "8px" }}>Last updated</th>
-              <th style={{ padding: "8px" }} />
-            </tr>
-          </thead>
-          <tbody>
-            {manifests.map((m) => (
-              <tr key={m.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={{ padding: "8px" }}>
-                  <Link href={`/manifests?mtn=${encodeURIComponent(m.epa_mtn)}`} style={{ color: brand.blue }}>
-                    {m.epa_mtn}
-                  </Link>
-                </td>
-                <td style={{ padding: "8px" }}>{m.epa_status ?? "—"}</td>
-                <td style={{ padding: "8px" }}>
-                  <SignatureDots
-                    generatorSignedAt={m.generator_signed_at}
-                    transporterSignedAt={m.transporter_signed_at}
-                    facilitySignedAt={m.facility_signed_at}
-                  />
+        <div className="mt-8 flex flex-col gap-3">
+          {manifests.map((m) => {
+            const badge = deriveManifestBadge(
+              m.generator_signed_at,
+              m.transporter_signed_at,
+              m.facility_signed_at
+            );
+            const ldrNotice = ldrNoticesByMtn[m.epa_mtn];
+
+            return (
+              <Card key={m.id} className="p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/manifests?mtn=${encodeURIComponent(m.epa_mtn)}`}
+                      className="font-bold text-brand-blue hover:underline"
+                    >
+                      {m.epa_mtn}
+                    </Link>
+                    <p className="mt-0.5 truncate text-sm text-gray-600">
+                      {m.generator_name ?? "—"} → {m.designated_facility_name ?? "—"}
+                    </p>
+                    {m.transporter_names && (
+                      <p className="truncate text-xs text-gray-400">via {m.transporter_names}</p>
+                    )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-3">
+                    {badge && <Badge variant={badge.variant}>{badge.label}</Badge>}
+                    <SignatureDots
+                      generatorSignedAt={m.generator_signed_at}
+                      transporterSignedAt={m.transporter_signed_at}
+                      facilitySignedAt={m.facility_signed_at}
+                    />
+                    <ManifestRowActions
+                      mtn={m.epa_mtn}
+                      hasDocuments={manifestIdsWithDocuments.has(m.id)}
+                      ldrNoticeId={ldrNotice?.id ?? null}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3">
                   <TransporterElapsed
                     transporterSignedAt={m.transporter_signed_at}
                     facilitySignedAt={m.facility_signed_at}
                   />
-                </td>
-                <td style={{ padding: "8px" }}>{m.generator_name ?? "—"}</td>
-                <td style={{ padding: "8px" }}>{m.transporter_names ?? "—"}</td>
-                <td style={{ padding: "8px" }}>{m.designated_facility_name ?? "—"}</td>
-                <td style={{ padding: "8px", color: "#666", fontSize: "13px" }}>
-                  {new Date(m.updated_at).toLocaleString()}
-                </td>
-                <td style={{ padding: "8px" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", alignItems: "flex-start" }}>
-                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      <SendSignLink mtn={m.epa_mtn} />
-                      {manifestIdsWithDocuments.has(m.id) && (
-                        <Link
-                          href={`/api/manifests/${encodeURIComponent(m.epa_mtn)}/attachments`}
-                          title="View/print the signed manifest"
-                          aria-label="View/print the signed manifest"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: "26px",
-                            height: "26px",
-                            borderRadius: "4px",
-                            border: `1px solid ${brand.blue}`,
-                            fontSize: "13px",
-                            textDecoration: "none",
-                          }}
-                        >
-                          🖨️
-                        </Link>
-                      )}
-                      {ldrNoticesByMtn[m.epa_mtn] && (
-                        <Link
-                          href={`/ldr/${ldrNoticesByMtn[m.epa_mtn].id}`}
-                          title="View/print the LDR notice"
-                          aria-label="View/print the LDR notice"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            width: "26px",
-                            height: "26px",
-                            borderRadius: "4px",
-                            border: `1px solid ${brand.green}`,
-                            fontSize: "13px",
-                            textDecoration: "none",
-                          }}
-                        >
-                          📋
-                        </Link>
-                      )}
-                    </div>
-                    <Link
-                      href={`/ldr/new?mtn=${encodeURIComponent(m.epa_mtn)}`}
-                      style={{
-                        background: "none",
-                        border: `1px solid ${brand.blue}`,
-                        color: brand.blue,
-                        borderRadius: "4px",
-                        padding: "5px 10px",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        textDecoration: "none",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Create LDR notice
-                    </Link>
+                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <span>Updated {new Date(m.updated_at).toLocaleString()}</span>
+                    <SendSignLink mtn={m.epa_mtn} />
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );
 }
 
 /**
- * Compact G/T/F checkmarks for the dashboard's overview table — the full
+ * Compact G/T/F checkmarks for the dashboard's overview cards — the full
  * checkmark-plus-name-plus-date version lives on the lookup page
  * (SignatureChecklistItem in manifests/page.tsx). Reads from the local
  * mirror's generator_signed_at/transporter_signed_at/facility_signed_at
  * columns rather than live EPA data, so it can lag slightly behind until
  * the manifest is next looked up or signed (recordManifestLocally is what
- * refreshes these).
+ * refreshes these). Kept alongside the new derived status Badge rather
+ * than replaced by it (MM1.1 handoff) — it's the clearest per-handler
+ * detail.
  */
 function SignatureDots({
   generatorSignedAt,
@@ -184,26 +159,15 @@ function SignatureDots({
   ];
 
   return (
-    <span style={{ display: "inline-flex", gap: "6px" }}>
+    <span className="inline-flex gap-1.5">
       {roles.map((role) => (
         <span
           key={role.label}
-          title={
-            role.signedAt
-              ? `Signed ${new Date(role.signedAt).toLocaleString()}`
-              : "Not signed yet"
-          }
+          title={role.signedAt ? `Signed ${new Date(role.signedAt).toLocaleString()}` : "Not signed yet"}
+          className="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "20px",
-            height: "20px",
-            borderRadius: "999px",
-            fontSize: "11px",
-            fontWeight: 700,
             color: role.signedAt ? "white" : "#999",
-            backgroundColor: role.signedAt ? "green" : "#eee",
+            backgroundColor: role.signedAt ? brand.green : "#eee",
           }}
         >
           {role.label}
@@ -215,8 +179,8 @@ function SignatureDots({
 
 /**
  * Simple first slice of the deferred "72-hour relay timing" feature (see
- * docs/NEXT_SESSION.md item 6) -- just surfaces elapsed time since the
- * last transporter signed, color-cued against a rough 48h/72h scale.
+ * private-notes/NEXT_SESSION.md item 6) -- just surfaces elapsed time since
+ * the last transporter signed, color-cued against a rough 48h/72h scale.
  * Renders nothing until a transporter has actually signed.
  */
 function TransporterElapsed({
@@ -227,11 +191,12 @@ function TransporterElapsed({
   facilitySignedAt: string | null;
 }) {
   const info = getTransporterTimingInfo(transporterSignedAt, facilitySignedAt);
-  if (!info) return null;
+  if (!info) return <span />;
 
   return (
     <div
-      style={{ marginTop: "4px", fontSize: "11px", color: TRANSPORTER_TIMING_COLOR[info.severity] }}
+      className="text-xs"
+      style={{ color: TRANSPORTER_TIMING_COLOR[info.severity] }}
       title={
         info.delivered
           ? "Time between the last transporter signature and the facility's signature"

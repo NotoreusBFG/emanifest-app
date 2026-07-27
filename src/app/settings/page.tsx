@@ -14,8 +14,10 @@ import {
   revokeDelegateAction,
 } from '@/app/actions/delegateActions';
 import type { DelegateRecord, DelegateSiteType } from '@/services/delegateRepository';
-import { brand, brandGradient } from '@/lib/brandColors';
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from '@/lib/constants';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
 export default function EpaSettingsPage() {
   // 2. 'useActionState' connects our form to the Server Action.
@@ -43,126 +45,76 @@ export default function EpaSettingsPage() {
   }, []);
 
   return (
-    <div style={{ maxWidth: '400px', margin: '40px auto', fontFamily: 'sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1 style={{ color: brand.navy }}>EPA Settings</h1>
+    <div className="mx-auto w-full max-w-xl px-6 py-10">
+      <div className="mb-6 flex items-baseline justify-between">
+        <h1 className="text-2xl font-bold text-brand-navy">Settings</h1>
         <form action={signOutAction}>
-          <button type="submit" style={{ background: 'none', border: 'none', color: brand.blue, cursor: 'pointer' }}>
+          <button type="submit" className="text-sm font-medium text-brand-blue hover:underline">
             Sign out
           </button>
         </form>
       </div>
-      <p style={{ color: '#666' }}>Securely store your API credentials.</p>
 
-      {/* 3. The 'action' prop tells the form to run our Server Action when submitted */}
-      <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        
-        <div>
-          <label htmlFor="apiId" style={{ display: 'block', marginBottom: '5px' }}>EPA Site ID (API ID)</label>
-          <input
-            id="apiId"
-            name="apiId" // This name MUST match what we look for in 'epaActions.ts'
-            type="text"
-            required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-          />
-        </div>
+      <div className="flex flex-col gap-6">
+        <Card className="p-6">
+          <h2 className="text-lg font-bold text-brand-navy">RCRAInfo API credentials</h2>
+          <p className="mt-1 text-sm text-gray-600">Securely store your API credentials.</p>
 
-        <div>
-          <label htmlFor="apiKey" style={{ display: 'block', marginBottom: '5px' }}>EPA Secret Key</label>
-          <input
-            id="apiKey"
-            name="apiKey" // This name MUST match what we look for in 'epaActions.ts'
-            type="password"
-            required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-          />
-        </div>
+          {/* 3. The 'action' prop tells the form to run our Server Action when submitted */}
+          <form action={formAction} className="mt-4 flex flex-col gap-4">
+            <Input id="apiId" name="apiId" type="text" label="EPA Site ID (API ID)" required />
+            <Input id="apiKey" name="apiKey" type="password" label="EPA Secret Key" required />
 
-        {/* 4. We use 'isPending' to disable the button so the user doesn't click twice */}
-        <button 
-          type="submit" 
-          disabled={isPending}
-          style={{
-            padding: '10px',
-            background: isPending ? '#ccc' : brandGradient,
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontWeight: 600,
-            cursor: isPending ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isPending ? 'Saving Securely...' : 'Save Credentials'}
-        </button>
+            {/* 4. We use 'isPending' to disable the button so the user doesn't click twice */}
+            <Button type="submit" disabled={isPending} className="self-start">
+              {isPending ? 'Saving Securely...' : 'Save Credentials'}
+            </Button>
 
-        {/* 5. Show a message to the user based on the 'state' returned by the Server Action */}
-        {state?.success && (
-          <p style={{ color: 'green', marginTop: '10px' }}>✅ {state.message}</p>
-        )}
-        {state?.error && (
-          <p style={{ color: 'red', marginTop: '10px' }}>❌ {state.error}</p>
-        )}
-      </form>
+            {/* 5. Show a message to the user based on the 'state' returned by the Server Action */}
+            {state?.success && <p className="text-sm text-green-700">✅ {state.message}</p>}
+            {state?.error && <p className="text-sm text-red-600">❌ {state.error}</p>}
+          </form>
+        </Card>
 
-      <hr style={{ margin: '30px 0', border: 'none', borderTop: '1px solid #eee' }} />
-
-      <h2 style={{ color: brand.navy, fontSize: '18px' }}>Default emergency phone</h2>
-      <p style={{ color: '#666' }}>
-        Pre-fills the emergency response phone field when creating a manifest — still
-        editable per manifest. Independent of your API credentials above, so updating
-        this never requires re-entering your API key.
-      </p>
-
-      <form action={savePhoneAction} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <div>
-          <label htmlFor="defaultEmergencyPhone" style={{ display: 'block', marginBottom: '5px' }}>
-            Emergency phone number
-          </label>
-          <input
-            id="defaultEmergencyPhone"
-            name="defaultEmergencyPhone"
-            type="text"
-            placeholder={`${SYSTEM_DEFAULT_EMERGENCY_PHONE} (system default)`}
-            value={defaultEmergencyPhone}
-            onChange={(e) => setDefaultEmergencyPhone(e.target.value)}
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
-          />
-          <p style={{ fontSize: '13px', color: '#888', marginTop: '5px' }}>
-            Leave blank to use the system default ({SYSTEM_DEFAULT_EMERGENCY_PHONE}).
+        <Card className="p-6">
+          <h2 className="text-lg font-bold text-brand-navy">Default emergency phone</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Pre-fills the emergency response phone field when creating a manifest — still
+            editable per manifest. Independent of your API credentials above, so updating this
+            never requires re-entering your API key.
           </p>
-        </div>
 
-        <button
-          type="submit"
-          disabled={isPhonePending}
-          style={{
-            padding: '10px',
-            background: isPhonePending ? '#ccc' : brandGradient,
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontWeight: 600,
-            cursor: isPhonePending ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isPhonePending ? 'Saving...' : 'Save phone number'}
-        </button>
+          <form action={savePhoneAction} className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <Input
+                id="defaultEmergencyPhone"
+                name="defaultEmergencyPhone"
+                type="text"
+                label="Emergency phone number"
+                placeholder={`${SYSTEM_DEFAULT_EMERGENCY_PHONE} (system default)`}
+                value={defaultEmergencyPhone}
+                onChange={(e) => setDefaultEmergencyPhone(e.target.value)}
+                hint={`Leave blank to use the system default (${SYSTEM_DEFAULT_EMERGENCY_PHONE}).`}
+              />
+            </div>
 
-        {phoneState?.success && (
-          <p style={{ color: 'green', marginTop: '10px' }}>✅ {phoneState.message}</p>
-        )}
-        {phoneState?.error && (
-          <p style={{ color: 'red', marginTop: '10px' }}>❌ {phoneState.error}</p>
-        )}
-      </form>
+            <Button type="submit" disabled={isPhonePending}>
+              {isPhonePending ? 'Saving...' : 'Save phone number'}
+            </Button>
+          </form>
+          {phoneState?.success && <p className="mt-2 text-sm text-green-700">✅ {phoneState.message}</p>}
+          {phoneState?.error && <p className="mt-2 text-sm text-red-600">❌ {phoneState.error}</p>}
+        </Card>
 
-      <hr style={{ margin: '30px 0', border: 'none', borderTop: '1px solid #eee' }} />
+        <Card className="p-6">
+          <DelegatesSection />
+        </Card>
+      </div>
 
-      <DelegatesSection />
-
-      <p style={{ marginTop: '20px' }}>
-        <Link href="/manifests" style={{ color: brand.blue }}>Look up a manifest →</Link>
+      <p className="mt-6">
+        <Link href="/manifests" className="text-brand-blue hover:underline">
+          Look up a manifest →
+        </Link>
       </p>
     </div>
   );
@@ -228,94 +180,52 @@ function DelegatesSection() {
 
   return (
     <div>
-      <h2 style={{ color: brand.navy, fontSize: '18px' }}>Quick-Sign delegates</h2>
-      <p style={{ color: '#666' }}>
-        Invite someone to sign manifests using your EPA credentials — useful for drivers or
-        staff who shouldn&apos;t need their own RCRAInfo registration. EPA&apos;s own record will
-        still show you as the signer; ManifestMate separately tracks who actually triggered each
+      <h2 className="text-lg font-bold text-brand-navy">Quick-Sign delegates</h2>
+      <p className="mt-1 text-sm text-gray-600">
+        Invite someone to sign manifests using your EPA credentials — useful for drivers or staff
+        who shouldn&apos;t need their own RCRAInfo registration. EPA&apos;s own record will still
+        show you as the signer; ManifestMate separately tracks who actually triggered each
         signature (see the FAQ).
       </p>
 
-      <form
-        action={inviteFormAction}
-        style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}
-      >
-        <div>
-          <label htmlFor="invitedEmail" style={{ display: 'block', marginBottom: '5px' }}>
-            Email to invite
-          </label>
-          <input
-            id="invitedEmail"
-            name="invitedEmail"
-            type="email"
-            required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
-          />
-        </div>
+      <form action={inviteFormAction} className="mt-4 flex flex-col gap-3">
+        <Input id="invitedEmail" name="invitedEmail" type="email" label="Email to invite" required />
 
         <div>
-          <p style={{ marginBottom: '2px', fontSize: '14px' }}>Allow signing as:</p>
-          <p style={{ marginBottom: '5px', fontSize: '12px', color: '#888' }}>
+          <p className="mb-0.5 text-sm text-brand-navy">Allow signing as:</p>
+          <p className="mb-1.5 text-xs text-gray-500">
             Leave all unchecked to allow any role your own credentials permit.
           </p>
           {SITE_TYPE_OPTIONS.map((opt) => (
             <label
               key={opt.value}
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '6px',
-                fontSize: '13px',
-                color: opt.warn ? '#a15c00' : '#333',
-                marginBottom: '4px',
-              }}
+              className="mb-1 flex items-start gap-1.5 text-xs"
+              style={{ color: opt.warn ? '#a15c00' : '#333' }}
             >
-              <input
-                type="checkbox"
-                name="allowedSiteTypes"
-                value={opt.value}
-                style={{ marginTop: '2px' }}
-              />
+              <input type="checkbox" name="allowedSiteTypes" value={opt.value} className="mt-0.5" />
               {opt.label}
             </label>
           ))}
         </div>
 
-        <button
-          type="submit"
-          disabled={isInvitePending}
-          style={{
-            padding: '10px',
-            background: isInvitePending ? '#ccc' : brandGradient,
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontWeight: 600,
-            cursor: isInvitePending ? 'not-allowed' : 'pointer',
-            alignSelf: 'flex-start',
-          }}
-        >
+        <Button type="submit" disabled={isInvitePending} className="self-start px-4 py-2 text-sm">
           {isInvitePending ? 'Creating invite...' : 'Create invite link'}
-        </button>
+        </Button>
 
         {inviteState?.success && (
-          <p style={{ color: 'green', marginTop: '5px', wordBreak: 'break-all', fontSize: '13px' }}>
-            ✅ {inviteState.message}
-          </p>
+          <p className="break-all text-sm text-green-700">✅ {inviteState.message}</p>
         )}
-        {inviteState?.success === false && (
-          <p style={{ color: 'red', marginTop: '5px' }}>❌ {inviteState.error}</p>
-        )}
+        {inviteState?.success === false && <p className="text-sm text-red-600">❌ {inviteState.error}</p>}
       </form>
 
       {delegates && delegates.length > 0 && (
-        <table style={{ width: '100%', marginTop: '15px', fontSize: '13px', borderCollapse: 'collapse' }}>
+        <table className="mt-4 w-full border-collapse text-sm">
           <thead>
-            <tr style={{ textAlign: 'left', color: '#888' }}>
-              <th style={{ padding: '4px 0' }}>Email</th>
-              <th style={{ padding: '4px 0' }}>Status</th>
-              <th style={{ padding: '4px 0' }}>Roles</th>
-              <th style={{ padding: '4px 0' }} />
+            <tr className="text-left text-gray-500">
+              <th className="py-1 font-medium">Email</th>
+              <th className="py-1 font-medium">Status</th>
+              <th className="py-1 font-medium">Roles</th>
+              <th className="py-1" />
             </tr>
           </thead>
           <tbody>
@@ -323,56 +233,33 @@ function DelegatesSection() {
               const status = d.revoked_at ? 'Revoked' : d.accepted_at ? 'Active' : 'Pending';
               const link = status === 'Pending' ? inviteLinkFor(d.invite_token) : null;
               return (
-                <tr key={d.id} style={{ borderTop: '1px solid #eee' }}>
-                  <td style={{ padding: '6px 0' }}>
+                <tr key={d.id} className="border-t border-gray-100">
+                  <td className="py-1.5">
                     {d.invited_email}
                     {link && (
-                      <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <code
-                          style={{
-                            fontSize: '11px',
-                            color: '#888',
-                            wordBreak: 'break-all',
-                            background: '#f5f5f5',
-                            padding: '2px 5px',
-                            borderRadius: '3px',
-                          }}
-                        >
+                      <div className="mt-1 flex items-center gap-2">
+                        <code className="break-all rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
                           {link}
                         </code>
                         <button
                           type="button"
                           onClick={() => handleCopy(d.id, link)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: brand.blue,
-                            cursor: 'pointer',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            whiteSpace: 'nowrap',
-                          }}
+                          className="whitespace-nowrap text-xs font-semibold text-brand-blue"
                         >
                           {copiedId === d.id ? 'Copied!' : 'Copy'}
                         </button>
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: '6px 0' }}>{status}</td>
-                  <td style={{ padding: '6px 0' }}>{d.allowed_site_types?.join(', ') || 'All'}</td>
-                  <td style={{ padding: '6px 0', textAlign: 'right' }}>
+                  <td className="py-1.5">{status}</td>
+                  <td className="py-1.5">{d.allowed_site_types?.join(', ') || 'All'}</td>
+                  <td className="py-1.5 text-right">
                     {!d.revoked_at && (
                       <button
                         type="button"
                         onClick={() => handleRevoke(d.id)}
                         disabled={revokingId === d.id}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: brand.blue,
-                          cursor: revokingId === d.id ? 'not-allowed' : 'pointer',
-                          fontSize: '13px',
-                        }}
+                        className="text-sm text-brand-blue disabled:cursor-not-allowed"
                       >
                         {revokingId === d.id ? 'Revoking…' : 'Revoke'}
                       </button>
@@ -384,9 +271,7 @@ function DelegatesSection() {
           </tbody>
         </table>
       )}
-      {revokeMessage && (
-        <p style={{ fontSize: '13px', color: '#666', marginTop: '5px' }}>{revokeMessage}</p>
-      )}
+      {revokeMessage && <p className="mt-1.5 text-sm text-gray-600">{revokeMessage}</p>}
     </div>
   );
 }

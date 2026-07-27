@@ -1,9 +1,12 @@
 "use client";
 
-import { Suspense, useActionState } from "react";
+import { Suspense, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { signInAction, signUpAction } from "@/app/actions/authActions";
-import { brand, brandGradient } from "@/lib/brandColors";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 type ActionState = { success: boolean; error?: string; message?: string } | null;
 
@@ -11,12 +14,8 @@ function SubmitState({ state }: { state: ActionState }) {
   if (!state) return null;
   return (
     <>
-      {state.success === false && (
-        <p style={{ color: "red", marginTop: "10px" }}>❌ {state.error}</p>
-      )}
-      {state.success === true && (
-        <p style={{ color: "green", marginTop: "10px" }}>✅ {state.message}</p>
-      )}
+      {state.success === false && <p className="mt-2 text-sm text-red-600">❌ {state.error}</p>}
+      {state.success === true && <p className="mt-2 text-sm text-green-700">✅ {state.message}</p>}
     </>
   );
 }
@@ -35,6 +34,7 @@ export default function LoginPage() {
 function LoginPageInner() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   const [signInState, signInFormAction, signInPending] = useActionState<ActionState, FormData>(
     signInAction,
@@ -46,111 +46,83 @@ function LoginPageInner() {
   );
 
   return (
-    <div style={{ maxWidth: "400px", margin: "40px auto", fontFamily: "sans-serif" }}>
-      <h1 style={{ color: brand.navy }}>Sign in</h1>
-      <form
-        action={signInFormAction}
-        style={{ display: "flex", flexDirection: "column", gap: "15px" }}
-      >
-        {next && <input type="hidden" name="next" value={next} />}
-        <div>
-          <label htmlFor="email" style={{ display: "block", marginBottom: "5px" }}>
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
-          />
-        </div>
-        <div>
-          <label htmlFor="password" style={{ display: "block", marginBottom: "5px" }}>
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={signInPending}
-          style={{
-            padding: "10px",
-            background: signInPending ? "#ccc" : brandGradient,
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            fontWeight: 600,
-            cursor: signInPending ? "not-allowed" : "pointer",
-          }}
-        >
-          {signInPending ? "Signing in..." : "Sign in"}
-        </button>
-        <SubmitState state={signInState} />
-      </form>
+    <div
+      className="flex flex-1 flex-col items-center justify-center px-6 py-16"
+      style={{ background: "linear-gradient(160deg, #0a2246, #0f2d59)" }}
+    >
+      <Image
+        src="/manifestmate-logo.jpg"
+        alt="ManifestMate"
+        width={200}
+        height={56}
+        className="mb-8 rounded"
+        priority
+      />
 
-      <hr style={{ margin: "30px 0", borderColor: brand.tint }} />
+      <Card className="w-full max-w-sm p-8">
+        {mode === "signin" ? (
+          <>
+            <h1 className="text-xl font-bold text-brand-navy">Sign in</h1>
+            <form action={signInFormAction} className="mt-6 flex flex-col gap-4">
+              {next && <input type="hidden" name="next" value={next} />}
+              <Input id="email" name="email" type="email" label="Email" required />
+              <Input id="password" name="password" type="password" label="Password" required />
+              <Button type="submit" disabled={signInPending} className="mt-2">
+                {signInPending ? "Signing in..." : "Sign in"}
+              </Button>
+              <SubmitState state={signInState} />
+            </form>
 
-      <h2 style={{ color: brand.navy }}>New here?</h2>
-      {next && (
-        <p style={{ fontSize: "13px", color: "#666", marginTop: "-5px" }}>
-          After you confirm your email, the confirmation link will bring you back here to finish
-          what you came for.
-        </p>
-      )}
-      <form
-        action={signUpFormAction}
-        style={{ display: "flex", flexDirection: "column", gap: "15px" }}
-      >
-        {next && <input type="hidden" name="next" value={next} />}
-        <div>
-          <label htmlFor="signup-email" style={{ display: "block", marginBottom: "5px" }}>
-            Email
-          </label>
-          <input
-            id="signup-email"
-            name="email"
-            type="email"
-            required
-            style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
-          />
-        </div>
-        <div>
-          <label htmlFor="signup-password" style={{ display: "block", marginBottom: "5px" }}>
-            Password
-          </label>
-          <input
-            id="signup-password"
-            name="password"
-            type="password"
-            required
-            minLength={6}
-            style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={signUpPending}
-          style={{
-            padding: "10px",
-            backgroundColor: "white",
-            color: signUpPending ? "#ccc" : brand.blue,
-            border: `2px solid ${signUpPending ? "#ccc" : brand.blue}`,
-            borderRadius: "4px",
-            fontWeight: 600,
-            cursor: signUpPending ? "not-allowed" : "pointer",
-          }}
-        >
-          {signUpPending ? "Creating account..." : "Create account"}
-        </button>
-        <SubmitState state={signUpState} />
-      </form>
+            <p className="mt-6 text-center text-sm text-gray-600">
+              New here?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signup")}
+                className="font-medium text-brand-blue hover:underline"
+              >
+                Create an account
+              </button>
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-xl font-bold text-brand-navy">Create an account</h1>
+            {next && (
+              <p className="mt-1 text-xs text-gray-500">
+                After you confirm your email, the confirmation link will bring you back here to
+                finish what you came for.
+              </p>
+            )}
+            <form action={signUpFormAction} className="mt-6 flex flex-col gap-4">
+              {next && <input type="hidden" name="next" value={next} />}
+              <Input id="signup-email" name="email" type="email" label="Email" required />
+              <Input
+                id="signup-password"
+                name="password"
+                type="password"
+                label="Password"
+                required
+                minLength={6}
+              />
+              <Button type="submit" disabled={signUpPending} className="mt-2">
+                {signUpPending ? "Creating account..." : "Create account"}
+              </Button>
+              <SubmitState state={signUpState} />
+            </form>
+
+            <p className="mt-6 text-center text-sm text-gray-600">
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signin")}
+                className="font-medium text-brand-blue hover:underline"
+              >
+                Sign in
+              </button>
+            </p>
+          </>
+        )}
+      </Card>
     </div>
   );
 }

@@ -61,7 +61,7 @@ export default function Home() {
               through it.
             </p>
 
-            <div className="mt-12 grid gap-10 sm:grid-cols-[minmax(0,280px)_1fr] items-start">
+            <div className="mt-12 grid gap-10 sm:grid-cols-[minmax(0,420px)_1fr] items-start">
               <LandingVideo />
 
               <ol className="space-y-8">

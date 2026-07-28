@@ -4,17 +4,17 @@ import { useState } from "react";
 import { LANDING_VIDEO_URL } from "@/lib/landingVideo";
 
 /**
- * Short vertical explainer for the landing page's "Getting started" section
- * -- same poster-then-play pattern as the onboarding wizard's videos
+ * Short explainer for the landing page's "Getting started" section -- same
+ * poster-then-play pattern as the onboarding wizard's videos
  * (src/app/onboarding/page.tsx), reused here for visual consistency across
- * the app. Source video is portrait (720x1280), so this uses a 9:16 frame
- * capped narrow rather than the 16:9 frame used for the onboarding videos.
+ * the app. Source video is landscape (1280x720), matching the onboarding
+ * videos' 16:9 frame.
  */
 export function LandingVideo() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   return (
-    <div className="relative mx-auto aspect-[9/16] w-full max-w-xs overflow-hidden rounded-2xl bg-brand-navy shadow-sm">
+    <div className="relative mx-auto aspect-video w-full max-w-md overflow-hidden rounded-2xl bg-brand-navy shadow-sm">
       {isPlaying ? (
         <video
           src={LANDING_VIDEO_URL}

@@ -90,6 +90,12 @@ Canonical implementations: `src/components/ui/` (`Button.tsx`,
 `Input.tsx`, `Card.tsx`, `Badge.tsx`). Reproduce these exact shapes
 rather than inventing new ones.
 
+**All four are named exports** (`export function Button`, not
+`export default`) — import them as
+`import { Button } from "@/components/ui/Button"`, not a default
+import. `Badge` takes a fixed `variant` prop (one of the 5 status
+keys above), not an arbitrary `style`/color override.
+
 **Button** — pill-shaped (`rounded-full`), two variants:
 - Primary: white text, the blue→green gradient fill, `hover:opacity-90`
 - Secondary: `border-2 border-brand-blue`, blue text, `hover:bg-brand-tint`

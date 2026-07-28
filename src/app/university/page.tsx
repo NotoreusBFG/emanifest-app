@@ -38,6 +38,12 @@ const topics: Topic[] = [
     description:
       "A manifest tracks where waste goes; LDR governs whether it's actually safe to put in the ground. The treatment standards, the notice, and how ManifestMate's LDR tool encodes them.",
   },
+  {
+    slug: "state-waste-codes",
+    title: "State-Specific Hazardous Waste Codes",
+    description:
+      "Several RCRA-authorized states layer their own waste codes on top of the federal D/F/K/P/U system. Which states, what kind of code each expects, and what that means for your manifest.",
+  },
 ];
 
 export default function UniversityIndexPage() {

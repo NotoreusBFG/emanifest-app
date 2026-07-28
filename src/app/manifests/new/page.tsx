@@ -17,6 +17,7 @@ import { ImportManifestData } from "./ImportManifestData";
 import { SignManifestPanel } from "../SignManifestPanel";
 import { SendSignLink } from "@/components/SendSignLink";
 import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
+import { StateWasteCodeNote } from "@/components/StateWasteCodeNote";
 import { getOnboardingProgressAction } from "@/app/actions/onboardingActions";
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { Manifest, SiteSearchResultItem } from "@/lib/rcrainfo/types";
@@ -637,6 +638,7 @@ export default function NewManifestPage() {
               />
             </div>
           </div>
+          <StateWasteCodeNote state={generator.state} />
         </fieldset>
 
         {transporters.map((t, index) => (
@@ -828,6 +830,7 @@ export default function NewManifestPage() {
               />
             </div>
           </div>
+          <StateWasteCodeNote state={facility.state} />
         </fieldset>
 
         {wasteLines.map((line, index) => (

@@ -50,5 +50,10 @@ next-env.d.ts
 # integrated into real src/ components -- never committed as-is
 /design-handoff
 
+# raw AI-generated drafts from other tools/agents (videos, data files,
+# scripts) staged for review before anything gets integrated -- same
+# reasoning as /design-handoff above, just not UI-design-specific
+/external-review
+
 # personal Claude Code permission overrides -- not shared config
 /.claude/settings.local.json

@@ -26,7 +26,8 @@ function clientFor(credentials: { apiId: string; apiKey: string }) {
   });
 }
 
-async function currentOrigin(): Promise<string> {
+/** Exported for reuse by generatorSignActions.ts, which needs the same origin-from-headers derivation for its own share links. */
+export async function currentOrigin(): Promise<string> {
   const headersList = await headers();
   const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
   const protocol = headersList.get("x-forwarded-proto") ?? "https";

@@ -17,8 +17,8 @@ export class EmailNotConfiguredError extends Error {
  */
 export async function sendEmail(to: string, subject: string, body: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL;
-  if (!apiKey || !fromEmail) {
+  const domain = process.env.RESEND_EMAIL_DOMAIN;
+  if (!apiKey || !domain) {
     throw new EmailNotConfiguredError();
   }
 
@@ -29,7 +29,12 @@ export async function sendEmail(to: string, subject: string, body: string): Prom
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: fromEmail,
+      // RESEND_API_KEY/RESEND_EMAIL_DOMAIN both come from the Vercel
+      // Marketplace Resend integration (see `vercel integration add
+      // resend/resend-email`) -- the domain itself still needs its DNS
+      // records verified in Resend before sending actually works;
+      // provisioning the integration alone doesn't verify it.
+      from: `ManifestMate <notifications@${domain}>`,
       to: [to],
       subject,
       text: body,

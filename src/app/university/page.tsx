@@ -44,6 +44,12 @@ const topics: Topic[] = [
     description:
       "Several RCRA-authorized states layer their own waste codes on top of the federal D/F/K/P/U system. Which states, what kind of code each expects, and what that means for your manifest.",
   },
+  {
+    slug: "transporter-agency-authority",
+    title: "Changing transporters mid-shipment",
+    description:
+      "A manifest locks in every transporter before anyone signs it. What happens when a truck breaks down, or one company hands off to another — agency authority, transfer facilities, and the 10-day rule.",
+  },
 ];
 
 export default function UniversityIndexPage() {

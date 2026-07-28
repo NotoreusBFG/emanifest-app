@@ -55,3 +55,17 @@ export function certificationTextFor(siteType: QuickerSignParameters["siteType"]
     ],
   };
 }
+
+/**
+ * 40 CFR 263.21(b)(3): if the generator's contract with the initial
+ * transporter grants that transporter agency authority to add or substitute
+ * additional transporters on the generator's behalf, that authority must be
+ * declared via this exact certifying sentence in Item 14 (Special Handling
+ * Instructions) of the manifest — EPA's own regulatory text, not a
+ * paraphrase. Shared between SignManifestPanel.tsx (checkbox label) and
+ * addAgencyAuthorityNoteAction (what actually gets written to Item 14), so
+ * what the transporter agrees to and what gets sent to EPA can never drift
+ * apart.
+ */
+export const AGENCY_AUTHORITY_ITEM_14_TEXT =
+  "Contract retained by generator confers agency authority on initial transporter to add or substitute additional transporters on generator's behalf.";

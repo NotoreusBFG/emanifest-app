@@ -19,7 +19,7 @@ import {
   upsertWasteLineMetadata,
   type WasteLineMetadata,
 } from "@/services/wasteLineMetadataRepository";
-import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
+import { certificationTextFor, AGENCY_AUTHORITY_ITEM_14_TEXT } from "@/lib/rcrainfo/certificationText";
 import { RcrainfoApiError, collectManifestOperationWarnings } from "@/lib/rcrainfo/types";
 import type {
   FederalWasteCode,
@@ -32,13 +32,31 @@ import type {
 } from "@/lib/rcrainfo/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+// A handful of RCRAInfo error messages are common enough (and confusing
+// enough raw) to warrant a friendlier rewrite. Anything not matched here
+// falls through to the raw JSON — deliberately not guessing at a friendly
+// message for shapes we haven't actually seen and confirmed live.
+function friendlyRcrainfoMessage(body: unknown): string | null {
+  if (typeof body !== "object" || body === null || !("message" in body)) return null;
+  const message = (body as { message?: unknown }).message;
+  if (typeof message !== "string") return null;
+
+  if (message.includes("Site Services Permission")) {
+    return "You don't have signing permission for this site. Check with your RCRAInfo account admin to confirm you've been granted Site Services Permission for it.";
+  }
+
+  return null;
+}
+
 function formatRcrainfoError(err: unknown): string {
   if (err instanceof NoCredentialsError) return err.message;
   if (err instanceof RcrainfoApiError) {
     // Save/update validation error bodies have an inconsistent shape
     // (sometimes a flat {message,field,value}, sometimes a nested report) —
     // shown raw rather than guessing a structure that might be wrong.
-    return `RCRAInfo error (${err.status}): ${JSON.stringify(err.body)}`;
+    return (
+      friendlyRcrainfoMessage(err.body) ?? `RCRAInfo error (${err.status}): ${JSON.stringify(err.body)}`
+    );
   }
   return err instanceof Error ? err.message : "Unknown error.";
 }
@@ -592,7 +610,21 @@ export async function createManifestAction(
   }
   input.wastes = wastes;
 
-  const combinedHandlingInstructions = [f("handlingInstructions"), ...lineInstructionNotes]
+  // 40 CFR 263.21(b)(3): if the generator's contract with the initial
+  // transporter grants that transporter agency authority to add/substitute
+  // additional transporters on the generator's behalf, that has to be
+  // declared in Item 14 via this exact sentence. Captured here (creation
+  // time) rather than at signing — it's the generator's own contractual
+  // assertion, and Item 14 is only ever reliably editable before anyone has
+  // signed (see the "transporter locked once InTransit" finding this
+  // otherwise ran into).
+  const agencyAuthorityGranted = formData.get("agencyAuthorityGranted") === "on";
+
+  const combinedHandlingInstructions = [
+    f("handlingInstructions"),
+    agencyAuthorityGranted ? AGENCY_AUTHORITY_ITEM_14_TEXT : "",
+    ...lineInstructionNotes,
+  ]
     .filter(Boolean)
     .join(" | ");
   input.additionalInfo = combinedHandlingInstructions

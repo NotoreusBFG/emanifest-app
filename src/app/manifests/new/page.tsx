@@ -189,6 +189,11 @@ export default function NewManifestPage() {
   const [handlingInstructions, setHandlingInstructions] = useState(
     "Keep upright. Do not stack. Driver call site 30 min prior to arrival."
   );
+  // 40 CFR 263.21(b)(3) — only ever applies to the *initial* transporter
+  // (transporters[0]), so this is a single top-level flag, not per-row
+  // state. When checked, createManifestAction writes the required
+  // certifying sentence into Item 14 at save time.
+  const [agencyAuthorityGranted, setAgencyAuthorityGranted] = useState(false);
   const [wasteLines, setWasteLines] = useState<WasteLineFormState[]>([
     emptyWasteLine(0, true),
     emptyWasteLine(1, false),
@@ -676,6 +681,42 @@ export default function NewManifestPage() {
                 />
               </div>
             </div>
+            {index === 0 && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  fontSize: "13px",
+                  color: "#444",
+                  background: "#f7f7f7",
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  marginBottom: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  name="agencyAuthorityGranted"
+                  type="checkbox"
+                  checked={agencyAuthorityGranted}
+                  onChange={(e) => setAgencyAuthorityGranted(e.target.checked)}
+                  style={{ marginTop: "2px" }}
+                />
+                <span>
+                  The generator&apos;s contract with this transporter confers agency authority to
+                  add or substitute additional transporters on the generator&apos;s behalf (40 CFR
+                  263.21(b)(3)). Checking this writes that certification into Item 14.{" "}
+                  <Link
+                    href="/university/transporter-agency-authority"
+                    target="_blank"
+                    style={{ color: brand.blue }}
+                  >
+                    For more info…
+                  </Link>
+                </span>
+              </label>
+            )}
             {transporters.length > 1 && (
               <button
                 type="button"
@@ -957,7 +998,11 @@ export default function NewManifestPage() {
                     {line.federalWasteCode.trim().length > 0 && (
                       <div style={{ marginTop: "6px" }}>
                         <label style={{ ...label, marginBottom: "2px" }}>
-                          Wastewater or nonwastewater? (for a future LDR notice)
+                          Wastewater or nonwastewater? (for a future{" "}
+                          <Link href="/university/land-disposal-restrictions" style={{ color: brand.blue, fontWeight: 400 }}>
+                            LDR notice
+                          </Link>
+                          )
                         </label>
                         <div style={{ display: "flex", gap: "14px" }}>
                           <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13px" }}>

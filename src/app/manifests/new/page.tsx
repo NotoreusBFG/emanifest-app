@@ -15,7 +15,7 @@ import { HazmatSearchField } from "./HazmatSearchField";
 import { FederalWasteCodeField } from "./FederalWasteCodeField";
 import { ImportManifestData } from "./ImportManifestData";
 import { SignManifestPanel } from "../SignManifestPanel";
-import { SendSignLink } from "@/components/SendSignLink";
+import { SendForSignature } from "@/components/SendForSignature";
 import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
 import { StateWasteCodeNote } from "@/components/StateWasteCodeNote";
 import { getOnboardingProgressAction } from "@/app/actions/onboardingActions";
@@ -417,7 +417,7 @@ export default function NewManifestPage() {
             <Link href="/manifests" style={{ color: brand.blue }}>look it up</Link>
           </p>
           <div style={{ marginTop: "10px" }}>
-            <SendSignLink mtn={state.manifestTrackingNumber} />
+            <SendForSignature mtn={state.manifestTrackingNumber} />
           </div>
           {wasteLines.some((l) => l.federalWasteCode.trim().length > 0) &&
             (ldrDecision?.mtn !== state.manifestTrackingNumber ? (

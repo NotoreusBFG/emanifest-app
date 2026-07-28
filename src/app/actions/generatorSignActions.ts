@@ -6,6 +6,7 @@ import { RcrainfoClient } from "@/lib/rcrainfo/client";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { formatRcrainfoError } from "@/lib/rcrainfo/formatError";
 import { getEpaCredentials } from "@/services/epaService";
+import { getRcrainfoClientForUser } from "@/services/manifestService";
 import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
 import { sendEmail, EmailNotConfiguredError } from "@/lib/email/resendClient";
 import { currentOrigin } from "./driverSignActions";
@@ -19,7 +20,6 @@ import {
   updateManifestGeneratorSignedAt,
   type GeneratorSignSession,
 } from "@/services/generatorSignRepository";
-import type { Manifest } from "@/lib/rcrainfo/types";
 
 function clientFor(credentials: { apiId: string; apiKey: string }) {
   return new RcrainfoClient({
@@ -33,16 +33,20 @@ export type CreateGeneratorSignLinkState =
   | { success: false; error: string };
 
 /**
- * Owner-facing: invites someone to sign the Generator role on `manifest`
- * using the OWNER'S OWN RCRAInfo credentials, via SMS and/or email, no
- * ManifestMate account needed by the recipient. Requires at least one of
+ * Owner-facing: invites someone to sign the Generator role on the
+ * manifest identified by `mtn` — LIVE re-fetched here (not caller
+ * -supplied), so this works identically whether called from a page that
+ * already had a loaded Manifest (the detail page) or one that only ever
+ * has the local mirror's mtn (the Dashboard) — using the OWNER'S OWN
+ * RCRAInfo credentials, via SMS and/or email, no ManifestMate account
+ * needed by the recipient. Requires at least one of
  * recipientPhone/recipientEmail (also enforced at the DB level via a
  * check constraint). Creates exactly one token regardless of how many
  * channels are used — both notify about the same signing opportunity,
  * not separate ones.
  */
 export async function createGeneratorSignLinkAction(
-  manifest: Manifest,
+  mtn: string,
   recipientPhone: string | null,
   recipientEmail: string | null
 ): Promise<CreateGeneratorSignLinkState> {
@@ -57,13 +61,17 @@ export async function createGeneratorSignLinkAction(
   if (!user) return { success: false, error: "Not logged in." };
 
   try {
-    // App-layer check (not embedded in SQL) — matches how
-    // createDriverSignLinkAction checks transporter existence before
-    // creating a token, rather than inside the SECURITY DEFINER function.
+    // getEpaCredentials/getRcrainfoClientForUser both fail the same way
+    // when nothing's saved yet — checked explicitly here first so the
+    // error is the friendly "save your credentials" message rather than
+    // NoCredentialsError's more generic text.
     const ownCredentials = await getEpaCredentials(supabase, user.id);
     if (!ownCredentials) {
       return { success: false, error: "Save your RCRAInfo API credentials in Settings first." };
     }
+
+    const client = await getRcrainfoClientForUser(supabase, user.id);
+    const manifest = await client.getManifest(mtn);
 
     const wasteLineSummary =
       manifest.wastes

@@ -7,7 +7,7 @@ import { brand } from "@/lib/brandColors";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { SendSignLink } from "@/components/SendSignLink";
+import { SendForSignature } from "@/components/SendForSignature";
 import { deriveManifestBadge } from "@/lib/manifestStatusBadge";
 import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR } from "@/lib/transporterTiming";
 
@@ -158,7 +158,7 @@ export default async function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span>Updated {new Date(m.updated_at).toLocaleString()}</span>
-                    <SendSignLink mtn={m.epa_mtn} />
+                    <SendForSignature mtn={m.epa_mtn} />
                   </div>
                 </div>
               </Card>

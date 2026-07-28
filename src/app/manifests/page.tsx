@@ -15,8 +15,7 @@ import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { Card } from "@/components/ui/Card";
 import { SignManifestPanel } from "./SignManifestPanel";
-import { SendSignLink } from "@/components/SendSignLink";
-import { InviteGeneratorSigner } from "@/components/InviteGeneratorSigner";
+import { SendForSignature } from "@/components/SendForSignature";
 import { findActiveLdrNoticeAction } from "@/app/actions/ldrActions";
 import type { LdrNotice, LdrWasteLineEntry } from "@/lib/ldr/types";
 import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR } from "@/lib/transporterTiming";
@@ -111,10 +110,7 @@ function ManifestSummary({
         <h2 style={{ margin: 0, color: brand.navy, fontSize: "28px", fontWeight: 800 }}>
           {manifest.manifestTrackingNumber}
         </h2>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-          <SendSignLink mtn={manifest.manifestTrackingNumber} manifest={manifest} />
-          <InviteGeneratorSigner manifest={manifest} />
-        </div>
+        <SendForSignature mtn={manifest.manifestTrackingNumber} />
       </div>
       <p>
         <strong>Status:</strong> {manifest.status}

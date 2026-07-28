@@ -7,6 +7,7 @@ import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { formatRcrainfoError } from "@/lib/rcrainfo/formatError";
 import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
 import { getTransporterForGenerator } from "@/services/transporterRepository";
+import { getRcrainfoClientForUser } from "@/services/manifestService";
 import {
   createDriverSignToken,
   getDriverSignSession,
@@ -17,7 +18,6 @@ import {
   updateManifestTransporterSignedAt,
   type DriverSignSession,
 } from "@/services/driverSignRepository";
-import type { Manifest } from "@/lib/rcrainfo/types";
 
 function clientFor(credentials: { apiId: string; apiKey: string }) {
   return new RcrainfoClient({
@@ -38,17 +38,52 @@ export type CreateDriverSignLinkState =
   | { success: true; link: string; smsSent: boolean; smsError?: string }
   | { success: false; error: string };
 
+export type ManifestTransportersState =
+  | { success: true; transporters: { epaSiteId: string; name: string; order: number }[] }
+  | { success: false; error: string };
+
 /**
- * Generator-facing: picks a transporter already listed as a handler on
- * `manifest` at `transporterOrder` (the caller passes the already-loaded
- * manifest, same one the generator is looking at — no extra live fetch
- * needed here since the manifest detail page already has a fresh one).
- * Only transporters already in the `transporters` table (admin-provisioned
- * in Phase 1 — see scripts/add-transporter-credentials.ts) can be picked;
- * see getTransporterForGenerator.
+ * Owner-facing, read-only: the live transporter list for the "As
+ * Transporter" picker in SendForSignature.tsx. Used instead of requiring
+ * the caller to already have a loaded Manifest object, so this same
+ * component works on the Dashboard (which only has the local mirror row,
+ * not a live Manifest) as well as the detail page.
+ */
+export async function getManifestTransportersForSendAction(mtn: string): Promise<ManifestTransportersState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  try {
+    const client = await getRcrainfoClientForUser(supabase, user.id);
+    const manifest = await client.getManifest(mtn);
+    return {
+      success: true,
+      transporters: manifest.transporters.map((t, i) => ({
+        epaSiteId: t.epaSiteId,
+        name: t.name || t.epaSiteId,
+        order: t.order ?? i + 1,
+      })),
+    };
+  } catch (err) {
+    return { success: false, error: formatRcrainfoError(err) };
+  }
+}
+
+/**
+ * Owner-facing: picks a transporter already listed as a handler on the
+ * manifest at `transporterOrder` — LIVE re-fetched here (not caller
+ * -supplied), so this works identically whether called from a page that
+ * already had a loaded Manifest (the detail page) or one that only ever
+ * has the local mirror's mtn (the Dashboard). Only transporters already
+ * in the `transporters` table (admin-provisioned in Phase 1 — see
+ * scripts/add-transporter-credentials.ts) can be picked; see
+ * getTransporterForGenerator.
  */
 export async function createDriverSignLinkAction(
-  manifest: Manifest,
+  mtn: string,
   transporterOrder: number,
   driverPhone: string
 ): Promise<CreateDriverSignLinkState> {
@@ -58,10 +93,13 @@ export async function createDriverSignLinkAction(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not logged in." };
 
-  const transporter = manifest.transporters.find((t) => (t.order ?? 0) === transporterOrder);
-  if (!transporter) return { success: false, error: "That transporter isn't on this manifest." };
-
   try {
+    const client = await getRcrainfoClientForUser(supabase, user.id);
+    const manifest = await client.getManifest(mtn);
+
+    const transporter = manifest.transporters.find((t) => (t.order ?? 0) === transporterOrder);
+    if (!transporter) return { success: false, error: "That transporter isn't on this manifest." };
+
     const onFile = await getTransporterForGenerator(supabase, transporter.epaSiteId);
     if (!onFile) {
       return {

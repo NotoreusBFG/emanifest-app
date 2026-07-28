@@ -34,7 +34,7 @@ async function currentOrigin(): Promise<string> {
 }
 
 export type CreateDriverSignLinkState =
-  | { success: true; link: string; smsSent: boolean }
+  | { success: true; link: string; smsSent: boolean; smsError?: string }
   | { success: false; error: string };
 
 /**
@@ -96,11 +96,18 @@ export async function createDriverSignLinkAction(
       // text went out — SmsNotConfiguredError especially is an expected,
       // handled case (no Twilio account set up yet), not a hard failure —
       // hand the link back either way so the UI can fall back to a manual
-      // share.
+      // share. smsError carries the REAL reason (bad phone format, Twilio
+      // rejection, etc.) rather than a blanket "isn't configured" message
+      // that was misleading for every other failure mode.
       if (!(smsErr instanceof SmsNotConfiguredError)) {
         console.error("SMS send failed (non-fatal, link still valid):", smsErr);
       }
-      return { success: true, link, smsSent: false };
+      return {
+        success: true,
+        link,
+        smsSent: false,
+        smsError: smsErr instanceof Error ? smsErr.message : "Unknown SMS error.",
+      };
     }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error." };

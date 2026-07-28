@@ -6,6 +6,27 @@ export class SmsNotConfiguredError extends Error {
 }
 
 /**
+ * Best-effort US phone normalization to E.164 — Twilio rejects bare
+ * 10-digit numbers like "8048362706" with a 400, which previously surfaced
+ * to the user as a misleading "SMS isn't configured" (any non-SmsNotConfiguredError
+ * failure got that same generic message — see driverSignActions.ts). Not a
+ * full international phone validator, just enough for this app's US-only
+ * use case today.
+ */
+function normalizeUsPhoneNumber(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("+")) return trimmed;
+
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+
+  throw new Error(
+    `"${raw}" doesn't look like a valid phone number — use a 10-digit US number or full +1 format.`
+  );
+}
+
+/**
  * Direct Twilio REST integration — no SMS provider exists in Vercel's
  * Marketplace (checked via `vercel integration discover`; only Resend for
  * email is listed there), so this talks to Twilio directly rather than
@@ -22,13 +43,15 @@ export async function sendSms(to: string, body: string): Promise<void> {
     throw new SmsNotConfiguredError();
   }
 
+  const normalizedTo = normalizeUsPhoneNumber(to);
+
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: new URLSearchParams({ To: to, From: fromNumber, Body: body }),
+    body: new URLSearchParams({ To: normalizedTo, From: fromNumber, Body: body }),
   });
 
   if (!res.ok) {

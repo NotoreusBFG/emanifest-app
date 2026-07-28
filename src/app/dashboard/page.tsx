@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listManifestIdsWithDocuments, listManifestsForUser } from "@/services/manifestRepository";
 import { listActiveLdrNoticesByMtn } from "@/services/ldrRepository";
+import { listDriverSignInfoByMtn } from "@/services/driverSignRepository";
 import { brand } from "@/lib/brandColors";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -34,6 +35,9 @@ export default async function DashboardPage() {
     : new Set<string>();
   const ldrNoticesByMtn = user
     ? await listActiveLdrNoticesByMtn(supabase, user.id, manifests.map((m) => m.epa_mtn))
+    : {};
+  const driverSignInfoByMtn = user
+    ? await listDriverSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn))
     : {};
 
   const receivedCount = manifests.filter(
@@ -78,6 +82,7 @@ export default async function DashboardPage() {
               m.facility_signed_at
             );
             const ldrNotice = ldrNoticesByMtn[m.epa_mtn];
+            const driverInfo = driverSignInfoByMtn[m.epa_mtn];
 
             return (
               <Card key={m.id} className="p-4">
@@ -94,6 +99,15 @@ export default async function DashboardPage() {
                     </p>
                     {m.transporter_names && (
                       <p className="truncate text-xs text-gray-400">via {m.transporter_names}</p>
+                    )}
+                    {driverInfo && (
+                      <p className="truncate text-xs text-gray-400">
+                        🚚 {driverInfo.driverName}
+                        {driverInfo.driverIdNumber && ` · ID ${driverInfo.driverIdNumber}`}
+                        {driverInfo.truckNumber && ` · Truck ${driverInfo.truckNumber}`}
+                        {" · "}
+                        {new Date(driverInfo.signedAt).toLocaleDateString()}
+                      </p>
                     )}
                   </div>
 

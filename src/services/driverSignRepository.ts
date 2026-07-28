@@ -35,6 +35,8 @@ export interface ClaimedDriverSignToken {
   transporterOrder: number;
   epaMtn: string;
   createdByUserId: string;
+  /** For the post-signature confirmation text — see submitDriverSignAction. Null for tokens created before this column existed. */
+  driverPhone: string | null;
 }
 
 /**
@@ -58,6 +60,7 @@ export async function claimDriverSignToken(
     transporterOrder: row.transporter_order,
     epaMtn: row.epa_mtn,
     createdByUserId: row.created_by_user_id,
+    driverPhone: row.driver_phone ?? null,
   };
 }
 
@@ -154,6 +157,8 @@ export interface CreateDriverSignTokenParams {
   generatorName: string | null;
   tsdfName: string | null;
   wasteLineSummary: string | null;
+  /** Persisted so a post-signature confirmation text can go back to the same number — see submitDriverSignAction. */
+  driverPhone: string;
 }
 
 /** Generator-facing — auth.uid() is checked and used server-side inside create_driver_sign_token, so a caller can't spoof another user's id. */
@@ -168,9 +173,62 @@ export async function createDriverSignToken(
     p_generator_name: params.generatorName,
     p_tsdf_name: params.tsdfName,
     p_waste_line_summary: params.wasteLineSummary,
+    p_driver_phone: params.driverPhone,
   });
   if (error) throw new Error(error.message);
   const token = data?.[0]?.token;
   if (!token) throw new Error("Failed to create driver sign link.");
   return token;
+}
+
+export interface DriverSignInfo {
+  driverName: string;
+  driverIdNumber: string | null;
+  truckNumber: string | null;
+  signedAt: string;
+}
+
+/**
+ * Batched (one query, not one per manifest) lookup of the most recent
+ * successful driver signature per manifest — for displaying Driver
+ * Name/ID/Truck #/Date on the dashboard and manifest detail page. Reads
+ * `signature_consents` directly under normal RLS (the "Generators can
+ * view driver-signed consents for their tokens" policy from
+ * 20260805_extend_signature_consents_for_driver_sign.sql already permits
+ * this for the manifest owner) — no SECURITY DEFINER function needed
+ * here, unlike the anonymous driver-facing reads/writes elsewhere in this
+ * file.
+ */
+export async function listDriverSignInfoByMtn(
+  supabase: SupabaseClient,
+  epaMtns: string[]
+): Promise<Record<string, DriverSignInfo>> {
+  if (epaMtns.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from("signature_consents")
+    .select("epa_mtn, printed_signature_name, driver_id_number, truck_number, acknowledged_at")
+    .in("epa_mtn", epaMtns)
+    .not("driver_sign_token_id", "is", null)
+    .eq("sign_succeeded", true)
+    .order("acknowledged_at", { ascending: false });
+
+  if (error) {
+    console.error("listDriverSignInfoByMtn failed:", error.message);
+    return {};
+  }
+
+  const map: Record<string, DriverSignInfo> = {};
+  for (const row of data ?? []) {
+    // Rows arrive newest-first — keep only the first (most recent) one
+    // seen per MTN, in case of retries or (eventually) multiple drivers.
+    if (map[row.epa_mtn]) continue;
+    map[row.epa_mtn] = {
+      driverName: row.printed_signature_name,
+      driverIdNumber: row.driver_id_number,
+      truckNumber: row.truck_number,
+      signedAt: row.acknowledged_at,
+    };
+  }
+  return map;
 }

@@ -82,6 +82,7 @@ export async function createDriverSignLinkAction(
       generatorName: manifest.generator.name || manifest.generator.epaSiteId,
       tsdfName: manifest.designatedFacility.name || manifest.designatedFacility.epaSiteId,
       wasteLineSummary,
+      driverPhone,
     });
 
     const origin = await currentOrigin();
@@ -241,6 +242,30 @@ export async function submitDriverSignAction(
       claimed.epaMtn,
       new Date().toISOString()
     );
+
+    // Best-effort confirmation back to the same phone the original link
+    // went to — signing already succeeded regardless of whether this
+    // send works, so a failure here is logged, not surfaced as an error.
+    // How the driver treats this text (as a go-ahead to depart) is
+    // outside ManifestMate's concern — this is a one-way notice, not a
+    // request for a reply (see the earlier design note on why the SMS
+    // flow is deliberately one-way throughout this feature).
+    if (claimed.driverPhone) {
+      const confirmationParts = [
+        `ManifestMate: Manifest ${claimed.epaMtn} signed.`,
+        `Driver: ${params.driverName.trim()}`,
+      ];
+      if (params.driverIdNumber?.trim()) confirmationParts.push(`ID: ${params.driverIdNumber.trim()}`);
+      if (params.truckNumber?.trim()) confirmationParts.push(`Truck: ${params.truckNumber.trim()}`);
+      confirmationParts.push(new Date().toLocaleDateString("en-US"));
+      confirmationParts.push("You're cleared to go.");
+
+      try {
+        await sendSms(claimed.driverPhone, confirmationParts.join(" "));
+      } catch (confirmErr) {
+        console.error("Post-sign confirmation SMS failed (non-fatal):", confirmErr);
+      }
+    }
 
     return {
       success: true,

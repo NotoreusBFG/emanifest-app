@@ -7,6 +7,7 @@ import type { Manifest } from "@/lib/rcrainfo/types";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
+import { CertificationDisplay } from "@/components/CertificationDisplay";
 
 interface SignableRole {
   label: string;
@@ -264,26 +265,7 @@ function SignConfirmationDialog({
           </p>
         )}
 
-        <div
-          style={{
-            backgroundColor: brand.tint,
-            borderRadius: "6px",
-            padding: "14px",
-            margin: "16px 0",
-          }}
-        >
-          <p style={{ fontWeight: 600, color: brand.navy, marginTop: 0, fontSize: "14px" }}>
-            {certification.heading}
-            {!certification.isVerbatim && (
-              <span style={{ fontWeight: 400, color: "#666" }}> (summary of the acknowledgment required by this signature)</span>
-            )}
-          </p>
-          {certification.paragraphs.map((paragraph, i) => (
-            <p key={i} style={{ fontSize: "14px", color: "#333", lineHeight: 1.5 }}>
-              {paragraph}
-            </p>
-          ))}
-        </div>
+        <CertificationDisplay certification={certification} />
 
         <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "14px", cursor: "pointer" }}>
           <input

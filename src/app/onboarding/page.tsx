@@ -12,6 +12,7 @@ import {
 } from '@/app/actions/onboardingActions';
 import type { OnboardingProgress } from '@/services/onboardingRepository';
 import { brand, brandGradient } from '@/lib/brandColors';
+import { ONBOARDING_VIDEOS } from '@/lib/onboardingVideos';
 
 type StepStatus = 'todo' | 'done' | 'failed';
 
@@ -19,6 +20,17 @@ const STATUS_COLOR: Record<StepStatus, string> = {
   todo: '#ccc',
   done: brand.green,
   failed: '#c0392b',
+};
+
+/** Matches the step numbers used for ONBOARDING_VIDEOS -- shared by the
+ * large left-hand video panel below, which needs a title for whichever
+ * step is currently selected. */
+const STEP_VIDEO_TITLES: Record<number, string> = {
+  1: 'Establish your CDX account',
+  2: 'Request your Site EPA ID',
+  3: 'Site Manager setup & Electronic Signature Agreement',
+  4: 'Generate your API ID and Key',
+  5: 'Paste & verify your API credentials',
 };
 
 /**
@@ -44,7 +56,7 @@ export default function OnboardingPage() {
 
   if (!progress) {
     return (
-      <div style={{ maxWidth: '900px', margin: '40px auto', fontFamily: 'sans-serif' }}>
+      <div style={{ maxWidth: '1100px', margin: '40px auto', fontFamily: 'sans-serif' }}>
         <p style={{ color: '#666' }}>Loading…</p>
       </div>
     );
@@ -65,7 +77,7 @@ export default function OnboardingPage() {
   const allDone = completeCount === statuses.length;
 
   return (
-    <div style={{ maxWidth: '900px', margin: '40px auto', fontFamily: 'sans-serif', padding: '0 16px' }}>
+    <div style={{ maxWidth: '1100px', margin: '40px auto', fontFamily: 'sans-serif', padding: '0 16px' }}>
       <h1 style={{ color: brand.navy }}>Get set up with EPA</h1>
       <p style={{ color: '#666' }}>
         Before ManifestMate can create or sign anything on your behalf, you need your own
@@ -127,13 +139,12 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: '14px',
-        }}
-      >
+      <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div style={{ flex: '1 1 420px', position: 'sticky', top: '20px' }}>
+          <SelectedStepVideo key={expanded} step={expanded} />
+        </div>
+
+        <div style={{ flex: '1 1 380px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <StepCard
           number={1}
           title="RCRAInfo / CDX account"
@@ -248,6 +259,7 @@ export default function OnboardingPage() {
           </p>
           <CredentialsForm onDone={refresh} />
         </StepCard>
+        </div>
       </div>
     </div>
   );
@@ -330,6 +342,101 @@ function StepCard({
       {expanded && (
         <div style={{ padding: '0 14px 14px', borderTop: '1px solid #f0f0f0', paddingTop: '12px' }}>
           {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Large branded video player for whichever step is currently expanded --
+ * lives in a fixed left-hand panel (see the flex layout in
+ * OnboardingPage) rather than embedded inside each small step card, since
+ * a card-width player was too small to read the video's own title card.
+ * Sticky-positioned so it stays in view while the step list scrolls.
+ *
+ * Renders a placeholder (no video selected, or this step has no upload
+ * yet -- ONBOARDING_VIDEOS starts empty, see
+ * scripts/upload-onboarding-videos.ts) rather than nothing, so the panel
+ * doesn't just vanish and shift the layout. The parent remounts this with
+ * `key={step}` on step change, which resets `isPlaying` back to the
+ * poster instead of carrying over the previous step's playback state.
+ */
+function SelectedStepVideo({ step }: { step: number | null }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const src = step !== null ? ONBOARDING_VIDEOS[step] : undefined;
+  const title = step !== null ? STEP_VIDEO_TITLES[step] : null;
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        aspectRatio: '16 / 9',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        background: brand.navy,
+      }}
+    >
+      {src && isPlaying ? (
+        <video
+          src={src}
+          controls
+          autoPlay
+          style={{ width: '100%', height: '100%', objectFit: 'contain', background: brand.navy }}
+        />
+      ) : (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            background: brand.tint,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '14px',
+            padding: '20px',
+            textAlign: 'center',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- small static brand asset, not worth next/image's overhead inside a poster overlay */}
+          <img src="/manifestmate-logo.jpg" alt="" style={{ height: '36px', width: 'auto' }} />
+          <span style={{ fontSize: '17px', color: brand.navy, fontWeight: 600 }}>
+            {title ?? 'Select a step to watch its walkthrough'}
+          </span>
+          {src && (
+            <button
+              type="button"
+              onClick={() => setIsPlaying(true)}
+              aria-label={`Play video: ${title}`}
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '999px',
+                border: 'none',
+                cursor: 'pointer',
+                background: brandGradient,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 10px rgba(10, 34, 70, 0.2)',
+              }}
+            >
+              <span
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderTop: '11px solid transparent',
+                  borderBottom: '11px solid transparent',
+                  borderLeft: '18px solid white',
+                  marginLeft: '4px',
+                }}
+              />
+            </button>
+          )}
         </div>
       )}
     </div>

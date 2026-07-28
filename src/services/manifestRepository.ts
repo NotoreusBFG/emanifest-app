@@ -211,7 +211,15 @@ export async function fetchAndStoreManifestDocuments(
       if (file.dir) continue;
 
       const bytes = await file.async("uint8array");
-      const storagePath = `${userId}/${manifestId}/${filename}`;
+      // RCRAInfo's own filenames inside the zip are generic (e.g. a bare
+      // "Form-2050..." name with no manifest identifier) — prefixed with
+      // the MTN so a document downloaded/saved by the user is
+      // identifiable on its own, without opening it first. This becomes
+      // both the Storage object's key (Supabase's signed download URL
+      // uses the object key as the saved filename) and the `filename`
+      // stored/displayed in manifest_documents, so both line up.
+      const storedFilename = `${mtn}-${filename}`;
+      const storagePath = `${userId}/${manifestId}/${storedFilename}`;
 
       const { error: uploadError } = await supabase.storage
         .from("manifest-documents")
@@ -221,14 +229,14 @@ export async function fetchAndStoreManifestDocuments(
         });
 
       if (uploadError) {
-        console.error(`fetchAndStoreManifestDocuments: upload failed for ${filename}:`, uploadError.message);
+        console.error(`fetchAndStoreManifestDocuments: upload failed for ${storedFilename}:`, uploadError.message);
         continue;
       }
 
       const { error: dbError } = await supabase.from("manifest_documents").upsert(
         {
           manifest_id: manifestId,
-          filename,
+          filename: storedFilename,
           storage_path: storagePath,
           file_size_bytes: bytes.length,
           fetched_at: new Date().toISOString(),
@@ -238,7 +246,7 @@ export async function fetchAndStoreManifestDocuments(
 
       if (dbError) {
         console.error(
-          `fetchAndStoreManifestDocuments: db record failed for ${filename}:`,
+          `fetchAndStoreManifestDocuments: db record failed for ${storedFilename}:`,
           describePostgrestError(dbError)
         );
       }

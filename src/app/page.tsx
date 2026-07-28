@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { LandingVideo } from "@/components/LandingVideo";
 
 const primaryButton =
   "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold text-white shadow-sm transition hover:opacity-90 bg-gradient-to-r from-brand-blue to-brand-green";
@@ -55,58 +56,52 @@ export default function Home() {
               New to manifesting? Start here.
             </h2>
             <p className="mt-3 text-center text-gray-600 max-w-2xl mx-auto">
-              These first steps happen on EPA&apos;s and your state&apos;s own systems — we can&apos;t
-              do them for you, but here&apos;s exactly what to expect.
+              These first steps happen on EPA&apos;s own systems — we can&apos;t do them for you,
+              but we built a step-by-step guide (with a short video for each step) to walk you
+              through it.
             </p>
 
-            <ol className="mt-12 space-y-8">
-              <GuideStep number={1} title="Get your EPA ID Number">
-                <p>
-                  Every hazardous waste generator needs an EPA ID before doing anything else.
-                  It&apos;s issued by your state (or by EPA directly, in states EPA administers
-                  the program) after you file the Site Identification Form (EPA Form 8700-12).
-                </p>
-                <a
-                  href="https://www.epa.gov/hwgenerators/instructions-and-form-hazardous-waste-generators-transporters-and-treatment-storage"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-block font-medium text-brand-blue hover:underline"
-                >
-                  See EPA&apos;s instructions and form →
-                </a>
-              </GuideStep>
+            <div className="mt-12 grid gap-10 sm:grid-cols-[minmax(0,280px)_1fr] items-start">
+              <LandingVideo />
 
-              <GuideStep number={2} title="Register with RCRAInfo &amp; get your API key">
-                <p>
-                  Once you have an EPA ID, create an account in EPA&apos;s RCRAInfo system. In
-                  many states this same registration (the myRCRAid module) also enrolls your
-                  site for e-Manifest. Expect an identity-verification step — have your legal
-                  name and ID details ready. Once you&apos;re in, generate an API ID and Key
-                  under <em>Tools → API</em>.
-                </p>
-                <a
-                  href="https://rcrainfo.epa.gov/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-block font-medium text-brand-blue hover:underline"
-                >
-                  Go to RCRAInfo →
-                </a>
-              </GuideStep>
+              <ol className="space-y-8">
+                <GuideStep number={1} title="Get set up with EPA">
+                  <p>
+                    Your EPA ID, a verified RCRAInfo account, and your own API credentials — EPA
+                    requires all three to be tied to your own verified identity, so it&apos;s the
+                    one part we can&apos;t do for you. Our guide tracks your progress step by
+                    step, so you can pick up right where you left off.
+                  </p>
+                  <Link
+                    href="/onboarding"
+                    className="mt-3 inline-block font-medium text-brand-blue hover:underline"
+                  >
+                    Start the setup guide →
+                  </Link>
+                  <p className="mt-1">
+                    <Link
+                      href="/university/getting-registered"
+                      className="text-sm text-gray-500 hover:underline"
+                    >
+                      Or read the regulatory deep dive first →
+                    </Link>
+                  </p>
+                </GuideStep>
 
-              <GuideStep number={3} title="Connect your credentials to ManifestMate">
-                <p>
-                  Add your RCRAInfo API ID and Key in Settings — encrypted at rest, and used only
-                  to act on your behalf when you create, sign, or look up manifests.
-                </p>
-                <Link
-                  href="/settings"
-                  className="mt-3 inline-block font-medium text-brand-blue hover:underline"
-                >
-                  Go to Settings →
-                </Link>
-              </GuideStep>
-            </ol>
+                <GuideStep number={2} title="Connect your credentials to ManifestMate">
+                  <p>
+                    Add your RCRAInfo API ID and Key in Settings — encrypted at rest, and used only
+                    to act on your behalf when you create, sign, or look up manifests.
+                  </p>
+                  <Link
+                    href="/settings"
+                    className="mt-3 inline-block font-medium text-brand-blue hover:underline"
+                  >
+                    Go to Settings →
+                  </Link>
+                </GuideStep>
+              </ol>
+            </div>
           </div>
         </section>
 

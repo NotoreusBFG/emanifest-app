@@ -15,6 +15,12 @@ interface Topic {
 
 const topics: Topic[] = [
   {
+    slug: "getting-registered",
+    title: "Getting registered: CDX, RCRAInfo, and your EPA ID",
+    description:
+      "Why EPA's registration chain has this many steps, and what's actually happening at each one — CDX/RCRAInfo, your EPA ID, Site Manager roles, and the Electronic Signature Agreement.",
+  },
+  {
     slug: "rcra-basics",
     title: "RCRA basics & cradle-to-grave",
     description:

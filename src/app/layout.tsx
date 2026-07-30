@@ -59,6 +59,9 @@ export default async function RootLayout({
 
           {user ? (
             <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+              <Link href="/" className="text-brand-navy hover:text-brand-blue">
+                Home
+              </Link>
               <Link href="/onboarding" className="text-brand-navy hover:text-brand-blue">
                 Get set up with EPA
               </Link>
@@ -86,6 +89,9 @@ export default async function RootLayout({
             </nav>
           ) : (
             <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+              <Link href="/" className="text-brand-navy hover:text-brand-blue">
+                Home
+              </Link>
               <Link href="/university" className="text-brand-navy hover:text-brand-blue">
                 Haz Waste University
               </Link>

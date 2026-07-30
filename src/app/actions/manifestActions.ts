@@ -373,6 +373,19 @@ export async function createManifestAction(
   if (!user) return { success: false, error: "Not logged in." };
 
   const f = (name: string) => (formData.get(name) as string)?.trim() ?? "";
+  // RCRAInfo requires phone numbers in exactly 999-999-9999 format and
+  // rejects anything else outright — reformats whatever digits the user
+  // typed (with/without dashes, a leading "1" country code, spaces) into
+  // that shape. Falls back to the raw trimmed input if it can't
+  // confidently normalize, so EPA's own validation still catches genuinely
+  // malformed numbers instead of this silently passing them through.
+  const phoneField = (name: string) => {
+    const raw = f(name);
+    const digits = raw.replace(/\D/g, "");
+    const tenDigits = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+    if (tenDigits.length !== 10) return raw;
+    return `${tenDigits.slice(0, 3)}-${tenDigits.slice(3, 6)}-${tenDigits.slice(6)}`;
+  };
 
   const input: NewManifestInput = {
     status: "NotAssigned",
@@ -400,10 +413,10 @@ export async function createManifestAction(
       contact: {
         firstName: f("generatorFirstName"),
         lastName: f("generatorLastName"),
-        phone: { number: f("generatorPhone") },
+        phone: { number: phoneField("generatorPhone") },
         email: f("generatorEmail"),
       },
-      emergencyPhone: { number: f("generatorEmergencyPhone") },
+      emergencyPhone: { number: phoneField("generatorEmergencyPhone") },
     },
     // Filled in below, after validation -- matches the wasteLineIds pattern.
     transporters: [],
@@ -427,10 +440,10 @@ export async function createManifestAction(
       contact: {
         firstName: f("facilityFirstName"),
         lastName: f("facilityLastName"),
-        phone: { number: f("facilityPhone") },
+        phone: { number: phoneField("facilityPhone") },
         email: f("facilityEmail"),
       },
-      emergencyPhone: { number: f("facilityEmergencyPhone") },
+      emergencyPhone: { number: phoneField("facilityEmergencyPhone") },
     },
     additionalInfo: undefined, // filled in below, after collecting per-line instructions
     wastes: [], // filled in below, after validation
@@ -485,9 +498,9 @@ export async function createManifestAction(
     }
 
     const quantity = Number(w("quantity"));
-    const unitCode = w("unitCode");
+    const unitCode = w("unitCode").toUpperCase();
     const containerNumber = Number(w("containerNumber"));
-    const containerTypeCode = w("containerTypeCode");
+    const containerTypeCode = w("containerTypeCode").toUpperCase();
     if (!quantity || !unitCode || !containerNumber || !containerTypeCode) {
       lineErrors.push(
         `Waste line ${displayLineNumber}: quantity, unit code, container count, and container type code are all required once a description is entered.`

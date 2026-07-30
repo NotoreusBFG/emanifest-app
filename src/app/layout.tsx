@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/app/actions/authActions";
+import { HAZ_WASTE_UNIVERSITY_HOSTS } from "@/lib/hazWasteHosts";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +33,11 @@ export default async function RootLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const hostname = (await headers()).get("host")?.split(":")[0] ?? "";
+  const isHazWasteHost = HAZ_WASTE_UNIVERSITY_HOSTS.includes(hostname);
+  const universityLabel = isHazWasteHost ? "Homepage" : "Haz Waste University";
+  const universityHref = isHazWasteHost ? "/" : "/university";
 
   return (
     <html
@@ -77,8 +84,8 @@ export default async function RootLayout({
               <Link href="/settings" className="text-brand-navy hover:text-brand-blue">
                 Settings
               </Link>
-              <Link href="/university" className="text-brand-navy hover:text-brand-blue">
-                Haz Waste University
+              <Link href={universityHref} className="text-brand-navy hover:text-brand-blue">
+                {universityLabel}
               </Link>
               <Link href="/faq" className="text-brand-navy hover:text-brand-blue">
                 FAQ
@@ -86,8 +93,8 @@ export default async function RootLayout({
             </nav>
           ) : (
             <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
-              <Link href="/university" className="text-brand-navy hover:text-brand-blue">
-                Haz Waste University
+              <Link href={universityHref} className="text-brand-navy hover:text-brand-blue">
+                {universityLabel}
               </Link>
               <Link href="/faq" className="text-brand-navy hover:text-brand-blue">
                 FAQ

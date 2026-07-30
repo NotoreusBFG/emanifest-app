@@ -1,12 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-
-// hazwastemanifestmate.com is being test-driven as a dedicated landing
-// domain for Haz Waste University — the homepage there shows the
-// university section instead of the regular product homepage. Every other
-// path still resolves normally, so the domain works as a full alias if it
-// ever becomes the primary URL.
-const HAZ_WASTE_UNIVERSITY_HOSTS = ["hazwastemanifestmate.com", "www.hazwastemanifestmate.com"];
+import { HAZ_WASTE_UNIVERSITY_HOSTS } from "@/lib/hazWasteHosts";
 
 export async function middleware(request: NextRequest) {
   const response = await updateSession(request);

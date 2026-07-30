@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { LandingVideo } from "@/components/LandingVideo";
 
 export const metadata: Metadata = {
   title: "Haz Waste University — ManifestMate",
@@ -64,16 +63,13 @@ export default function UniversityIndexPage() {
     <div className="flex flex-col flex-1">
       <main className="flex-1">
         <section className="px-6 py-16 sm:px-12 sm:py-20 bg-brand-tint">
-          <div className="mx-auto max-w-4xl grid gap-10 sm:grid-cols-[minmax(0,420px)_1fr] items-center">
-            <LandingVideo />
-            <div>
-              <h1 className="text-4xl sm:text-5xl font-bold text-brand-navy leading-tight">Haz Waste University</h1>
-              <p className="mt-6 text-lg text-gray-700">
-                ManifestMate helps you create, sign, and track manifests — this is the regulatory
-                background behind why those steps exist, so the tool makes more sense and
-                you&apos;re better equipped when something doesn&apos;t fit the common case.
-              </p>
-            </div>
+          <div className="mx-auto max-w-3xl text-center">
+            <h1 className="text-4xl sm:text-5xl font-bold text-brand-navy leading-tight">Haz Waste University</h1>
+            <p className="mt-6 text-lg text-gray-700">
+              ManifestMate helps you create, sign, and track manifests — this is the regulatory
+              background behind why those steps exist, so the tool makes more sense and you&apos;re
+              better equipped when something doesn&apos;t fit the common case.
+            </p>
           </div>
         </section>
 

@@ -202,11 +202,20 @@ function InviteGeneratorPanel({ mtn }: { mtn: string }) {
     setSending(false);
     if (state.success) {
       const sentVia = [state.smsSent && "text", state.emailSent && "email"].filter(Boolean).join(" and ");
+      // Each channel's failure reason is reported independently rather than
+      // showing only one — with both phone and email entered, SMS failing
+      // for one reason and email failing for a completely different one is
+      // a real case (confirmed live), and only surfacing the SMS error left
+      // the email failure silently hidden.
+      const failures = [state.smsError && `text: ${state.smsError}`, state.emailError && `email: ${state.emailError}`]
+        .filter(Boolean)
+        .join("; ");
+      const failureNote = failures || "channel not configured";
       setResult({
         success: true,
         message: sentVia
-          ? `Sent via ${sentVia}.`
-          : `Link created, but nothing could be sent (${state.smsError ?? state.emailError ?? "channel not configured"}) — share this link manually:`,
+          ? `Sent via ${sentVia}.${failures ? ` (${failures})` : ""}`
+          : `Link created, but nothing could be sent (${failureNote}) — share this link manually:`,
         link: sentVia ? undefined : state.link,
       });
     } else {

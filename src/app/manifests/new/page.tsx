@@ -166,6 +166,12 @@ export default function NewManifestPage() {
 
   const [generator, setGenerator] = useState<HandlerFormState>(DEFAULT_SITE);
   const [facility, setFacility] = useState<HandlerFormState>(DEFAULT_SITE);
+  // Set when the onboarding auto-fill below overwrites the safe example
+  // contact info with the user's real registered site, which turns out not
+  // to have every required field on file — otherwise the only feedback is
+  // a native browser "please fill out this field" tooltip on submit, which
+  // looks like the Save button is just silently doing nothing.
+  const [generatorAutoFillWarning, setGeneratorAutoFillWarning] = useState<string | null>(null);
   const [transporters, setTransporters] = useState<TransporterFormState[]>([emptyTransporter(0, true)]);
 
   // Starts at the system default (used synchronously above, before this
@@ -240,6 +246,22 @@ export default function NewManifestPage() {
 
   const removeTransporter = (id: number) => {
     setTransporters((list) => (list.length > 1 ? list.filter((t) => t.id !== id) : list));
+  };
+
+  /** Required generator/facility fields that EPA's site record can leave
+   * blank (contact name/phone, address) — used to warn before submit
+   * instead of only after a blocked native validation error. */
+  const missingRequiredContactFields = (site: SiteSearchResultItem): string[] => {
+    const checks: Array<[unknown, string]> = [
+      [site.contact?.firstName, "Contact first name"],
+      [site.contact?.lastName, "Contact last name"],
+      [site.contact?.phoneNumber?.number, "Contact phone"],
+      [site.siteAddress?.address1, "Address"],
+      [site.siteAddress?.city, "City"],
+      [site.siteAddress?.state?.code, "State"],
+      [site.siteAddress?.zip, "Zip"],
+    ];
+    return checks.filter(([value]) => !value || !String(value).trim()).map(([, fieldLabel]) => fieldLabel);
   };
 
   /**
@@ -348,15 +370,26 @@ export default function NewManifestPage() {
   // does nothing if the user has no EPA ID saved yet, or if the lookup
   // fails (e.g. not yet authorized for that site) -- this is a convenience
   // prefill, not something that should surface an error on page load.
+  // It CAN, however, leave required fields blank (confirmed live: a real
+  // registered site with no contact name/phone on file) -- that case gets
+  // an inline warning below rather than only a native validation tooltip
+  // on submit, which otherwise looks like "Save" is silently doing nothing.
   useEffect(() => {
     getOnboardingProgressAction().then((progress) => {
       const epaId = progress?.epaIdNumber?.trim();
       if (!epaId) return;
       getSiteDetailsAction(epaId).then((result) => {
         if (!result.success) return;
-        setGenerator((g) =>
-          g.epaSiteId === DEFAULT_SITE.epaSiteId ? fillHandlerFromSite(result.site, g) : g
-        );
+        const missing = missingRequiredContactFields(result.site);
+        setGenerator((g) => {
+          if (g.epaSiteId !== DEFAULT_SITE.epaSiteId) return g;
+          if (missing.length > 0) {
+            setGeneratorAutoFillWarning(
+              `Your registered site (${result.site.name || result.site.epaSiteId}) doesn't have ${missing.join(", ")} on file — fill ${missing.length > 1 ? "those in" : "that in"} below before saving.`
+            );
+          }
+          return fillHandlerFromSite(result.site, g);
+        });
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time prefill on mount, same pattern as the emergency-phone effect
@@ -520,6 +553,21 @@ export default function NewManifestPage() {
 
         <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
           <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Generator</legend>
+          {generatorAutoFillWarning && (
+            <p
+              style={{
+                background: "#fff8e1",
+                border: "1px solid #f0d98c",
+                borderRadius: "4px",
+                padding: "8px 10px",
+                fontSize: "13px",
+                color: "#7a5b00",
+                marginBottom: "12px",
+              }}
+            >
+              ⚠️ {generatorAutoFillWarning}
+            </p>
+          )}
           <SiteSearchField
             siteType="Generator"
             placeholder="Search registered generators by name…"

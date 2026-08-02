@@ -15,6 +15,8 @@ import {
   type OnboardingProgress,
 } from '@/services/onboardingRepository';
 
+type ActionState = { success: boolean; error?: string; message?: string } | null;
+
 export async function getOnboardingProgressAction(): Promise<OnboardingProgress | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -22,7 +24,7 @@ export async function getOnboardingProgressAction(): Promise<OnboardingProgress 
   return getOnboardingProgress(supabase, user.id);
 }
 
-export async function toggleCdxAccountAction(prevState: any, formData: FormData) {
+export async function toggleCdxAccountAction(prevState: ActionState, formData: FormData) {
   const done = formData.get('done') === 'true';
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -34,7 +36,7 @@ export async function toggleCdxAccountAction(prevState: any, formData: FormData)
   return { success: true };
 }
 
-export async function saveEpaIdStepAction(prevState: any, formData: FormData) {
+export async function saveEpaIdStepAction(prevState: ActionState, formData: FormData) {
   const requested = formData.get('requested') === 'true';
   const epaIdNumber = (formData.get('epaIdNumber') as string) ?? '';
   const supabase = await createClient();
@@ -47,7 +49,7 @@ export async function saveEpaIdStepAction(prevState: any, formData: FormData) {
   return { success: true };
 }
 
-export async function toggleEsaCompletedAction(prevState: any, formData: FormData) {
+export async function toggleEsaCompletedAction(prevState: ActionState, formData: FormData) {
   const done = formData.get('done') === 'true';
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -59,7 +61,7 @@ export async function toggleEsaCompletedAction(prevState: any, formData: FormDat
   return { success: true };
 }
 
-export async function toggleApiKeyGeneratedAction(prevState: any, formData: FormData) {
+export async function toggleApiKeyGeneratedAction(prevState: ActionState, formData: FormData) {
   const done = formData.get('done') === 'true';
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -78,7 +80,7 @@ export async function toggleApiKeyGeneratedAction(prevState: any, formData: Form
  * rather than taking the user's word for. Saving happens even if
  * verification fails, so the user doesn't have to retype a typo'd key.
  */
-export async function saveAndValidateCredentialsAction(prevState: any, formData: FormData) {
+export async function saveAndValidateCredentialsAction(prevState: ActionState, formData: FormData) {
   const apiId = formData.get('apiId') as string;
   const apiKey = formData.get('apiKey') as string;
 

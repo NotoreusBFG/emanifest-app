@@ -143,7 +143,6 @@ function NewLdrNoticePageInner() {
         }
       }
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the URL's mtn param changes
   }, [deepLinkMtn]);
 
   // The "do we already have an active notice on file" check (ldr schema.md

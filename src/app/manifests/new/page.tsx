@@ -218,7 +218,6 @@ export default function NewManifestPage() {
     } else {
       setSignableManifest(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when a new save result comes in, not on every render
   }, [state]);
 
   const refreshSignableManifest = async () => {

@@ -4,11 +4,13 @@ import { upsertEpaCredentials, upsertDefaultEmergencyPhone, getDefaultEmergencyP
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+type ActionState = { success: boolean; error?: string; message?: string } | null;
+
 /**
  * This "Messenger" handles the interaction between the
  * user's form and our database service [2].
  */
-export async function saveEpaSettingsAction(prevState: any, formData: FormData) {
+export async function saveEpaSettingsAction(prevState: ActionState, formData: FormData) {
   const apiId = formData.get('apiId') as string;
   const apiKey = formData.get('apiKey') as string;
 
@@ -31,7 +33,7 @@ export async function saveEpaSettingsAction(prevState: any, formData: FormData) 
  * upsertDefaultEmergencyPhone's comment for why this is its own
  * form/action rather than folded into the API credentials save.
  */
-export async function saveDefaultEmergencyPhoneAction(prevState: any, formData: FormData) {
+export async function saveDefaultEmergencyPhoneAction(prevState: ActionState, formData: FormData) {
   const phone = formData.get('defaultEmergencyPhone') as string;
 
   const supabase = await createClient();

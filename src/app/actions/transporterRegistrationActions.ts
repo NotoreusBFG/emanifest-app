@@ -20,8 +20,11 @@ import {
   revokeTransporterByManagementToken,
   unrevokeTransporterByManagementToken,
   updateTransporterPinByManagementToken,
+  listTransporterInvitesForOwner,
+  getTransporterNotifyContact,
   type TransporterRegistrationSession,
   type TransporterManagementSession,
+  type TransporterInviteSummary,
 } from "@/services/transporterRegistrationRepository";
 
 function clientFor(credentials: { apiId: string; apiKey: string }) {
@@ -35,9 +38,52 @@ function isValidPin(pin: string): boolean {
   return /^\d{4,6}$/.test(pin);
 }
 
+interface InviteSendResult {
+  smsSent: boolean;
+  emailSent: boolean;
+  smsError?: string;
+  emailError?: string;
+}
+
+/** Shared by both invite-creation actions (manifest-tied and standalone) — sends over whichever channels were provided, each failure independent/non-fatal since the link itself is already valid either way. */
+async function sendTransporterInviteNotifications(
+  message: string,
+  emailSubject: string,
+  recipientPhone: string | null,
+  recipientEmail: string | null
+): Promise<InviteSendResult> {
+  const result: InviteSendResult = { smsSent: false, emailSent: false };
+
+  if (recipientPhone) {
+    try {
+      await sendSms(recipientPhone, message);
+      result.smsSent = true;
+    } catch (err) {
+      if (!(err instanceof SmsNotConfiguredError)) {
+        console.error("Transporter-registration invite SMS failed (non-fatal, link still valid):", err);
+      }
+      result.smsError = err instanceof Error ? err.message : "Unknown SMS error.";
+    }
+  }
+
+  if (recipientEmail) {
+    try {
+      await sendEmail(recipientEmail, emailSubject, message);
+      result.emailSent = true;
+    } catch (err) {
+      if (!(err instanceof EmailNotConfiguredError)) {
+        console.error("Transporter-registration invite email failed (non-fatal, link still valid):", err);
+      }
+      result.emailError = err instanceof Error ? err.message : "Unknown email error.";
+    }
+  }
+
+  return result;
+}
+
 export type CreateTransporterRegistrationInviteState =
   | { success: true; link: string; smsSent: boolean; emailSent: boolean; smsError?: string; emailError?: string }
-  | { success: false; error: string };
+  | { success: false; error: string; alreadyPending?: boolean };
 
 /**
  * Owner-facing: invites the transporter at `transporterOrder` on manifest
@@ -82,36 +128,103 @@ export async function createTransporterRegistrationInviteAction(
     const link = `${origin}/register-transporter/${token}`;
     const message = `ManifestMate: ${manifest.generator.name || manifest.generator.epaSiteId} is asking ${transporter.name || transporter.epaSiteId} to register for electronic manifest signing — ${link}`;
 
-    let smsSent = false;
-    let emailSent = false;
-    let smsError: string | undefined;
-    let emailError: string | undefined;
+    const sendResult = await sendTransporterInviteNotifications(
+      message,
+      "Register with ManifestMate for electronic manifest signing",
+      recipientPhone,
+      recipientEmail
+    );
 
-    if (recipientPhone) {
-      try {
-        await sendSms(recipientPhone, message);
-        smsSent = true;
-      } catch (err) {
-        if (!(err instanceof SmsNotConfiguredError)) {
-          console.error("Transporter-registration invite SMS failed (non-fatal, link still valid):", err);
-        }
-        smsError = err instanceof Error ? err.message : "Unknown SMS error.";
+    return { success: true, link, ...sendResult };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error." };
+  }
+}
+
+/**
+ * Owner-facing: invites a transporter by EPA Site ID directly, not tied to
+ * any manifest — the entry point for the standalone /transporters page.
+ * Unlike createTransporterRegistrationInviteAction (which anchors from a
+ * live manifest's transporter list), this anchors from a live
+ * getSiteDetails() lookup — same "never free-type/never trust a
+ * client-supplied company name" discipline, just a different live source.
+ * Pre-checks hasPendingTransporterInvite so a generator sees an explicit
+ * "already pending" choice rather than silently triggering the
+ * resend-overwrite in create_transporter_registration_token (see
+ * 20260815's migration comment on the cross-generator-collision fix).
+ */
+export async function createStandaloneTransporterInviteAction(
+  epaSiteId: string,
+  recipientPhone: string | null,
+  recipientEmail: string | null,
+  confirmResend: boolean = false
+): Promise<CreateTransporterRegistrationInviteState> {
+  if (!recipientPhone && !recipientEmail) {
+    return { success: false, error: "Enter a phone number and/or an email address." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  try {
+    const client = await getRcrainfoClientForUser(supabase, user.id);
+    const site = await client.getSiteDetails(epaSiteId);
+
+    if (!confirmResend) {
+      const pending = await hasPendingTransporterInvite(supabase, epaSiteId);
+      if (pending) {
+        return {
+          success: false,
+          error: `An invite is already pending for ${site.name || epaSiteId}.`,
+          alreadyPending: true,
+        };
       }
     }
 
-    if (recipientEmail) {
-      try {
-        await sendEmail(recipientEmail, "Register with ManifestMate for electronic manifest signing", message);
-        emailSent = true;
-      } catch (err) {
-        if (!(err instanceof EmailNotConfiguredError)) {
-          console.error("Transporter-registration invite email failed (non-fatal, link still valid):", err);
-        }
-        emailError = err instanceof Error ? err.message : "Unknown email error.";
-      }
-    }
+    const token = await createTransporterRegistrationToken(supabase, {
+      epaSiteId: site.epaSiteId,
+      companyName: site.name || site.epaSiteId,
+      manifestEpaMtn: null,
+      recipientPhone,
+      recipientEmail,
+      ownerNotifyEmail: user.email ?? null,
+    });
 
-    return { success: true, link, smsSent, emailSent, smsError, emailError };
+    const origin = await currentOrigin();
+    const link = `${origin}/register-transporter/${token}`;
+    const message = `ManifestMate: register with ManifestMate for electronic manifest signing — ${link}`;
+
+    const sendResult = await sendTransporterInviteNotifications(
+      message,
+      "Register with ManifestMate for electronic manifest signing",
+      recipientPhone,
+      recipientEmail
+    );
+
+    return { success: true, link, ...sendResult };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error." };
+  }
+}
+
+export type TransporterInvitesListState =
+  | { success: true; invites: TransporterInviteSummary[] }
+  | { success: false; error: string };
+
+/** Generator-facing: backs the /transporters status list. */
+export async function listTransporterInvitesAction(): Promise<TransporterInvitesListState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  try {
+    const invites = await listTransporterInvitesForOwner(supabase);
+    return { success: true, invites };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error." };
   }
@@ -271,10 +384,44 @@ export async function getTransporterManagementSessionAction(managementToken: str
 
 export type ManageTransporterActionState = { success: true } | { success: false; error: string };
 
+/**
+ * Best-effort notifies whoever originally registered this transporter,
+ * regardless of who performs the revoke — matches this app's established
+ * "no silent surprises" pattern (post-sign confirmations, registration
+ * -complete notices, etc. all work this way). Never blocks/fails the
+ * revoke itself; a transporter with no invite history (added via the old
+ * Phase-1 admin script) simply has no one to notify.
+ */
+async function notifyOnRevoke(supabase: Awaited<ReturnType<typeof createClient>>, managementToken: string) {
+  try {
+    const contact = await getTransporterNotifyContact(supabase, managementToken);
+    if (!contact) return;
+    const companyName = contact.companyName ?? "Your company";
+    const message = `ManifestMate: signing access for ${companyName} was just revoked. If this wasn't you, contact whoever manages your ManifestMate registration.`;
+    if (contact.recipientPhone) {
+      try {
+        await sendSms(contact.recipientPhone, message);
+      } catch (err) {
+        console.error("Revoke-notification SMS failed (non-fatal):", err);
+      }
+    }
+    if (contact.recipientEmail) {
+      try {
+        await sendEmail(contact.recipientEmail, `${companyName}'s ManifestMate access was revoked`, message);
+      } catch (err) {
+        console.error("Revoke-notification email failed (non-fatal):", err);
+      }
+    }
+  } catch (err) {
+    console.error("notifyOnRevoke failed (non-fatal, revoke already succeeded):", err);
+  }
+}
+
 export async function revokeTransporterAction(managementToken: string): Promise<ManageTransporterActionState> {
   const supabase = await createClient();
   try {
     await revokeTransporterByManagementToken(supabase, managementToken);
+    await notifyOnRevoke(supabase, managementToken);
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error." };

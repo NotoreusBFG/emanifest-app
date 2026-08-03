@@ -172,6 +172,36 @@ export async function revokeTransporterByManagementToken(supabase: SupabaseClien
   if (error) throw new Error(error.message);
 }
 
+export interface TransporterNotifyContact {
+  recipientPhone: string | null;
+  recipientEmail: string | null;
+  companyName: string | null;
+}
+
+/**
+ * Best-effort lookup for who to notify about a revoke — reuses the
+ * recipient contact already captured on whichever invite completed this
+ * transporter's registration, no new column. Returns null if the
+ * transporter was added via the old Phase-1 admin script (no invite at
+ * all) — callers must treat that as an expected, silently-skippable case.
+ */
+export async function getTransporterNotifyContact(
+  supabase: SupabaseClient,
+  managementToken: string
+): Promise<TransporterNotifyContact | null> {
+  const { data, error } = await supabase.rpc("get_transporter_notify_contact_by_management_token", {
+    p_management_token: managementToken,
+  });
+  if (error) throw new Error(error.message);
+  const row = data?.[0];
+  if (!row) return null;
+  return {
+    recipientPhone: row.recipient_phone ?? null,
+    recipientEmail: row.recipient_email ?? null,
+    companyName: row.company_name ?? null,
+  };
+}
+
 export async function unrevokeTransporterByManagementToken(supabase: SupabaseClient, managementToken: string): Promise<void> {
   const { error } = await supabase.rpc("unrevoke_transporter_by_management_token", {
     p_management_token: managementToken,
@@ -189,4 +219,41 @@ export async function updateTransporterPinByManagementToken(
     p_pin_hash: pinHash,
   });
   if (error) throw new Error(error.message);
+}
+
+export interface TransporterInviteSummary {
+  tokenId: string;
+  epaSiteId: string;
+  companyNameSnapshot: string | null;
+  manifestEpaMtn: string | null;
+  recipientPhone: string | null;
+  recipientEmail: string | null;
+  createdAt: string;
+  expiresAt: string;
+  usedAt: string | null;
+  transporterCompanyName: string | null;
+  transporterRevokedAt: string | null;
+  transporterPinSetAt: string | null;
+  transporterHasLoginAccount: boolean;
+}
+
+/** Generator-facing: backs the /transporters status list — every invite this user has sent, joined with the current transporters state. */
+export async function listTransporterInvitesForOwner(supabase: SupabaseClient): Promise<TransporterInviteSummary[]> {
+  const { data, error } = await supabase.rpc("list_transporter_invites_for_owner");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    tokenId: row.token_id as string,
+    epaSiteId: row.epa_site_id as string,
+    companyNameSnapshot: row.company_name_snapshot as string | null,
+    manifestEpaMtn: row.manifest_epa_mtn as string | null,
+    recipientPhone: row.recipient_phone as string | null,
+    recipientEmail: row.recipient_email as string | null,
+    createdAt: row.created_at as string,
+    expiresAt: row.expires_at as string,
+    usedAt: row.used_at as string | null,
+    transporterCompanyName: row.transporter_company_name as string | null,
+    transporterRevokedAt: row.transporter_revoked_at as string | null,
+    transporterPinSetAt: row.transporter_pin_set_at as string | null,
+    transporterHasLoginAccount: Boolean(row.transporter_has_login_account),
+  }));
 }

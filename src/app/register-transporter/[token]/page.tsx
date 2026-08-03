@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTransporterRegistrationSessionAction } from "@/app/actions/transporterRegistrationActions";
 import { TransporterRegistrationForm } from "./TransporterRegistrationForm";
 import { brand } from "@/lib/brandColors";
@@ -16,7 +17,26 @@ export default async function TransporterRegistrationPage({ params }: { params: 
   return (
     <Shell>
       {state.success ? (
-        <TransporterRegistrationForm token={token} session={state.session} />
+        <>
+          <TransporterRegistrationForm token={token} session={state.session} />
+          <p
+            style={{
+              fontSize: "13px",
+              color: "#666",
+              marginTop: "18px",
+              borderTop: `1px solid ${brand.tint}`,
+              paddingTop: "14px",
+            }}
+          >
+            Prefer to keep this tied to a ManifestMate account for next time?{" "}
+            <Link
+              href={`/login?next=${encodeURIComponent(`/register-transporter/${token}/with-account`)}`}
+              style={{ color: brand.blue, fontWeight: 600 }}
+            >
+              Sign in or create an account to complete this instead →
+            </Link>
+          </p>
+        </>
       ) : (
         <p style={{ color: "#666" }}>{state.error}</p>
       )}

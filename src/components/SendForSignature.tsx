@@ -8,6 +8,10 @@ import {
   getManifestTransportersForSendAction,
 } from "@/app/actions/driverSignActions";
 import { createGeneratorSignLinkAction } from "@/app/actions/generatorSignActions";
+import {
+  createTransporterRegistrationInviteAction,
+  hasPendingTransporterInviteAction,
+} from "@/app/actions/transporterRegistrationActions";
 
 type Panel = "share" | "generator" | "transporter" | null;
 
@@ -237,6 +241,7 @@ function InviteTransporterPanel({ mtn }: { mtn: string }) {
   const [phone, setPhone] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; link?: string } | null>(null);
+  const [notRegistered, setNotRegistered] = useState<{ epaSiteId: string; name: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -262,6 +267,7 @@ function InviteTransporterPanel({ mtn }: { mtn: string }) {
     }
     setSending(true);
     setResult(null);
+    setNotRegistered(null);
     const state = await createDriverSignLinkAction(mtn, transporterOrder, phone.trim());
     setSending(false);
     if (state.success) {
@@ -272,6 +278,8 @@ function InviteTransporterPanel({ mtn }: { mtn: string }) {
           : `Link created, but the text couldn't be sent (${state.smsError ?? "unknown reason"}) — share this link manually:`,
         link: state.smsSent ? undefined : state.link,
       });
+    } else if (state.notRegistered && state.transporterEpaSiteId) {
+      setNotRegistered({ epaSiteId: state.transporterEpaSiteId, name: state.transporterName ?? state.transporterEpaSiteId });
     } else {
       setResult({ success: false, message: state.error });
     }
@@ -309,6 +317,102 @@ function InviteTransporterPanel({ mtn }: { mtn: string }) {
       )}
       <FieldRow label="Driver's phone number" value={phone} onChange={setPhone} placeholder="+1 555 555 5555" />
       <SendRow sending={sending} onSend={handleSend} label="Send text" />
+      <ResultDisplay result={result} />
+      {notRegistered && (
+        <RegisterTransporterCta
+          mtn={mtn}
+          transporterOrder={transporterOrder}
+          epaSiteId={notRegistered.epaSiteId}
+          name={notRegistered.name}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Shown in place of a dead-end error when a picked transporter isn't in
+ * `transporters` yet — was previously just a plain red line with no
+ * follow-up action. Checks hasPendingTransporterInviteAction first so a
+ * generator who already sent an invite sees that, not the same raw form
+ * again with no memory of what they already did.
+ */
+function RegisterTransporterCta({
+  mtn,
+  transporterOrder,
+  epaSiteId,
+  name,
+}: {
+  mtn: string;
+  transporterOrder: number;
+  epaSiteId: string;
+  name: string;
+}) {
+  const [checking, setChecking] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ success: boolean; message: string; link?: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    hasPendingTransporterInviteAction(epaSiteId).then((hasPending) => {
+      if (!cancelled) {
+        setPending(hasPending);
+        setChecking(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [epaSiteId]);
+
+  const handleSend = async () => {
+    if (!phone.trim() && !email.trim()) {
+      setResult({ success: false, message: "Enter a phone number and/or an email address first." });
+      return;
+    }
+    setSending(true);
+    setResult(null);
+    const state = await createTransporterRegistrationInviteAction(mtn, transporterOrder, phone.trim() || null, email.trim() || null);
+    setSending(false);
+    if (state.success) {
+      const sentVia = [state.smsSent && "text", state.emailSent && "email"].filter(Boolean).join(" and ");
+      setResult({
+        success: true,
+        message: sentVia
+          ? `Registration invite sent via ${sentVia}. Once ${name} completes it, you'll be able to text a driver from them to sign.`
+          : `Link created, but nothing could be sent (${state.smsError ?? state.emailError ?? "channel not configured"}) — share this link manually:`,
+        link: sentVia ? undefined : state.link,
+      });
+      setPending(true);
+    } else {
+      setResult({ success: false, message: state.error });
+    }
+  };
+
+  return (
+    <div style={{ marginTop: "10px", padding: "8px", background: "#fff8ec", borderRadius: "4px" }}>
+      {checking ? (
+        <p style={{ fontSize: "12px", color: "#888" }}>Checking registration status…</p>
+      ) : pending && !result?.success ? (
+        <p style={{ fontSize: "12px", color: "#666" }}>
+          A registration invite to <strong>{name}</strong> is already pending — waiting for them to complete
+          it. You can resend below if needed.
+        </p>
+      ) : (
+        <p style={{ fontSize: "12px", color: "#666" }}>
+          <strong>{name}</strong> isn&apos;t set up for SMS signing yet — invite them to register.
+        </p>
+      )}
+      {!result?.success && (
+        <>
+          <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="+1 555 555 5555" />
+          <FieldRow label="Email address" value={email} onChange={setEmail} placeholder="name@example.com" />
+          <SendRow sending={sending} onSend={handleSend} label={pending ? "Resend invite" : "Send registration invite"} />
+        </>
+      )}
       <ResultDisplay result={result} />
     </div>
   );

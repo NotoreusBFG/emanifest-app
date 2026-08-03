@@ -19,6 +19,7 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
   const [driverName, setDriverName] = useState("");
   const [driverIdNumber, setDriverIdNumber] = useState("");
   const [truckNumber, setTruckNumber] = useState("");
+  const [companyPin, setCompanyPin] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -37,6 +38,7 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
       driverName: driverName.trim(),
       driverIdNumber: driverIdNumber.trim() || undefined,
       truckNumber: truckNumber.trim() || undefined,
+      companyPin: companyPin.trim(),
     });
     setSubmitting(false);
     setResult(
@@ -56,6 +58,13 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
       </p>
       {session.wasteLineSummary && (
         <p style={{ fontSize: "13px", color: "#666" }}>{session.wasteLineSummary}</p>
+      )}
+      {session.transporterCompanyName && (
+        <p style={{ fontSize: "14px", color: "#333", marginTop: "10px" }}>
+          You are signing as the transporter representing{" "}
+          <strong>{session.transporterCompanyName}</strong>. If that&apos;s not your
+          company, do not proceed — this link was not intended for you.
+        </p>
       )}
 
       <div style={{ marginTop: "16px" }}>
@@ -80,6 +89,23 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
         </label>
         <input value={truckNumber} onChange={(e) => setTruckNumber(e.target.value)} style={inputStyle} />
       </div>
+      <div style={{ marginTop: "10px" }}>
+        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+          Company PIN (required)
+        </label>
+        <input
+          value={companyPin}
+          onChange={(e) => setCompanyPin(e.target.value)}
+          inputMode="numeric"
+          maxLength={6}
+          style={inputStyle}
+        />
+        <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
+          Ask your dispatcher for {session.transporterCompanyName ?? "your company"}&apos;s ManifestMate PIN
+          before signing. This confirms the text reached the right company — it isn&apos;t tied to you
+          personally, and it doesn&apos;t replace the name and ID above.
+        </p>
+      </div>
 
       <CertificationDisplay certification={certification} />
 
@@ -92,7 +118,8 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
           onChange={(e) => setAcknowledged(e.target.checked)}
           style={{ marginTop: "3px" }}
         />
-        I have read and agree to the statement above, and I am signing on behalf of the transporter.
+        I have read and agree to the statement above, and I am signing on behalf of{" "}
+        {session.transporterCompanyName ?? "the transporter"}.
       </label>
 
       <button

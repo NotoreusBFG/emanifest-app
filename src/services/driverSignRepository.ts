@@ -8,6 +8,7 @@ export interface DriverSignSession {
   tsdfName: string | null;
   wasteLineSummary: string | null;
   expiresAt: string;
+  transporterCompanyName: string | null;
 }
 
 /** Anonymous-facing read of the display snapshot — never claims/burns the token. See get_driver_sign_session's comment for why. */
@@ -26,6 +27,7 @@ export async function getDriverSignSession(
     tsdfName: row.tsdf_name,
     wasteLineSummary: row.waste_line_summary,
     expiresAt: row.expires_at,
+    transporterCompanyName: row.transporter_company_name,
   };
 }
 
@@ -93,6 +95,24 @@ export async function getTransporterCredentials(
   };
 }
 
+/**
+ * Deliberately separate from getTransporterCredentials — that function
+ * takes a bare transporter_id (no token/claim check) and is safe to expose
+ * that loosely only because epa_api_id/epa_api_key are AES-encrypted and
+ * useless without the server-only ENCRYPTION_SECRET_KEY. pin_hash has no
+ * such protection (a salted hash of a bare 4-6 digit PIN is crackable
+ * offline in minutes), so this is keyed on the CLAIMED token id instead —
+ * same get_owner_credentials_for_token-class fix, see
+ * 20260813_fix_pin_hash_exposure.sql.
+ */
+export async function getTransporterPinHash(supabase: SupabaseClient, tokenId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("get_transporter_pin_hash_for_claimed_token", {
+    p_token_id: tokenId,
+  });
+  if (error) throw new Error(error.message);
+  return data?.[0]?.pin_hash ?? null;
+}
+
 export interface RecordDriverSignResultParams {
   tokenId: string;
   epaMtn: string;
@@ -109,6 +129,7 @@ export interface RecordDriverSignResultParams {
   signSucceeded: boolean;
   epaReportId?: string;
   epaError?: string;
+  pinVerified: boolean;
 }
 
 /** Always called, success or failure — mirrors signManifestAction's "record the attempt either way" behavior in manifestActions.ts. */
@@ -132,6 +153,7 @@ export async function recordDriverSignResult(
     p_sign_succeeded: params.signSucceeded,
     p_epa_report_id: params.epaReportId ?? null,
     p_epa_error: params.epaError ?? null,
+    p_pin_verified: params.pinVerified,
   });
   if (error) console.error("recordDriverSignResult FAILED — audit trail gap:", error.message);
 }
@@ -159,6 +181,8 @@ export interface CreateDriverSignTokenParams {
   wasteLineSummary: string | null;
   /** Persisted so a post-signature confirmation text can go back to the same number — see submitDriverSignAction. */
   driverPhone: string;
+  /** Persisted so the /sign/[token] page can name the transporter the driver is actually signing on behalf of, not just the generator/facility — see DriverSignForm.tsx. */
+  transporterCompanyName: string | null;
 }
 
 /** Generator-facing — auth.uid() is checked and used server-side inside create_driver_sign_token, so a caller can't spoof another user's id. */
@@ -174,6 +198,7 @@ export async function createDriverSignToken(
     p_tsdf_name: params.tsdfName,
     p_waste_line_summary: params.wasteLineSummary,
     p_driver_phone: params.driverPhone,
+    p_transporter_company_name: params.transporterCompanyName,
   });
   if (error) throw new Error(error.message);
   const token = data?.[0]?.token;

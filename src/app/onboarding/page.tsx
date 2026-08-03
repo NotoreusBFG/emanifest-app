@@ -463,7 +463,7 @@ function CheckboxToggle({
 }: {
   checked: boolean;
   label: string;
-  action: (prevState: any, formData: FormData) => Promise<{ success: boolean; error?: string }>;
+  action: (prevState: null, formData: FormData) => Promise<{ success: boolean; error?: string }>;
   onDone: () => void;
 }) {
   const [pending, setPending] = useState(false);

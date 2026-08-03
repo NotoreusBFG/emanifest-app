@@ -6,6 +6,7 @@ import { RcrainfoClient } from "@/lib/rcrainfo/client";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { formatRcrainfoError } from "@/lib/rcrainfo/formatError";
 import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
+import { verifyPin } from "@/lib/pinUtils";
 import { getTransporterForGenerator } from "@/services/transporterRepository";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
 import {
@@ -14,6 +15,7 @@ import {
   claimDriverSignToken,
   releaseDriverSignToken,
   getTransporterCredentials,
+  getTransporterPinHash,
   recordDriverSignResult,
   updateManifestTransporterSignedAt,
   type DriverSignSession,
@@ -36,7 +38,7 @@ export async function currentOrigin(): Promise<string> {
 
 export type CreateDriverSignLinkState =
   | { success: true; link: string; smsSent: boolean; smsError?: string }
-  | { success: false; error: string };
+  | { success: false; error: string; notRegistered?: boolean; transporterEpaSiteId?: string; transporterName?: string };
 
 export type ManifestTransportersState =
   | { success: true; transporters: { epaSiteId: string; name: string; order: number }[] }
@@ -105,6 +107,9 @@ export async function createDriverSignLinkAction(
       return {
         success: false,
         error: `${transporter.name || transporter.epaSiteId} isn't set up for SMS signing yet.`,
+        notRegistered: true,
+        transporterEpaSiteId: transporter.epaSiteId,
+        transporterName: transporter.name || transporter.epaSiteId,
       };
     }
 
@@ -122,6 +127,7 @@ export async function createDriverSignLinkAction(
       tsdfName: manifest.designatedFacility.name || manifest.designatedFacility.epaSiteId,
       wasteLineSummary,
       driverPhone,
+      transporterCompanyName: onFile.companyName,
     });
 
     const origin = await currentOrigin();
@@ -177,6 +183,7 @@ export interface SubmitDriverSignParams {
   driverName: string;
   driverIdNumber?: string;
   truckNumber?: string;
+  companyPin: string;
 }
 
 export type SubmitDriverSignState =
@@ -214,6 +221,11 @@ export async function submitDriverSignAction(
 
   const certification = certificationTextFor("Transporter");
 
+  // Set true only after a successful verifyPin call below — every
+  // recordResult call before that point (including this one) records
+  // pinVerified: false, which is accurate: the gate wasn't satisfied.
+  let pinVerified = false;
+
   const recordResult = (outcome: { signSucceeded: boolean; epaReportId?: string; epaError?: string }, siteId: string) =>
     recordDriverSignResult(supabase, {
       tokenId: claimed.tokenId,
@@ -228,6 +240,7 @@ export async function submitDriverSignAction(
       certificationIsVerbatim: certification.isVerbatim,
       ipAddress,
       userAgent,
+      pinVerified,
       ...outcome,
     });
 
@@ -238,6 +251,30 @@ export async function submitDriverSignAction(
       await recordResult({ signSucceeded: false, epaError: "Transporter credentials revoked." }, "");
       return { success: false, error: "This transporter's SMS signing access has been revoked." };
     }
+
+    // Company-PIN gate — checked before the live manifest re-fetch and
+    // before any RCRAInfo call, so a wrong PIN never spends a real EPA API
+    // round trip. Fails CLOSED (not open) when pinHash is null, matching
+    // this app's established pattern of never silently skipping a
+    // security gate for an ambiguous state — a transporter registered
+    // before this feature existed needs a one-time admin backfill (see
+    // scripts/add-transporter-credentials.ts's --pin flag), not a runtime
+    // bypass.
+    const pinHash = await getTransporterPinHash(supabase, claimed.tokenId);
+    if (pinHash === null) {
+      await releaseDriverSignToken(supabase, claimed.tokenId);
+      await recordResult({ signSucceeded: false, epaError: "This transporter hasn't set up a signing PIN yet." }, credentials.epaSiteId);
+      return { success: false, error: "This transporter hasn't set up a signing PIN yet — contact your dispatcher." };
+    }
+    if (!(await verifyPin(params.companyPin, pinHash))) {
+      // Increments the EXISTING failed_attempt_count via releaseDriverSignToken
+      // — no new counter, reusing the one rate-limit convention already
+      // used twice in this codebase (driver_sign_tokens, generator_sign_tokens).
+      await releaseDriverSignToken(supabase, claimed.tokenId);
+      await recordResult({ signSucceeded: false, epaError: "Incorrect company PIN." }, credentials.epaSiteId);
+      return { success: false, error: "Incorrect PIN — check with your dispatcher and try again." };
+    }
+    pinVerified = true;
 
     const client = clientFor(credentials);
 

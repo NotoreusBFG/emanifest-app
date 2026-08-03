@@ -19,7 +19,7 @@ export default function ManifestsAndDotArticle() {
       ]}
     >
       <p>
-        It&apos;s easy to think of the manifest as purely a RCRA paperwork requirement. It's
+        It&apos;s easy to think of the manifest as purely a RCRA paperwork requirement. It&apos;s
         actually doing double duty: DOT (the Department of Transportation) separately requires
         shipping papers for any hazardous material in transport, describing what&apos;s being
         shipped and how much. Rather than making generators fill out two different documents, EPA

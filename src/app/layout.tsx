@@ -77,6 +77,9 @@ export default async function RootLayout({
               <Link href="/ldr" className="text-brand-navy hover:text-brand-blue">
                 LDR notices
               </Link>
+              <Link href="/transporters" className="text-brand-navy hover:text-brand-blue">
+                Transporters
+              </Link>
               <Link href="/settings" className="text-brand-navy hover:text-brand-blue">
                 Settings
               </Link>

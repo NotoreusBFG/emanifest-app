@@ -59,12 +59,12 @@ export default function RcraBasicsArticle() {
       <p>
         The phrase means exactly what it sounds like: once waste is generated, its regulatory
         record follows it through every hand it passes through, all the way to final disposal.
-        In practice that's a chain of custody with named links —
+        In practice that&apos;s a chain of custody with named links —
       </p>
       <p className="font-medium text-brand-navy">Generator → Transporter(s) → Treatment/Disposal Facility</p>
       <p>
         — and the manifest (covered in the next article) is the actual paper (or now, electronic)
-        trail that proves who had the waste at every step. That's also why signatures happen in a
+        trail that proves who had the waste at every step. That&apos;s also why signatures happen in a
         strict order in ManifestMate: the generator certifies first, each transporter acknowledges
         receipt in turn, and the designated facility certifies last. RCRAInfo enforces that a
         transporter can&apos;t sign before the generator has, and a facility can&apos;t sign before

@@ -61,7 +61,6 @@ function ManifestLookupPageInner() {
         if (result.success) setManifest(result.manifest);
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the URL's mtn param itself changes
   }, [deepLinkMtn]);
 
   return (

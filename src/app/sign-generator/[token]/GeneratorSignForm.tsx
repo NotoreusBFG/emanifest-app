@@ -49,7 +49,7 @@ export function GeneratorSignForm({ token, session }: { token: string; session: 
     <div>
       <p style={{ fontSize: "14px", color: "#333" }}>
         <strong>{generatorName}</strong> is shipping manifest <strong>{session.epaMtn}</strong> to{" "}
-        <strong>{session.tsdfName}</strong>, and needs the Generator's certification signed.
+        <strong>{session.tsdfName}</strong>, and needs the Generator&apos;s certification signed.
       </p>
       {session.wasteLineSummary && (
         <p style={{ fontSize: "13px", color: "#666" }}>{session.wasteLineSummary}</p>

@@ -27,8 +27,8 @@ type NavLink = { href: string; label: string };
 
 const GENERATOR_NAV_LINKS: NavLink[] = [
   { href: "/", label: "Home" },
-  { href: "/onboarding", label: "Get set up with EPA" },
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/onboarding", label: "Get set up with EPA" },
   { href: "/manifests/new", label: "Create manifest" },
   { href: "/manifests", label: "Look up manifest" },
   { href: "/ldr", label: "LDR notices" },

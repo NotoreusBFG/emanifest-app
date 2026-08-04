@@ -13,8 +13,7 @@ import {
 import type { OnboardingProgress } from '@/services/onboardingRepository';
 import { brand, brandGradient } from '@/lib/brandColors';
 import { ONBOARDING_VIDEOS } from '@/lib/onboardingVideos';
-
-type StepStatus = 'todo' | 'done' | 'failed';
+import { deriveOnboardingStepStatuses, type StepStatus } from '@/lib/onboardingStatus';
 
 const STATUS_COLOR: Record<StepStatus, string> = {
   todo: '#ccc',
@@ -62,16 +61,13 @@ export default function OnboardingPage() {
     );
   }
 
+  const stepStatuses = deriveOnboardingStepStatuses(progress);
   const statuses: StepStatus[] = [
-    progress.cdxAccountDoneAt ? 'done' : 'todo',
-    progress.epaIdRequestedAt ? 'done' : 'todo',
-    progress.esaCompletedAt ? 'done' : 'todo',
-    progress.apiKeyGeneratedAt ? 'done' : 'todo',
-    progress.apiCredentialsValidatedAt
-      ? 'done'
-      : progress.apiCredentialsEnteredAt
-      ? 'failed'
-      : 'todo',
+    stepStatuses.cdxAccount,
+    stepStatuses.epaId,
+    stepStatuses.esa,
+    stepStatuses.apiKeyGenerated,
+    stepStatuses.apiCredentials,
   ];
   const completeCount = statuses.filter((s) => s === 'done').length;
   const allDone = completeCount === statuses.length;

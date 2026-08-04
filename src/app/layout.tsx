@@ -5,6 +5,7 @@ import Link from "next/link";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/app/actions/authActions";
+import { getAccountType } from "@/services/profileRepository";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default async function RootLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const accountType = user ? await getAccountType(supabase, user.id) : "generator";
 
   return (
     <html
@@ -58,38 +60,55 @@ export default async function RootLayout({
           </Link>
 
           {user ? (
-            <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
-              <Link href="/" className="text-brand-navy hover:text-brand-blue">
-                Home
-              </Link>
-              <Link href="/onboarding" className="text-brand-navy hover:text-brand-blue">
-                Get set up with EPA
-              </Link>
-              <Link href="/dashboard" className="text-brand-navy hover:text-brand-blue">
-                Dashboard
-              </Link>
-              <Link href="/manifests/new" className="text-brand-navy hover:text-brand-blue">
-                Create manifest
-              </Link>
-              <Link href="/manifests" className="text-brand-navy hover:text-brand-blue">
-                Look up manifest
-              </Link>
-              <Link href="/ldr" className="text-brand-navy hover:text-brand-blue">
-                LDR notices
-              </Link>
-              <Link href="/transporters" className="text-brand-navy hover:text-brand-blue">
-                Transporters
-              </Link>
-              <Link href="/settings" className="text-brand-navy hover:text-brand-blue">
-                Settings
-              </Link>
-              <Link href="/university" className="text-brand-navy hover:text-brand-blue">
-                Haz Waste University
-              </Link>
-              <Link href="/faq" className="text-brand-navy hover:text-brand-blue">
-                FAQ
-              </Link>
-            </nav>
+            accountType === "transporter" ? (
+              <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+                <Link href="/" className="text-brand-navy hover:text-brand-blue">
+                  Home
+                </Link>
+                <Link href="/transporter-dashboard" className="text-brand-navy hover:text-brand-blue">
+                  Dashboard
+                </Link>
+                <Link href="/university" className="text-brand-navy hover:text-brand-blue">
+                  Haz Waste University
+                </Link>
+                <Link href="/faq" className="text-brand-navy hover:text-brand-blue">
+                  FAQ
+                </Link>
+              </nav>
+            ) : (
+              <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
+                <Link href="/" className="text-brand-navy hover:text-brand-blue">
+                  Home
+                </Link>
+                <Link href="/onboarding" className="text-brand-navy hover:text-brand-blue">
+                  Get set up with EPA
+                </Link>
+                <Link href="/dashboard" className="text-brand-navy hover:text-brand-blue">
+                  Dashboard
+                </Link>
+                <Link href="/manifests/new" className="text-brand-navy hover:text-brand-blue">
+                  Create manifest
+                </Link>
+                <Link href="/manifests" className="text-brand-navy hover:text-brand-blue">
+                  Look up manifest
+                </Link>
+                <Link href="/ldr" className="text-brand-navy hover:text-brand-blue">
+                  LDR notices
+                </Link>
+                <Link href="/transporters" className="text-brand-navy hover:text-brand-blue">
+                  Transporters
+                </Link>
+                <Link href="/settings" className="text-brand-navy hover:text-brand-blue">
+                  Settings
+                </Link>
+                <Link href="/university" className="text-brand-navy hover:text-brand-blue">
+                  Haz Waste University
+                </Link>
+                <Link href="/faq" className="text-brand-navy hover:text-brand-blue">
+                  FAQ
+                </Link>
+              </nav>
+            )
           ) : (
             <nav className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium">
               <Link href="/" className="text-brand-navy hover:text-brand-blue">

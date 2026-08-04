@@ -29,6 +29,11 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
   const password = formData.get("password") as string;
   const next = formData.get("next");
 
+  // Only ever 'generator' or 'transporter' -- never trust the raw form
+  // value beyond that allowlist (same defensive pattern as safeNextPath).
+  const rawAccountType = formData.get("account_type");
+  const accountType = rawAccountType === "transporter" ? "transporter" : "generator";
+
   // Supabase's own confirmation email is the thing that actually lands the
   // new user back on the site (no active session exists until they click
   // it) -- emailRedirectTo is what controls where that click sends them.
@@ -44,7 +49,7 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo },
+    options: { emailRedirectTo, data: { account_type: accountType } },
   });
 
   if (error) return { success: false, error: error.message };

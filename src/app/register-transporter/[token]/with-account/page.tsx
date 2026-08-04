@@ -40,7 +40,7 @@ export default async function RegisterTransporterWithAccountPage({
           brought straight back here afterward.
         </p>
         <Link
-          href={`/login?next=${encodeURIComponent(acceptPath)}`}
+          href={`/login?next=${encodeURIComponent(acceptPath)}&accountType=transporter`}
           style={{ color: brand.blue, fontWeight: 600 }}
         >
           Go to sign in →

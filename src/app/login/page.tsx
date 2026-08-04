@@ -34,6 +34,7 @@ export default function LoginPage() {
 function LoginPageInner() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next");
+  const accountTypeHint = searchParams.get("accountType") === "transporter" ? "transporter" : "generator";
   const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   const [signInState, signInFormAction, signInPending] = useActionState<ActionState, FormData>(
@@ -104,6 +105,26 @@ function LoginPageInner() {
                 required
                 minLength={6}
               />
+              <fieldset className="flex gap-4 text-sm text-gray-700">
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="account_type"
+                    value="generator"
+                    defaultChecked={accountTypeHint === "generator"}
+                  />
+                  I generate hazardous waste
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="account_type"
+                    value="transporter"
+                    defaultChecked={accountTypeHint === "transporter"}
+                  />
+                  I&apos;m a transporter company
+                </label>
+              </fieldset>
               <Button type="submit" disabled={signUpPending} className="mt-2">
                 {signUpPending ? "Creating account..." : "Create account"}
               </Button>

@@ -147,7 +147,55 @@ export async function recordManifestLocally(
     console.error("recordManifestLocally failed (non-fatal):", describePostgrestError(error));
     return null;
   }
+
+  await syncManifestTransporters(supabase, data.id, manifest.transporters);
   return data.id;
+}
+
+/**
+ * Mirrors `manifest.transporters` (the same array `recordManifestLocally`
+ * already reads for the denormalized `transporter_names` display string)
+ * into a real per-leg join table, so a transporter-role dashboard has
+ * something queryable to join against. Same "log and swallow" convention
+ * as `recordManifestLocally` itself — non-fatal, since EPA remains the
+ * source of truth.
+ */
+async function syncManifestTransporters(
+  supabase: SupabaseClient,
+  manifestId: string,
+  transporters: Manifest["transporters"]
+): Promise<void> {
+  const rows = (transporters ?? [])
+    .filter((t) => t.epaSiteId)
+    .map((t, i) => ({
+      manifest_id: manifestId,
+      transporter_epa_site_id: t.epaSiteId,
+      transporter_order: t.order ?? i + 1,
+      transporter_name: t.name || null,
+      updated_at: new Date().toISOString(),
+    }));
+
+  const currentSiteIds = rows.map((r) => r.transporter_epa_site_id);
+
+  // Prune legs no longer on the manifest (rare, but keeps this in sync
+  // rather than accumulating stale legs across re-fetches).
+  let deleteQuery = supabase.from("manifest_transporters").delete().eq("manifest_id", manifestId);
+  deleteQuery =
+    currentSiteIds.length > 0
+      ? deleteQuery.not("transporter_epa_site_id", "in", `(${currentSiteIds.join(",")})`)
+      : deleteQuery;
+  const { error: deleteError } = await deleteQuery;
+  if (deleteError) {
+    console.error("syncManifestTransporters prune failed (non-fatal):", describePostgrestError(deleteError));
+  }
+
+  if (rows.length === 0) return;
+  const { error: upsertError } = await supabase
+    .from("manifest_transporters")
+    .upsert(rows, { onConflict: "manifest_id,transporter_epa_site_id" });
+  if (upsertError) {
+    console.error("syncManifestTransporters upsert failed (non-fatal):", describePostgrestError(upsertError));
+  }
 }
 
 export async function listManifestsForUser(

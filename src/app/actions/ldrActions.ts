@@ -3,8 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   createLdrNotice,
+  deleteLdrNoticeAttachment,
   findActiveLdrNotice,
+  getLdrAttachmentDownloadUrl,
+  getLdrNoticeById,
+  listLdrNoticeAttachments,
   listLdrNoticesForUser,
+  uploadLdrNoticeAttachment,
+  type LdrNoticeAttachment,
 } from "@/services/ldrRepository";
 import {
   computeWasteCodeKey,
@@ -153,4 +159,105 @@ export async function createLdrNoticeAction(
 
   if (!result.success) return { success: false, error: result.error };
   return { success: true, notice: result.notice };
+}
+
+export interface LdrAttachmentWithUrl {
+  id: string;
+  filename: string;
+  fileSizeBytes: number | null;
+  label: string | null;
+  uploadedAt: string;
+  url: string | null;
+}
+
+/** Resolves a short-lived signed URL per attachment (the bucket is
+ * private) -- ownership is enforced by scoping through getLdrNoticeById,
+ * which only ever returns notices belonging to the caller. */
+export async function listLdrNoticeAttachmentsAction(ldrNoticeId: string): Promise<LdrAttachmentWithUrl[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const notice = await getLdrNoticeById(supabase, user.id, ldrNoticeId);
+  if (!notice) return [];
+
+  const attachments = await listLdrNoticeAttachments(supabase, ldrNoticeId);
+  return Promise.all(
+    attachments.map(async (a) => ({
+      id: a.id,
+      filename: a.filename,
+      fileSizeBytes: a.fileSizeBytes,
+      label: a.label,
+      uploadedAt: a.uploadedAt,
+      url: await getLdrAttachmentDownloadUrl(supabase, a.storagePath),
+    }))
+  );
+}
+
+export type UploadLdrAttachmentState =
+  | { success: true; attachment: LdrNoticeAttachment }
+  | { success: false; error: string }
+  | null;
+
+/**
+ * Third-party PDF kept on file alongside an LDR notice (e.g. a lab's LDR
+ * determination letter) — see docs comment on uploadLdrNoticeAttachment.
+ * Capped by next.config.ts's serverActions.bodySizeLimit (4MB).
+ */
+export async function uploadLdrNoticeAttachmentAction(
+  prevState: UploadLdrAttachmentState,
+  formData: FormData
+): Promise<UploadLdrAttachmentState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  const ldrNoticeId = formData.get("ldrNoticeId") as string;
+  const label = (formData.get("label") as string) ?? "";
+  const file = formData.get("file") as File | null;
+
+  if (!ldrNoticeId) return { success: false, error: "Missing LDR notice." };
+  if (!file || file.size === 0) return { success: false, error: "Choose a PDF to upload." };
+  if (file.type !== "application/pdf") return { success: false, error: "Only PDF files are supported." };
+
+  const notice = await getLdrNoticeById(supabase, user.id, ldrNoticeId);
+  if (!notice) return { success: false, error: "LDR notice not found." };
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const result = await uploadLdrNoticeAttachment(
+    supabase,
+    user.id,
+    ldrNoticeId,
+    { name: file.name, bytes },
+    label
+  );
+  if (!result.success) return { success: false, error: result.error };
+  return { success: true, attachment: result.attachment };
+}
+
+/** Re-verifies ownership from the DB row itself (not a client-supplied
+ * storage path) before deleting anything from Storage. */
+export async function deleteLdrNoticeAttachmentAction(
+  attachmentId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  const { data: row, error: fetchError } = await supabase
+    .from("ldr_notice_attachments")
+    .select("storage_path")
+    .eq("id", attachmentId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (fetchError) return { success: false, error: fetchError.message };
+  if (!row) return { success: false, error: "Attachment not found." };
+
+  return deleteLdrNoticeAttachment(supabase, attachmentId, row.storage_path);
 }

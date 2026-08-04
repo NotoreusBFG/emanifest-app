@@ -217,6 +217,43 @@ export async function listManifestsForUser(
   return data;
 }
 
+export interface RecentManifestSearch {
+  epaMtn: string;
+  generatorName: string | null;
+  designatedFacilityName: string | null;
+  updatedAt: string;
+}
+
+/**
+ * Every successful lookup (not just a save/sign) upserts into `manifests`
+ * with a fresh `updated_at` — see `fetchManifestForCurrentUser` in
+ * manifestActions.ts — so ordering this same table by `updated_at` doubles
+ * as "most recently searched," no separate search-log table needed.
+ */
+export async function listRecentManifestsForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  limit: number
+): Promise<RecentManifestSearch[]> {
+  const { data, error } = await supabase
+    .from("manifests")
+    .select("epa_mtn, generator_name, designated_facility_name, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("listRecentManifestsForUser failed:", describePostgrestError(error));
+    return [];
+  }
+  return data.map((row) => ({
+    epaMtn: row.epa_mtn,
+    generatorName: row.generator_name,
+    designatedFacilityName: row.designated_facility_name,
+    updatedAt: row.updated_at,
+  }));
+}
+
 export interface ManifestDocumentRecord {
   id: string;
   filename: string;

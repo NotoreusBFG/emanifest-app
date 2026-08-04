@@ -199,3 +199,114 @@ export async function createLdrNotice(
   if (error) return { success: false, error: describePostgrestError(error) };
   return { success: true, notice: fromRow(data as LdrNoticeRow) };
 }
+
+export interface LdrNoticeAttachment {
+  id: string;
+  filename: string;
+  storagePath: string;
+  fileSizeBytes: number | null;
+  label: string | null;
+  uploadedAt: string;
+}
+
+const ATTACHMENT_SELECT_COLUMNS = "id, filename, storage_path, file_size_bytes, label, uploaded_at";
+
+function attachmentFromRow(row: {
+  id: string;
+  filename: string;
+  storage_path: string;
+  file_size_bytes: number | null;
+  label: string | null;
+  uploaded_at: string;
+}): LdrNoticeAttachment {
+  return {
+    id: row.id,
+    filename: row.filename,
+    storagePath: row.storage_path,
+    fileSizeBytes: row.file_size_bytes,
+    label: row.label,
+    uploadedAt: row.uploaded_at,
+  };
+}
+
+/**
+ * Stores a third-party PDF (e.g. a lab's LDR determination letter) kept on
+ * file alongside a notice -- separate bucket/table from
+ * `manifest_documents` (EPA-fetched signed-manifest PDFs), since these are
+ * user-supplied, not RCRAInfo attachments. Path convention matches
+ * manifest-documents: {user_id}/{ldr_notice_id}/{filename}, which is what
+ * the storage.objects RLS policies check against.
+ */
+export async function uploadLdrNoticeAttachment(
+  supabase: SupabaseClient,
+  userId: string,
+  ldrNoticeId: string,
+  file: { name: string; bytes: Uint8Array },
+  label: string | null
+): Promise<{ success: true; attachment: LdrNoticeAttachment } | { success: false; error: string }> {
+  const storagePath = `${userId}/${ldrNoticeId}/${Date.now()}-${file.name}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("ldr-attachments")
+    .upload(storagePath, file.bytes, { contentType: "application/pdf", upsert: false });
+  if (uploadError) return { success: false, error: uploadError.message };
+
+  const { data, error } = await supabase
+    .from("ldr_notice_attachments")
+    .insert({
+      ldr_notice_id: ldrNoticeId,
+      user_id: userId,
+      filename: file.name,
+      storage_path: storagePath,
+      file_size_bytes: file.bytes.length,
+      label: label?.trim() || null,
+    })
+    .select(ATTACHMENT_SELECT_COLUMNS)
+    .single();
+
+  if (error) return { success: false, error: describePostgrestError(error) };
+  return { success: true, attachment: attachmentFromRow(data) };
+}
+
+export async function listLdrNoticeAttachments(
+  supabase: SupabaseClient,
+  ldrNoticeId: string
+): Promise<LdrNoticeAttachment[]> {
+  const { data, error } = await supabase
+    .from("ldr_notice_attachments")
+    .select(ATTACHMENT_SELECT_COLUMNS)
+    .eq("ldr_notice_id", ldrNoticeId)
+    .order("uploaded_at", { ascending: false });
+
+  if (error) {
+    console.error("listLdrNoticeAttachments failed:", describePostgrestError(error));
+    return [];
+  }
+  return data.map(attachmentFromRow);
+}
+
+/** Short-lived signed URL — the bucket is private, so attachments aren't reachable without one. */
+export async function getLdrAttachmentDownloadUrl(
+  supabase: SupabaseClient,
+  storagePath: string
+): Promise<string | null> {
+  const { data, error } = await supabase.storage.from("ldr-attachments").createSignedUrl(storagePath, 600);
+  if (error) {
+    console.error("getLdrAttachmentDownloadUrl failed:", error.message);
+    return null;
+  }
+  return data.signedUrl;
+}
+
+export async function deleteLdrNoticeAttachment(
+  supabase: SupabaseClient,
+  attachmentId: string,
+  storagePath: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const { error: storageError } = await supabase.storage.from("ldr-attachments").remove([storagePath]);
+  if (storageError) return { success: false, error: storageError.message };
+
+  const { error } = await supabase.from("ldr_notice_attachments").delete().eq("id", attachmentId);
+  if (error) return { success: false, error: describePostgrestError(error) };
+  return { success: true };
+}

@@ -8,6 +8,7 @@ import { LDR_MANAGEMENT_OPTIONS } from "@/lib/ldr/certificationText";
 import { LDR_DISCLAIMER } from "@/lib/ldr/disclaimer";
 import { brand } from "@/lib/brandColors";
 import { PrintButton } from "./PrintButton";
+import { AttachmentsSection } from "./AttachmentsSection";
 
 function formatAddress(site: SiteDetails | null): string {
   const a = site?.siteAddress;
@@ -156,6 +157,8 @@ export default async function LdrNoticeDetailPage({ params }: { params: Promise<
       <p className="no-print" style={{ fontSize: "12px", color: "#888", marginTop: "10px" }}>
         Retain a copy on-site for 3 years from the date this waste was last sent (40 CFR 268.7(a)(8)).
       </p>
+
+      <AttachmentsSection ldrNoticeId={notice.id} />
     </div>
   );
 }

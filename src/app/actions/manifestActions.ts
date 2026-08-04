@@ -9,6 +9,8 @@ import {
   listDocumentsForManifest,
   getDocumentDownloadUrl,
   recordSignatureConsent,
+  listRecentManifestsForUser,
+  type RecentManifestSearch,
 } from "@/services/manifestRepository";
 import {
   getWasteLineMetadataForManifest,
@@ -65,6 +67,18 @@ async function fetchManifestForCurrentUser(
   } catch (err) {
     return { success: false, error: formatRcrainfoError(err) };
   }
+}
+
+/** Last 10 manifests this user has looked up, created, or signed through
+ * ManifestMate, most recent first — feeds the lookup page's "Recent
+ * searches" list. */
+export async function listRecentManifestSearchesAction(): Promise<RecentManifestSearch[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  return listRecentManifestsForUser(supabase, user.id, 10);
 }
 
 export async function lookupManifestAction(

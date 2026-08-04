@@ -29,7 +29,7 @@ const CRITERIA: { key: keyof OnboardingStepStatuses; label: string }[] = [
   { key: "epaId", label: "EPA ID number" },
   { key: "esa", label: "Site Manager + signature agreement" },
   { key: "apiKeyGenerated", label: "API ID/Key generated" },
-  { key: "apiCredentials", label: "API keys" },
+  { key: "apiCredentials", label: "API Keys loaded into Manifest Mate" },
 ];
 
 const STATUS_TITLE: Record<StepStatus, string> = {

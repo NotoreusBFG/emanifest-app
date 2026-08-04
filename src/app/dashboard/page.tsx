@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listManifestIdsWithDocuments, listManifestsForUser } from "@/services/manifestRepository";
@@ -127,17 +128,34 @@ export default async function DashboardPage() {
                       transporterSignedAt={m.transporter_signed_at}
                       facilitySignedAt={m.facility_signed_at}
                     />
-                    {manifestIdsWithDocuments.has(m.id) && (
-                      <Link
-                        href={`/api/manifests/${encodeURIComponent(m.epa_mtn)}/attachments`}
-                        title="View/print the signed manifest"
-                        aria-label="View/print the signed manifest"
-                        className="flex h-7 w-7 items-center justify-center rounded-full border text-sm"
-                        style={{ borderColor: brand.blue }}
-                      >
-                        🖨️
-                      </Link>
-                    )}
+                    <div className="flex flex-col items-center gap-1.5">
+                      {manifestIdsWithDocuments.has(m.id) && (
+                        <Link
+                          href={`/api/manifests/${encodeURIComponent(m.epa_mtn)}/attachments`}
+                          title="View/print the signed manifest"
+                          aria-label="View/print the signed manifest"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border text-sm"
+                          style={{ borderColor: brand.blue }}
+                        >
+                          🖨️
+                        </Link>
+                      )}
+                      {ldrNotice && (
+                        <Link
+                          href={`/ldr/${ldrNotice.id}`}
+                          title="LDR notice on file — do not land dispose without required treatment"
+                          aria-label="LDR notice on file"
+                        >
+                          <Image
+                            src="/no-trash.jpeg"
+                            alt="LDR notice on file"
+                            width={28}
+                            height={28}
+                            className="h-7 w-7 rounded-full object-contain"
+                          />
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
 

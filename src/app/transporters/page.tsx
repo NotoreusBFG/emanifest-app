@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { listTransporterInvitesForOwner, type TransporterInviteSummary } from "@/services/transporterRegistrationRepository";
 import { Card } from "@/components/ui/Card";
-import { Badge, type BadgeVariant } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/Badge";
 import { InviteTransporterForm } from "./InviteTransporterForm";
+import { InviteRowActions } from "./InviteRowActions";
+import { deriveInviteStatus } from "./inviteStatus";
 
 /**
  * Standalone, proactive counterpart to the per-manifest "Invite as
@@ -51,24 +53,8 @@ export default async function TransportersPage() {
   );
 }
 
-function deriveInviteBadge(invite: TransporterInviteSummary): { variant: BadgeVariant; label: string } {
-  if (invite.transporterRevokedAt) {
-    return { variant: "rejected", label: "Revoked by transporter" };
-  }
-  if (invite.transporterCompanyName) {
-    return { variant: "received", label: "Registered" };
-  }
-  if (invite.usedAt) {
-    return { variant: "in_transit", label: "Registration in progress" };
-  }
-  if (new Date(invite.expiresAt) < new Date()) {
-    return { variant: "overdue", label: "Invite expired" };
-  }
-  return { variant: "scheduled", label: "Invited — awaiting registration" };
-}
-
 function InviteRow({ invite }: { invite: TransporterInviteSummary }) {
-  const badge = deriveInviteBadge(invite);
+  const { variant, label, status } = deriveInviteStatus(invite);
   const name = invite.transporterCompanyName ?? invite.companyNameSnapshot ?? invite.epaSiteId;
 
   return (
@@ -83,8 +69,9 @@ function InviteRow({ invite }: { invite: TransporterInviteSummary }) {
           {invite.transporterHasLoginAccount && (
             <p className="mt-1 text-xs text-gray-500">🔑 Has a ManifestMate login</p>
           )}
+          <InviteRowActions invite={invite} status={status} />
         </div>
-        <Badge variant={badge.variant}>{badge.label}</Badge>
+        <Badge variant={variant}>{label}</Badge>
       </div>
     </Card>
   );

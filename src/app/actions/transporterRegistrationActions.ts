@@ -22,9 +22,12 @@ import {
   updateTransporterPinByManagementToken,
   listTransporterInvitesForOwner,
   getTransporterNotifyContact,
+  cancelTransporterRegistrationInvite,
+  revokeTransporterForInvitingGenerator,
   type TransporterRegistrationSession,
   type TransporterManagementSession,
   type TransporterInviteSummary,
+  type TransporterNotifyContact,
 } from "@/services/transporterRegistrationRepository";
 
 function clientFor(credentials: { apiId: string; apiKey: string }) {
@@ -390,12 +393,12 @@ export type ManageTransporterActionState = { success: true } | { success: false;
  * "no silent surprises" pattern (post-sign confirmations, registration
  * -complete notices, etc. all work this way). Never blocks/fails the
  * revoke itself; a transporter with no invite history (added via the old
- * Phase-1 admin script) simply has no one to notify.
+ * Phase-1 admin script) simply has no one to notify. Shared by both
+ * revoke paths (management-token-based and generator-initiated).
  */
-async function notifyOnRevoke(supabase: Awaited<ReturnType<typeof createClient>>, managementToken: string) {
+async function sendRevokeNotification(contact: TransporterNotifyContact | null) {
+  if (!contact) return;
   try {
-    const contact = await getTransporterNotifyContact(supabase, managementToken);
-    if (!contact) return;
     const companyName = contact.companyName ?? "Your company";
     const message = `ManifestMate: signing access for ${companyName} was just revoked. If this wasn't you, contact whoever manages your ManifestMate registration.`;
     if (contact.recipientPhone) {
@@ -413,7 +416,7 @@ async function notifyOnRevoke(supabase: Awaited<ReturnType<typeof createClient>>
       }
     }
   } catch (err) {
-    console.error("notifyOnRevoke failed (non-fatal, revoke already succeeded):", err);
+    console.error("sendRevokeNotification failed (non-fatal, revoke already succeeded):", err);
   }
 }
 
@@ -421,7 +424,8 @@ export async function revokeTransporterAction(managementToken: string): Promise<
   const supabase = await createClient();
   try {
     await revokeTransporterByManagementToken(supabase, managementToken);
-    await notifyOnRevoke(supabase, managementToken);
+    const contact = await getTransporterNotifyContact(supabase, managementToken).catch(() => null);
+    await sendRevokeNotification(contact);
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error." };
@@ -432,6 +436,45 @@ export async function unrevokeTransporterAction(managementToken: string): Promis
   const supabase = await createClient();
   try {
     await unrevokeTransporterByManagementToken(supabase, managementToken);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error." };
+  }
+}
+
+/** Generator-facing: cancels a pending invite they sent, before it's completed. */
+export async function cancelTransporterInviteAction(tokenId: string): Promise<ManageTransporterActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+  try {
+    await cancelTransporterRegistrationInvite(supabase, tokenId);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Unknown error." };
+  }
+}
+
+/**
+ * Generator-facing: revokes an already-registered transporter's signing
+ * access directly from the inviting generator's own /transporters list —
+ * see revoke_transporter_for_inviting_generator's migration comment for
+ * the deliberate tradeoff this represents (any generator who's invited a
+ * shared transporter can now cut off its access for every other
+ * generator too). Still sends the same best-effort notification to
+ * whoever originally registered, regardless of who revoked it.
+ */
+export async function revokeTransporterAsInvitingGeneratorAction(epaSiteId: string): Promise<ManageTransporterActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+  try {
+    const contact = await revokeTransporterForInvitingGenerator(supabase, epaSiteId);
+    await sendRevokeNotification(contact);
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error." };

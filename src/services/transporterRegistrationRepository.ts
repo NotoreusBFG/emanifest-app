@@ -231,6 +231,7 @@ export interface TransporterInviteSummary {
   createdAt: string;
   expiresAt: string;
   usedAt: string | null;
+  cancelledAt: string | null;
   transporterCompanyName: string | null;
   transporterRevokedAt: string | null;
   transporterPinSetAt: string | null;
@@ -251,9 +252,41 @@ export async function listTransporterInvitesForOwner(supabase: SupabaseClient): 
     createdAt: row.created_at as string,
     expiresAt: row.expires_at as string,
     usedAt: row.used_at as string | null,
+    cancelledAt: row.cancelled_at as string | null,
     transporterCompanyName: row.transporter_company_name as string | null,
     transporterRevokedAt: row.transporter_revoked_at as string | null,
     transporterPinSetAt: row.transporter_pin_set_at as string | null,
     transporterHasLoginAccount: Boolean(row.transporter_has_login_account),
   }));
+}
+
+/** Generator-facing: cancels an invite they created, only while it's still outstanding. */
+export async function cancelTransporterRegistrationInvite(supabase: SupabaseClient, tokenId: string): Promise<void> {
+  const { error } = await supabase.rpc("cancel_transporter_registration_invite", { p_token_id: tokenId });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Generator-facing: revokes an already-registered transporter's signing
+ * access, keyed on "this generator has invited this site" rather than the
+ * management_token — see revoke_transporter_for_inviting_generator's
+ * migration comment for the deliberate tradeoff this represents. Returns
+ * the notify contact directly so the caller can send the same best-effort
+ * revoke notification without a second round trip.
+ */
+export async function revokeTransporterForInvitingGenerator(
+  supabase: SupabaseClient,
+  epaSiteId: string
+): Promise<TransporterNotifyContact | null> {
+  const { data, error } = await supabase.rpc("revoke_transporter_for_inviting_generator", {
+    p_epa_site_id: epaSiteId,
+  });
+  if (error) throw new Error(error.message);
+  const row = data?.[0];
+  if (!row) return null;
+  return {
+    recipientPhone: row.recipient_phone ?? null,
+    recipientEmail: row.recipient_email ?? null,
+    companyName: row.company_name ?? null,
+  };
 }

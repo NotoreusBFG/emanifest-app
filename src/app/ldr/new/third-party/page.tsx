@@ -1,9 +1,15 @@
 "use client";
 
-import { Suspense, useActionState, useEffect } from "react";
+import { Suspense, useActionState, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { createThirdPartyLdrNoticeAction, type CreateThirdPartyLdrNoticeState } from "@/app/actions/ldrActions";
+import {
+  createThirdPartyLdrNoticeAction,
+  listGeneratorSitesForUserAction,
+  type CreateThirdPartyLdrNoticeState,
+} from "@/app/actions/ldrActions";
+import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
+import type { GeneratorSiteOption } from "@/services/manifestRepository";
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 
@@ -27,6 +33,13 @@ function NewThirdPartyLdrNoticePageInner() {
     null
   );
 
+  const [generatorSites, setGeneratorSites] = useState<GeneratorSiteOption[]>([]);
+  const [generatorEpaSiteId, setGeneratorEpaSiteId] = useState("");
+
+  useEffect(() => {
+    listGeneratorSitesForUserAction().then(setGeneratorSites);
+  }, []);
+
   // Once the row exists, hand off to the detail page -- that's where the
   // actual PDF gets attached, via the same AttachmentsSection used on
   // every LDR notice.
@@ -43,15 +56,55 @@ function NewThirdPartyLdrNoticePageInner() {
       </p>
       <h1 style={{ color: brand.navy }}>Upload a notice I already have</h1>
       <p style={{ color: "#666" }}>
-        Record who sent this LDR notice and which shipment it belongs to, then attach the PDF on
-        the next screen. ManifestMate isn&apos;t generating or certifying anything here — it&apos;s
+        Record which of your sites this notice is for and who sent it, then attach the PDF on the
+        next screen. ManifestMate isn&apos;t generating or certifying anything here — it&apos;s
         just keeping the document on file with the shipment for you.
       </p>
 
       <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "16px" }}>
+        <input type="hidden" name="generatorEpaSiteId" value={generatorEpaSiteId} />
+
+        <div>
+          <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>Generator</label>
+          {generatorSites.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
+              {generatorSites.map((site) => (
+                <button
+                  key={site.epaSiteId}
+                  type="button"
+                  onClick={() => setGeneratorEpaSiteId(site.epaSiteId)}
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: "999px",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    border: `1px solid ${site.epaSiteId === generatorEpaSiteId ? brand.blue : "#ddd"}`,
+                    background: site.epaSiteId === generatorEpaSiteId ? brand.tint : "white",
+                    color: site.epaSiteId === generatorEpaSiteId ? brand.navy : "#555",
+                  }}
+                >
+                  {site.name || site.epaSiteId}
+                </button>
+              ))}
+            </div>
+          )}
+          <SiteSearchField
+            siteType="Generator"
+            placeholder="Or search a generator by name…"
+            onSelect={(site) => setGeneratorEpaSiteId(site.epaSiteId)}
+          />
+          <input
+            value={generatorEpaSiteId}
+            onChange={(e) => setGeneratorEpaSiteId(e.target.value)}
+            placeholder="EPA ID"
+            required
+            style={inputStyle}
+          />
+        </div>
+
         <div>
           <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
-            Who prepared or sent this notice?
+            Who prepared or sent this notice? (disposal facility, broker, lab, etc.)
           </label>
           <input
             name="thirdPartyName"

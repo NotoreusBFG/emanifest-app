@@ -217,6 +217,48 @@ export async function listManifestsForUser(
   return data;
 }
 
+export interface GeneratorSiteOption {
+  epaSiteId: string;
+  name: string | null;
+}
+
+/**
+ * Distinct generator EPA site IDs this user has actually filed/looked up
+ * manifests for -- the practical "sites you manage" list, since there's
+ * no dedicated site-permissions table (manifest creation only ever runs
+ * under the caller's own RCRAInfo credentials, per
+ * getRcrainfoClientForUser). Used as quick-pick chips on the third-party
+ * LDR form instead of forcing a fresh name search every time. Deduped
+ * client-side since the JS client has no `distinct on` -- rows are
+ * already newest-first, so the first occurrence of each site ID wins.
+ */
+export async function listGeneratorSitesForUser(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<GeneratorSiteOption[]> {
+  const { data, error } = await supabase
+    .from("manifests")
+    .select("generator_epa_site_id, generator_name")
+    .eq("user_id", userId)
+    .not("generator_epa_site_id", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error("listGeneratorSitesForUser failed:", describePostgrestError(error));
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const options: GeneratorSiteOption[] = [];
+  for (const row of data as { generator_epa_site_id: string; generator_name: string | null }[]) {
+    if (seen.has(row.generator_epa_site_id)) continue;
+    seen.add(row.generator_epa_site_id);
+    options.push({ epaSiteId: row.generator_epa_site_id, name: row.generator_name });
+  }
+  return options.slice(0, 15);
+}
+
 export interface RecentManifestSearch {
   epaMtn: string;
   generatorName: string | null;

@@ -14,6 +14,7 @@ import {
   uploadLdrNoticeAttachment,
   type LdrNoticeAttachment,
 } from "@/services/ldrRepository";
+import { listGeneratorSitesForUser, type GeneratorSiteOption } from "@/services/manifestRepository";
 import {
   computeWasteCodeKey,
   type LdrCertification,
@@ -22,6 +23,17 @@ import {
   type LdrWasteLineEntry,
 } from "@/lib/ldr/types";
 import { LDR_MANAGEMENT_OPTIONS } from "@/lib/ldr/certificationText";
+
+/** Quick-pick list for the third-party LDR form's generator field -- the
+ * distinct sites this user has actually filed/looked up manifests for. */
+export async function listGeneratorSitesForUserAction(): Promise<GeneratorSiteOption[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  return listGeneratorSitesForUser(supabase, user.id);
+}
 
 export async function listLdrNoticesAction(): Promise<LdrNotice[]> {
   const supabase = await createClient();
@@ -179,12 +191,14 @@ export async function createThirdPartyLdrNoticeAction(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not logged in." };
 
+  const generatorEpaSiteId = (formData.get("generatorEpaSiteId") as string)?.trim();
   const thirdPartyName = (formData.get("thirdPartyName") as string)?.trim();
   const epaMtn = (formData.get("epaMtn") as string)?.trim() || null;
 
+  if (!generatorEpaSiteId) return { success: false, error: "Choose or enter the generator this notice is for." };
   if (!thirdPartyName) return { success: false, error: "Enter who prepared or sent this notice." };
 
-  const result = await createThirdPartyLdrNotice(supabase, user.id, { epaMtn, thirdPartyName });
+  const result = await createThirdPartyLdrNotice(supabase, user.id, { generatorEpaSiteId, epaMtn, thirdPartyName });
   if (!result.success) return { success: false, error: result.error };
   return { success: true, notice: result.notice };
 }

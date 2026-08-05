@@ -55,9 +55,7 @@ export default async function LdrNoticesPage() {
                 <tr key={n.id} className="border-b border-gray-50 last:border-0">
                   <td className="p-3">
                     <Link href={`/ldr/${n.id}`} className="text-brand-blue hover:underline">
-                      {n.source === "third_party"
-                        ? n.thirdPartyName || "Third-party notice"
-                        : n.generatorEpaSiteId}
+                      {n.generatorEpaSiteId ?? "—"}
                     </Link>
                   </td>
                   <td className="p-3">
@@ -77,9 +75,13 @@ export default async function LdrNoticesPage() {
                     )}
                   </td>
                   <td className="p-3">
-                    {n.receivingFacilityName
-                      ? `${n.receivingFacilityName}${n.receivingFacilityEpaSiteId ? ` (${n.receivingFacilityEpaSiteId})` : ""}`
-                      : "—"}
+                    {n.source === "third_party"
+                      ? n.thirdPartyName
+                        ? `${n.thirdPartyName} (third-party)`
+                        : "—"
+                      : n.receivingFacilityName
+                        ? `${n.receivingFacilityName}${n.receivingFacilityEpaSiteId ? ` (${n.receivingFacilityEpaSiteId})` : ""}`
+                        : "—"}
                   </td>
                   <td className="p-3">{n.wasteCodeKey || "—"}</td>
                   <td className="p-3">

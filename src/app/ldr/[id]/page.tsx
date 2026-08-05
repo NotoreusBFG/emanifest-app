@@ -78,8 +78,22 @@ export default async function LdrNoticeDetailPage({ params }: { params: Promise<
           <table style={{ width: "100%", borderCollapse: "collapse", margin: "16px 0" }}>
             <tbody>
               <tr>
-                <td style={{ padding: "6px 0", verticalAlign: "top", fontWeight: 600, width: "160px" }}>
-                  Prepared/sent by
+                <td style={{ padding: "6px 0", verticalAlign: "top", fontWeight: 600, width: "160px" }}>Generator</td>
+                <td style={{ padding: "6px 0" }}>
+                  {notice.generatorEpaSiteId ? (
+                    <>
+                      {generatorSite?.name ?? notice.generatorEpaSiteId} ({notice.generatorEpaSiteId})
+                      <br />
+                      <span style={{ color: "#666", fontSize: "13px" }}>{formatAddress(generatorSite)}</span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: "6px 0", verticalAlign: "top", fontWeight: 600 }}>
+                  Disposal facility / notice from
                 </td>
                 <td style={{ padding: "6px 0" }}>{notice.thirdPartyName || "—"}</td>
               </tr>

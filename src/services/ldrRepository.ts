@@ -211,6 +211,10 @@ export async function createLdrNotice(
 }
 
 export interface CreateThirdPartyLdrNoticeInput {
+  /** The generator site this notice is for -- required, same as the
+   * prepared-notice path, so the notice shows up correctly against the
+   * generator's own record rather than under the third party's name. */
+  generatorEpaSiteId: string;
   /** Optional -- can be left blank and attached later via
    * attachMtnToLdrNotice, per the user's own "unattached/orphaned until
    * you go back and add it" framing. */
@@ -233,6 +237,7 @@ export async function createThirdPartyLdrNotice(
     .from("ldr_notices")
     .insert({
       user_id: userId,
+      generator_epa_site_id: input.generatorEpaSiteId,
       epa_mtn: input.epaMtn,
       third_party_name: input.thirdPartyName,
       source: "third_party",

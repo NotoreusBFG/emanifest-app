@@ -55,7 +55,7 @@ export default async function LdrNoticesPage() {
                 <tr key={n.id} className="border-b border-gray-50 last:border-0">
                   <td className="p-3">
                     <Link href={`/ldr/${n.id}`} className="text-brand-blue hover:underline">
-                      {n.generatorEpaSiteId}
+                      {n.generatorEpaSiteId ?? "—"}
                     </Link>
                   </td>
                   <td className="p-3">
@@ -66,16 +66,28 @@ export default async function LdrNoticesPage() {
                       >
                         {n.epaMtn}
                       </Link>
+                    ) : n.source === "third_party" ? (
+                      <Link href={`/ldr/${n.id}`} className="text-amber-600 hover:underline">
+                        Unattached — add MTN
+                      </Link>
                     ) : (
                       <span className="text-gray-400">— (standalone)</span>
                     )}
                   </td>
                   <td className="p-3">
-                    {n.receivingFacilityName} ({n.receivingFacilityEpaSiteId})
+                    {n.source === "third_party"
+                      ? n.thirdPartyName
+                        ? `${n.thirdPartyName} (third-party)`
+                        : "—"
+                      : n.receivingFacilityName
+                        ? `${n.receivingFacilityName}${n.receivingFacilityEpaSiteId ? ` (${n.receivingFacilityEpaSiteId})` : ""}`
+                        : "—"}
                   </td>
                   <td className="p-3">{n.wasteCodeKey || "—"}</td>
                   <td className="p-3">
-                    {Array.from(new Set(n.wasteLines.map((w) => w.howManaged))).sort().join(", ") || "—"}
+                    {n.source === "third_party"
+                      ? "Third-party"
+                      : Array.from(new Set(n.wasteLines.map((w) => w.howManaged))).sort().join(", ") || "—"}
                   </td>
                   <td className="p-3">
                     {n.supersededAt ? (

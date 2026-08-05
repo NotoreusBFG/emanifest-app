@@ -16,6 +16,7 @@ export default function ManifestsAndDotArticle() {
         { label: "40 CFR 262.20-262.27 (manifest requirements)", href: "https://www.ecfr.gov/current/title-40/chapter-I/subchapter-I/part-262/subpart-B" },
         { label: "49 CFR 172.101 (DOT Hazardous Materials Table)", href: "https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-C/part-172/subpart-B/section-172.101" },
         { label: "EPA Form 8700-22 instructions" },
+        { label: "PHMSA Hazmat Interpretation Letter Ref. No. 22-0022 (net vs. gross weight on shipping papers)", href: "https://www.phmsa.dot.gov/regulations/title49/interp/22-0022" },
       ]}
     >
       <p>
@@ -70,6 +71,41 @@ export default function ManifestsAndDotArticle() {
           In ManifestMate, this is exactly what <Link href="/manifests/new" className="text-brand-blue hover:underline">Create a manifest</Link> builds,
           and what each &quot;Sign as…&quot; button on the <Link href="/manifests" className="text-brand-blue hover:underline">lookup page</Link> certifies
           — the signature order (generator → transporter(s) → facility) is enforced by RCRAInfo itself, not just by ManifestMate&apos;s UI.
+        </p>
+      </Callout>
+
+      <SectionHeading>Net weight or gross weight?</SectionHeading>
+      <p>
+        DOT lets a shipper report either the <strong>net weight</strong> (the waste itself) or the{" "}
+        <strong>gross weight</strong> (waste plus its container/packaging) on a shipping paper — a
+        PHMSA interpretation letter (Ref. No. 22-0022) confirms either is acceptable. In practice,
+        many experienced preparers default to gross weight anyway, since that&apos;s what a roadside
+        inspection is more likely to check against.
+      </p>
+      <p>
+        The tricky case is a <strong>lab pack</strong> containing a small amount of acutely
+        hazardous (P-listed) waste packed alongside other materials. Reporting the whole lab pack&apos;s
+        gross weight under the acute waste code can make it look like the entire weight is acutely
+        hazardous, when only a fraction of it actually is — which can distort a generator&apos;s
+        monthly hazardous-waste-generator status determination if that number gets reused elsewhere.
+        (That monthly status determination is calculated independently, from actual waste weight —
+        it doesn&apos;t pull from manifest data — but an inflated number on the manifest itself can
+        still cause confusion later.)
+      </p>
+      <ul className="list-disc pl-6 space-y-2">
+        <li>Where practical, list the acute waste on its own waste line, separate from the rest of the lab pack&apos;s contents.</li>
+        <li>
+          Use <strong>Box 14 (Special Handling Instructions)</strong> to note the actual acute-waste
+          weight, if it&apos;s not obvious from the waste line itself — this is exactly what that
+          field is for.
+        </li>
+        <li>Keep your own packing list or inventory sheet for each lab pack — it&apos;s not a manifest requirement, but it&apos;s what you&apos;ll need if anyone ever asks how you arrived at a quantity.</li>
+      </ul>
+      <Callout>
+        <p className="text-sm">
+          In ManifestMate, every waste line has a Special Handling Instructions field that prints
+          directly into Box 14 — use it for this kind of clarifying detail whenever a single
+          quantity number doesn&apos;t tell the whole story.
         </p>
       </Callout>
 

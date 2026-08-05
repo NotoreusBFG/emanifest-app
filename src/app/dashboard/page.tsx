@@ -1,13 +1,16 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listManifestIdsWithDocuments, listManifestsForUser } from "@/services/manifestRepository";
 import { listActiveLdrNoticesByMtn } from "@/services/ldrRepository";
 import { listDriverSignInfoByMtn } from "@/services/driverSignRepository";
+import { getOnboardingProgress } from "@/services/onboardingRepository";
 import { brand } from "@/lib/brandColors";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { SendForSignature } from "@/components/SendForSignature";
+import { AccountStatusCard } from "@/components/AccountStatusCard";
 import { deriveManifestBadge } from "@/lib/manifestStatusBadge";
 import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR } from "@/lib/transporterTiming";
 
@@ -39,6 +42,7 @@ export default async function DashboardPage() {
   const driverSignInfoByMtn = user
     ? await listDriverSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn))
     : {};
+  const onboardingProgress = user ? await getOnboardingProgress(supabase, user.id) : null;
 
   const receivedCount = manifests.filter(
     (m) => deriveManifestBadge(m.generator_signed_at, m.transporter_signed_at, m.facility_signed_at)?.variant === "received"
@@ -50,6 +54,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-10">
+      {user && onboardingProgress && (
+        <div className="mb-6">
+          <AccountStatusCard email={user.email ?? ""} progress={onboardingProgress} />
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-brand-navy">Your manifests</h1>
@@ -118,17 +128,34 @@ export default async function DashboardPage() {
                       transporterSignedAt={m.transporter_signed_at}
                       facilitySignedAt={m.facility_signed_at}
                     />
-                    {manifestIdsWithDocuments.has(m.id) && (
-                      <Link
-                        href={`/api/manifests/${encodeURIComponent(m.epa_mtn)}/attachments`}
-                        title="View/print the signed manifest"
-                        aria-label="View/print the signed manifest"
-                        className="flex h-7 w-7 items-center justify-center rounded-full border text-sm"
-                        style={{ borderColor: brand.blue }}
-                      >
-                        🖨️
-                      </Link>
-                    )}
+                    <div className="flex flex-col items-center gap-1.5">
+                      {manifestIdsWithDocuments.has(m.id) && (
+                        <Link
+                          href={`/api/manifests/${encodeURIComponent(m.epa_mtn)}/attachments`}
+                          title="View/print the signed manifest"
+                          aria-label="View/print the signed manifest"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border text-sm"
+                          style={{ borderColor: brand.blue }}
+                        >
+                          🖨️
+                        </Link>
+                      )}
+                      {ldrNotice && (
+                        <Link
+                          href={`/ldr/${ldrNotice.id}`}
+                          title="LDR notice on file — do not land dispose without required treatment"
+                          aria-label="LDR notice on file"
+                        >
+                          <Image
+                            src="/no-trash.jpeg"
+                            alt="LDR notice on file"
+                            width={28}
+                            height={28}
+                            className="h-7 w-7 rounded-full object-contain"
+                          />
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
 

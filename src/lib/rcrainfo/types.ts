@@ -116,7 +116,7 @@ export interface SiteSearchParams {
   city?: string;
   state?: string;
   zip?: string;
-  siteType?: "Generator" | "Transporter" | "Tsdf" | "Broker";
+  siteType: "Generator" | "Transporter" | "Tsdf" | "Broker";
   pageNumber?: number;
 }
 

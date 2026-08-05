@@ -147,7 +147,55 @@ export async function recordManifestLocally(
     console.error("recordManifestLocally failed (non-fatal):", describePostgrestError(error));
     return null;
   }
+
+  await syncManifestTransporters(supabase, data.id, manifest.transporters);
   return data.id;
+}
+
+/**
+ * Mirrors `manifest.transporters` (the same array `recordManifestLocally`
+ * already reads for the denormalized `transporter_names` display string)
+ * into a real per-leg join table, so a transporter-role dashboard has
+ * something queryable to join against. Same "log and swallow" convention
+ * as `recordManifestLocally` itself — non-fatal, since EPA remains the
+ * source of truth.
+ */
+async function syncManifestTransporters(
+  supabase: SupabaseClient,
+  manifestId: string,
+  transporters: Manifest["transporters"]
+): Promise<void> {
+  const rows = (transporters ?? [])
+    .filter((t) => t.epaSiteId)
+    .map((t, i) => ({
+      manifest_id: manifestId,
+      transporter_epa_site_id: t.epaSiteId,
+      transporter_order: t.order ?? i + 1,
+      transporter_name: t.name || null,
+      updated_at: new Date().toISOString(),
+    }));
+
+  const currentSiteIds = rows.map((r) => r.transporter_epa_site_id);
+
+  // Prune legs no longer on the manifest (rare, but keeps this in sync
+  // rather than accumulating stale legs across re-fetches).
+  let deleteQuery = supabase.from("manifest_transporters").delete().eq("manifest_id", manifestId);
+  deleteQuery =
+    currentSiteIds.length > 0
+      ? deleteQuery.not("transporter_epa_site_id", "in", `(${currentSiteIds.join(",")})`)
+      : deleteQuery;
+  const { error: deleteError } = await deleteQuery;
+  if (deleteError) {
+    console.error("syncManifestTransporters prune failed (non-fatal):", describePostgrestError(deleteError));
+  }
+
+  if (rows.length === 0) return;
+  const { error: upsertError } = await supabase
+    .from("manifest_transporters")
+    .upsert(rows, { onConflict: "manifest_id,transporter_epa_site_id" });
+  if (upsertError) {
+    console.error("syncManifestTransporters upsert failed (non-fatal):", describePostgrestError(upsertError));
+  }
 }
 
 export async function listManifestsForUser(
@@ -167,6 +215,85 @@ export async function listManifestsForUser(
     return [];
   }
   return data;
+}
+
+export interface GeneratorSiteOption {
+  epaSiteId: string;
+  name: string | null;
+}
+
+/**
+ * Distinct generator EPA site IDs this user has actually filed/looked up
+ * manifests for -- the practical "sites you manage" list, since there's
+ * no dedicated site-permissions table (manifest creation only ever runs
+ * under the caller's own RCRAInfo credentials, per
+ * getRcrainfoClientForUser). Used as quick-pick chips on the third-party
+ * LDR form instead of forcing a fresh name search every time. Deduped
+ * client-side since the JS client has no `distinct on` -- rows are
+ * already newest-first, so the first occurrence of each site ID wins.
+ */
+export async function listGeneratorSitesForUser(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<GeneratorSiteOption[]> {
+  const { data, error } = await supabase
+    .from("manifests")
+    .select("generator_epa_site_id, generator_name")
+    .eq("user_id", userId)
+    .not("generator_epa_site_id", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error("listGeneratorSitesForUser failed:", describePostgrestError(error));
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const options: GeneratorSiteOption[] = [];
+  for (const row of data as { generator_epa_site_id: string; generator_name: string | null }[]) {
+    if (seen.has(row.generator_epa_site_id)) continue;
+    seen.add(row.generator_epa_site_id);
+    options.push({ epaSiteId: row.generator_epa_site_id, name: row.generator_name });
+  }
+  return options.slice(0, 15);
+}
+
+export interface RecentManifestSearch {
+  epaMtn: string;
+  generatorName: string | null;
+  designatedFacilityName: string | null;
+  updatedAt: string;
+}
+
+/**
+ * Every successful lookup (not just a save/sign) upserts into `manifests`
+ * with a fresh `updated_at` — see `fetchManifestForCurrentUser` in
+ * manifestActions.ts — so ordering this same table by `updated_at` doubles
+ * as "most recently searched," no separate search-log table needed.
+ */
+export async function listRecentManifestsForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  limit: number
+): Promise<RecentManifestSearch[]> {
+  const { data, error } = await supabase
+    .from("manifests")
+    .select("epa_mtn, generator_name, designated_facility_name, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("listRecentManifestsForUser failed:", describePostgrestError(error));
+    return [];
+  }
+  return data.map((row) => ({
+    epaMtn: row.epa_mtn,
+    generatorName: row.generator_name,
+    designatedFacilityName: row.designated_facility_name,
+    updatedAt: row.updated_at,
+  }));
 }
 
 export interface ManifestDocumentRecord {

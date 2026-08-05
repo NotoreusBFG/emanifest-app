@@ -7,9 +7,11 @@ import {
   lookupManifestAction,
   refetchManifestAction,
   listStoredDocumentsAction,
+  listRecentManifestSearchesAction,
   type LookupManifestState,
   type StoredDocument,
 } from "@/app/actions/manifestActions";
+import type { RecentManifestSearch } from "@/services/manifestRepository";
 import { getHandlerSignatureStatus, type Handler, type Manifest } from "@/lib/rcrainfo/types";
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
@@ -40,8 +42,15 @@ function ManifestLookupPageInner() {
   // displayed without re-running the lookup form's own action/pending state.
   const [manifest, setManifest] = useState<Manifest | null>(null);
 
+  // Bumped after every successful lookup so <RecentSearches> knows to
+  // refetch — it's the source that just wrote the new "most recent" row.
+  const [recentSearchesVersion, setRecentSearchesVersion] = useState(0);
+
   useEffect(() => {
-    if (state?.success) setManifest(state.manifest);
+    if (state?.success) {
+      setManifest(state.manifest);
+      setRecentSearchesVersion((v) => v + 1);
+    }
   }, [state]);
 
   const refresh = async () => {
@@ -52,13 +61,18 @@ function ManifestLookupPageInner() {
 
   // Deep link from the dashboard (/manifests?mtn=...) — loads straight into
   // full detail without the user re-typing/pasting the MTN into the form.
+  // Also how clicking a "Recent searches" entry works, since those are
+  // plain links to this same route with a different ?mtn=.
   const searchParams = useSearchParams();
   const deepLinkMtn = searchParams.get("mtn");
 
   useEffect(() => {
     if (deepLinkMtn) {
       refetchManifestAction(deepLinkMtn).then((result) => {
-        if (result.success) setManifest(result.manifest);
+        if (result.success) {
+          setManifest(result.manifest);
+          setRecentSearchesVersion((v) => v + 1);
+        }
       });
     }
   }, [deepLinkMtn]);
@@ -91,7 +105,55 @@ function ManifestLookupPageInner() {
         <p style={{ color: "red" }}>❌ {state.error}</p>
       )}
 
+      <RecentSearches refreshKey={recentSearchesVersion} />
+
       {manifest && <ManifestSummary manifest={manifest} onSigned={refresh} />}
+    </div>
+  );
+}
+
+/**
+ * Last 10 manifests looked up, created, or signed through ManifestMate
+ * (see listRecentManifestSearchesAction) — each entry is a plain link back
+ * to this same page with a different ?mtn=, which the deep-link effect
+ * above already knows how to load.
+ */
+function RecentSearches({ refreshKey }: { refreshKey: number }) {
+  const [recent, setRecent] = useState<RecentManifestSearch[] | null>(null);
+
+  useEffect(() => {
+    listRecentManifestSearchesAction().then(setRecent);
+  }, [refreshKey]);
+
+  if (!recent || recent.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: "24px" }}>
+      <p style={{ fontSize: "13px", fontWeight: 600, color: brand.navy, margin: "0 0 6px" }}>
+        Recent searches
+      </p>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
+        {recent.map((r) => (
+          <li key={r.epaMtn}>
+            <Link
+              href={`/manifests?mtn=${encodeURIComponent(r.epaMtn)}`}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "10px",
+                fontSize: "13px",
+                padding: "3px 0",
+                color: brand.blue,
+              }}
+            >
+              <span style={{ fontWeight: 600 }}>{r.epaMtn}</span>
+              <span style={{ color: "#888", fontWeight: 400, textAlign: "right" }}>
+                {r.generatorName ?? "—"} → {r.designatedFacilityName ?? "—"}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

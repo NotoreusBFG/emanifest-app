@@ -1,14 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describePostgrestError } from "@/services/manifestRepository";
-import { computeWasteCodeKey, type LdrCertification, type LdrNotice, type LdrWasteLineEntry } from "@/lib/ldr/types";
+import {
+  computeWasteCodeKey,
+  type LdrCertification,
+  type LdrNotice,
+  type LdrNoticeSource,
+  type LdrWasteLineEntry,
+} from "@/lib/ldr/types";
 
 interface LdrNoticeRow {
   id: string;
   manifest_id: string | null;
   epa_mtn: string | null;
-  generator_epa_site_id: string;
-  receiving_facility_epa_site_id: string;
-  receiving_facility_name: string;
+  generator_epa_site_id: string | null;
+  receiving_facility_epa_site_id: string | null;
+  receiving_facility_name: string | null;
   waste_lines: LdrWasteLineEntry[];
   waste_code_key: string;
   prepared_date: string;
@@ -17,10 +23,12 @@ interface LdrNoticeRow {
   superseded_at: string | null;
   created_at: string;
   updated_at: string;
+  source: LdrNoticeSource;
+  third_party_name: string | null;
 }
 
 const SELECT_COLUMNS =
-  "id, manifest_id, epa_mtn, generator_epa_site_id, receiving_facility_epa_site_id, receiving_facility_name, waste_lines, waste_code_key, prepared_date, prepared_by_name, certifications, superseded_at, created_at, updated_at";
+  "id, manifest_id, epa_mtn, generator_epa_site_id, receiving_facility_epa_site_id, receiving_facility_name, waste_lines, waste_code_key, prepared_date, prepared_by_name, certifications, superseded_at, created_at, updated_at, source, third_party_name";
 
 function fromRow(row: LdrNoticeRow): LdrNotice {
   return {
@@ -38,6 +46,8 @@ function fromRow(row: LdrNoticeRow): LdrNotice {
     supersededAt: row.superseded_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    source: row.source,
+    thirdPartyName: row.third_party_name,
   };
 }
 
@@ -198,4 +208,178 @@ export async function createLdrNotice(
 
   if (error) return { success: false, error: describePostgrestError(error) };
   return { success: true, notice: fromRow(data as LdrNoticeRow) };
+}
+
+export interface CreateThirdPartyLdrNoticeInput {
+  /** The generator site this notice is for -- required, same as the
+   * prepared-notice path, so the notice shows up correctly against the
+   * generator's own record rather than under the third party's name. */
+  generatorEpaSiteId: string;
+  /** Optional -- can be left blank and attached later via
+   * attachMtnToLdrNotice, per the user's own "unattached/orphaned until
+   * you go back and add it" framing. */
+  epaMtn: string | null;
+  thirdPartyName: string;
+}
+
+/**
+ * A notice someone else already prepared and sent as a PDF -- no
+ * generator/facility/waste-line picking, no certification. ManifestMate
+ * is just storing the document (via uploadLdrNoticeAttachment, called
+ * separately once this row exists) and tracking which MTN it belongs to.
+ */
+export async function createThirdPartyLdrNotice(
+  supabase: SupabaseClient,
+  userId: string,
+  input: CreateThirdPartyLdrNoticeInput
+): Promise<{ success: true; notice: LdrNotice } | { success: false; error: string }> {
+  const { data, error } = await supabase
+    .from("ldr_notices")
+    .insert({
+      user_id: userId,
+      generator_epa_site_id: input.generatorEpaSiteId,
+      epa_mtn: input.epaMtn,
+      third_party_name: input.thirdPartyName,
+      source: "third_party",
+      waste_lines: [],
+      waste_code_key: "",
+      certifications: [],
+    })
+    .select(SELECT_COLUMNS)
+    .single();
+
+  if (error) return { success: false, error: describePostgrestError(error) };
+  return { success: true, notice: fromRow(data as LdrNoticeRow) };
+}
+
+/** Backfills the MTN on a notice that was created "unattached" -- the
+ * action layer re-verifies ownership via the user_id filter before this
+ * ever runs, same pattern as deleteLdrNoticeAttachment. */
+export async function attachMtnToLdrNotice(
+  supabase: SupabaseClient,
+  userId: string,
+  noticeId: string,
+  epaMtn: string
+): Promise<{ success: true; notice: LdrNotice } | { success: false; error: string }> {
+  const { data, error } = await supabase
+    .from("ldr_notices")
+    .update({ epa_mtn: epaMtn })
+    .eq("id", noticeId)
+    .eq("user_id", userId)
+    .select(SELECT_COLUMNS)
+    .single();
+
+  if (error) return { success: false, error: describePostgrestError(error) };
+  return { success: true, notice: fromRow(data as LdrNoticeRow) };
+}
+
+export interface LdrNoticeAttachment {
+  id: string;
+  filename: string;
+  storagePath: string;
+  fileSizeBytes: number | null;
+  label: string | null;
+  uploadedAt: string;
+}
+
+const ATTACHMENT_SELECT_COLUMNS = "id, filename, storage_path, file_size_bytes, label, uploaded_at";
+
+function attachmentFromRow(row: {
+  id: string;
+  filename: string;
+  storage_path: string;
+  file_size_bytes: number | null;
+  label: string | null;
+  uploaded_at: string;
+}): LdrNoticeAttachment {
+  return {
+    id: row.id,
+    filename: row.filename,
+    storagePath: row.storage_path,
+    fileSizeBytes: row.file_size_bytes,
+    label: row.label,
+    uploadedAt: row.uploaded_at,
+  };
+}
+
+/**
+ * Stores a third-party PDF (e.g. a lab's LDR determination letter) kept on
+ * file alongside a notice -- separate bucket/table from
+ * `manifest_documents` (EPA-fetched signed-manifest PDFs), since these are
+ * user-supplied, not RCRAInfo attachments. Path convention matches
+ * manifest-documents: {user_id}/{ldr_notice_id}/{filename}, which is what
+ * the storage.objects RLS policies check against.
+ */
+export async function uploadLdrNoticeAttachment(
+  supabase: SupabaseClient,
+  userId: string,
+  ldrNoticeId: string,
+  file: { name: string; bytes: Uint8Array },
+  label: string | null
+): Promise<{ success: true; attachment: LdrNoticeAttachment } | { success: false; error: string }> {
+  const storagePath = `${userId}/${ldrNoticeId}/${Date.now()}-${file.name}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("ldr-attachments")
+    .upload(storagePath, file.bytes, { contentType: "application/pdf", upsert: false });
+  if (uploadError) return { success: false, error: uploadError.message };
+
+  const { data, error } = await supabase
+    .from("ldr_notice_attachments")
+    .insert({
+      ldr_notice_id: ldrNoticeId,
+      user_id: userId,
+      filename: file.name,
+      storage_path: storagePath,
+      file_size_bytes: file.bytes.length,
+      label: label?.trim() || null,
+    })
+    .select(ATTACHMENT_SELECT_COLUMNS)
+    .single();
+
+  if (error) return { success: false, error: describePostgrestError(error) };
+  return { success: true, attachment: attachmentFromRow(data) };
+}
+
+export async function listLdrNoticeAttachments(
+  supabase: SupabaseClient,
+  ldrNoticeId: string
+): Promise<LdrNoticeAttachment[]> {
+  const { data, error } = await supabase
+    .from("ldr_notice_attachments")
+    .select(ATTACHMENT_SELECT_COLUMNS)
+    .eq("ldr_notice_id", ldrNoticeId)
+    .order("uploaded_at", { ascending: false });
+
+  if (error) {
+    console.error("listLdrNoticeAttachments failed:", describePostgrestError(error));
+    return [];
+  }
+  return data.map(attachmentFromRow);
+}
+
+/** Short-lived signed URL — the bucket is private, so attachments aren't reachable without one. */
+export async function getLdrAttachmentDownloadUrl(
+  supabase: SupabaseClient,
+  storagePath: string
+): Promise<string | null> {
+  const { data, error } = await supabase.storage.from("ldr-attachments").createSignedUrl(storagePath, 600);
+  if (error) {
+    console.error("getLdrAttachmentDownloadUrl failed:", error.message);
+    return null;
+  }
+  return data.signedUrl;
+}
+
+export async function deleteLdrNoticeAttachment(
+  supabase: SupabaseClient,
+  attachmentId: string,
+  storagePath: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const { error: storageError } = await supabase.storage.from("ldr-attachments").remove([storagePath]);
+  if (storageError) return { success: false, error: storageError.message };
+
+  const { error } = await supabase.from("ldr_notice_attachments").delete().eq("id", attachmentId);
+  if (error) return { success: false, error: describePostgrestError(error) };
+  return { success: true };
 }

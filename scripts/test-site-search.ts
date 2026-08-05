@@ -11,6 +11,7 @@ async function main() {
 
   console.log("--- name only ---");
   try {
+    // @ts-expect-error - intentionally omitting siteType to confirm EPA's mandatory-field rejection
     const result = await client.searchSites({ name: "Clean" });
     console.log(JSON.stringify(result, null, 2));
   } catch (err) {

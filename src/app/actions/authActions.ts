@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { getAccountType } from "@/services/profileRepository";
 
 /** Only ever follows a same-origin relative path (must start with a single
  * "/", never "//" which browsers treat as protocol-relative to another
@@ -18,16 +19,24 @@ export async function signInAction(prevState: unknown, formData: FormData) {
   const password = formData.get("password") as string;
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) return { success: false, error: error.message };
-  redirect(safeNextPath(formData.get("next"), "/settings"));
+
+  const accountType = data.user ? await getAccountType(supabase, data.user.id) : "generator";
+  const fallback = accountType === "transporter" ? "/transporter-dashboard" : "/dashboard";
+  redirect(safeNextPath(formData.get("next"), fallback));
 }
 
 export async function signUpAction(prevState: unknown, formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const next = formData.get("next");
+
+  // Only ever 'generator' or 'transporter' -- never trust the raw form
+  // value beyond that allowlist (same defensive pattern as safeNextPath).
+  const rawAccountType = formData.get("account_type");
+  const accountType = rawAccountType === "transporter" ? "transporter" : "generator";
 
   // Supabase's own confirmation email is the thing that actually lands the
   // new user back on the site (no active session exists until they click
@@ -38,13 +47,14 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
   // project's default Site URL instead of `next`.
   const headersList = await headers();
   const origin = headersList.get("origin") ?? `https://${headersList.get("host")}`;
-  const emailRedirectTo = `${origin}${safeNextPath(next, "/settings")}`;
+  const fallback = accountType === "transporter" ? "/transporter-dashboard" : "/dashboard";
+  const emailRedirectTo = `${origin}${safeNextPath(next, fallback)}`;
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo },
+    options: { emailRedirectTo, data: { account_type: accountType } },
   });
 
   if (error) return { success: false, error: error.message };

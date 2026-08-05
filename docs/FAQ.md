@@ -100,6 +100,20 @@ facility, and ManifestMate pulls their registered EPA information (address,
 EPA ID, contact info) directly, instead of you retyping details already on
 file with EPA.
 
+### Should I enter the net weight or gross weight for a waste line, and where do I note the difference?
+
+Either is generally acceptable — DOT allows shippers to report net weight (the
+waste itself) or gross weight (waste plus container/packaging). Many
+experienced preparers default to gross weight since that's what a roadside
+inspection is more likely to check against. The one case worth extra care is a
+lab pack containing a small amount of acutely hazardous waste mixed with other
+materials: reporting the whole pack's gross weight under the acute waste code
+can make it look like all of it is acutely hazardous. If that's a concern, use
+the Special Handling Instructions field on that waste line — it prints
+directly into Box 14 on the manifest — to note the actual acute-waste weight
+separately. See Haz Waste University's [manifest & DOT shipping papers
+article](/university/manifests-and-dot) for more detail.
+
 ### Can I add more than one transporter to a manifest?
 
 Yes — add as many transporters as your shipment needs. This matters for

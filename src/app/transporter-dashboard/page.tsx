@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listManifestsForTransporterOwner } from "@/services/transporterDashboardRepository";
 import { deriveManifestBadge } from "@/lib/manifestStatusBadge";
+import { getFeatureFlag } from "@/services/featureFlagRepository";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
@@ -13,6 +15,10 @@ import { Badge } from "@/components/ui/Badge";
  */
 export default async function TransporterDashboardPage() {
   const supabase = await createClient();
+
+  const mm2Enabled = await getFeatureFlag(supabase, "mm2_ui");
+  if (!mm2Enabled) redirect("/dashboard");
+
   const manifests = await listManifestsForTransporterOwner(supabase);
 
   return (

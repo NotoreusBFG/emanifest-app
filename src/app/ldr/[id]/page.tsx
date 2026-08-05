@@ -9,6 +9,7 @@ import { LDR_DISCLAIMER } from "@/lib/ldr/disclaimer";
 import { brand } from "@/lib/brandColors";
 import { PrintButton } from "./PrintButton";
 import { AttachmentsSection } from "./AttachmentsSection";
+import { AttachMtnForm } from "./AttachMtnForm";
 
 function formatAddress(site: SiteDetails | null): string {
   const a = site?.siteAddress;
@@ -38,11 +39,13 @@ export default async function LdrNoticeDetailPage({ params }: { params: Promise<
   if (!notice) notFound();
 
   let generatorSite: SiteDetails | null = null;
-  try {
-    const client = await getRcrainfoClientForUser(supabase, user.id);
-    generatorSite = await client.getSiteDetails(notice.generatorEpaSiteId);
-  } catch {
-    // Live address lookup is a nice-to-have, not required to view the notice.
+  if (notice.generatorEpaSiteId) {
+    try {
+      const client = await getRcrainfoClientForUser(supabase, user.id);
+      generatorSite = await client.getSiteDetails(notice.generatorEpaSiteId);
+    } catch {
+      // Live address lookup is a nice-to-have, not required to view the notice.
+    }
   }
 
   return (
@@ -67,92 +70,131 @@ export default async function LdrNoticeDetailPage({ params }: { params: Promise<
         </p>
       )}
 
-      <div style={{ border: `1px solid ${brand.tint}`, borderRadius: "6px", padding: "24px", background: "white" }}>
-        <h2 style={{ color: brand.navy, marginTop: 0, marginBottom: "20px", textAlign: "center", fontSize: "28px" }}>
-          Land Disposal Restriction Notice
-          <br />
-          <span style={{ fontSize: "15px", fontWeight: 400, color: "#666" }}>40 CFR 268.7(a)(4)</span>
-        </h2>
-
-        <table style={{ width: "100%", borderCollapse: "collapse", margin: "16px 0" }}>
-          <tbody>
-            <tr>
-              <td style={{ padding: "6px 0", verticalAlign: "top", fontWeight: 600, width: "160px" }}>Generator</td>
-              <td style={{ padding: "6px 0" }}>
-                {generatorSite?.name ?? notice.generatorEpaSiteId} ({notice.generatorEpaSiteId})
-                <br />
-                <span style={{ color: "#666", fontSize: "13px" }}>{formatAddress(generatorSite)}</span>
-              </td>
-            </tr>
-            <tr>
-              <td style={{ padding: "6px 0", verticalAlign: "top", fontWeight: 600 }}>Receiving facility</td>
-              <td style={{ padding: "6px 0" }}>
-                {notice.receivingFacilityName} ({notice.receivingFacilityEpaSiteId})
-              </td>
-            </tr>
-            {notice.epaMtn && (
+      {notice.source === "third_party" ? (
+        <div style={{ border: `1px solid ${brand.tint}`, borderRadius: "6px", padding: "24px", background: "white" }}>
+          <h2 style={{ color: brand.navy, marginTop: 0, marginBottom: "16px", fontSize: "22px" }}>
+            Third-party LDR notice
+          </h2>
+          <table style={{ width: "100%", borderCollapse: "collapse", margin: "16px 0" }}>
+            <tbody>
               <tr>
-                <td style={{ padding: "6px 0", fontWeight: 600 }}>First shipment MTN</td>
-                <td style={{ padding: "6px 0" }}>{notice.epaMtn}</td>
+                <td style={{ padding: "6px 0", verticalAlign: "top", fontWeight: 600, width: "160px" }}>
+                  Prepared/sent by
+                </td>
+                <td style={{ padding: "6px 0" }}>{notice.thirdPartyName || "—"}</td>
               </tr>
-            )}
-          </tbody>
-        </table>
+              <tr>
+                <td style={{ padding: "6px 0", verticalAlign: "top", fontWeight: 600 }}>MTN</td>
+                <td style={{ padding: "6px 0" }}>
+                  {notice.epaMtn ? (
+                    notice.epaMtn
+                  ) : (
+                    <>
+                      <span style={{ color: "#a15c00" }}>Unattached — not linked to a shipment yet</span>
+                      <AttachMtnForm noticeId={notice.id} />
+                    </>
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: "6px 0", fontWeight: 600 }}>Recorded</td>
+                <td style={{ padding: "6px 0" }}>{notice.preparedDate}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style={{ fontSize: "12px", color: "#888", marginTop: "6px" }}>
+            This notice was prepared by a third party, not ManifestMate — the attached PDF below is
+            the actual record. Confirming it matches this shipment is on you as the signer.
+          </p>
+        </div>
+      ) : (
+        <div style={{ border: `1px solid ${brand.tint}`, borderRadius: "6px", padding: "24px", background: "white" }}>
+          <h2 style={{ color: brand.navy, marginTop: 0, marginBottom: "20px", textAlign: "center", fontSize: "28px" }}>
+            Land Disposal Restriction Notice
+            <br />
+            <span style={{ fontSize: "15px", fontWeight: 400, color: "#666" }}>40 CFR 268.7(a)(4)</span>
+          </h2>
 
-        <h3 style={{ color: brand.navy }}>Waste line{notice.wasteLines.length > 1 ? "s" : ""}</h3>
-        {notice.wasteLines.map((w, i) => (
-          <div key={i} style={{ borderTop: i > 0 ? "1px solid #eee" : undefined, paddingTop: i > 0 ? "10px" : 0, marginTop: i > 0 ? "10px" : 0 }}>
-            {w.manifestLineNumber !== null && (
-              <p style={{ margin: "0 0 4px", fontSize: "12px", color: "#888" }}>Manifest line {w.manifestLineNumber}</p>
-            )}
-            <p style={{ margin: "4px 0" }}>
-              <strong>EPA Hazardous Waste Number(s):</strong> {w.epaHazardousWasteNumbers.join(", ") || "—"}
-            </p>
-            <p style={{ margin: "4px 0" }}>
-              <strong>How must be managed:</strong> {LDR_MANAGEMENT_OPTIONS[w.howManaged].shortLabel}
-            </p>
-            <p style={{ margin: "4px 0" }}>
-              <strong>Category:</strong> {w.wastewaterCategory === "wastewater" ? "Wastewater" : "Nonwastewater"}
-              {w.subdivision ? ` — ${w.subdivision}` : ""}
-            </p>
-            {w.constituentsOfConcern && (
-              <p style={{ margin: "4px 0" }}>
-                <strong>Constituents of concern:</strong> {w.constituentsOfConcern}
-              </p>
-            )}
-            {w.wasteAnalysisData && (
-              <p style={{ margin: "4px 0" }}>
-                <strong>Waste analysis data:</strong> {w.wasteAnalysisData}
-              </p>
-            )}
-          </div>
-        ))}
+          <table style={{ width: "100%", borderCollapse: "collapse", margin: "16px 0" }}>
+            <tbody>
+              <tr>
+                <td style={{ padding: "6px 0", verticalAlign: "top", fontWeight: 600, width: "160px" }}>Generator</td>
+                <td style={{ padding: "6px 0" }}>
+                  {generatorSite?.name ?? notice.generatorEpaSiteId} ({notice.generatorEpaSiteId})
+                  <br />
+                  <span style={{ color: "#666", fontSize: "13px" }}>{formatAddress(generatorSite)}</span>
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: "6px 0", verticalAlign: "top", fontWeight: 600 }}>Receiving facility</td>
+                <td style={{ padding: "6px 0" }}>
+                  {notice.receivingFacilityName} ({notice.receivingFacilityEpaSiteId})
+                </td>
+              </tr>
+              {notice.epaMtn && (
+                <tr>
+                  <td style={{ padding: "6px 0", fontWeight: 600 }}>First shipment MTN</td>
+                  <td style={{ padding: "6px 0" }}>{notice.epaMtn}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
 
-        {notice.certifications.length > 0 && (
-          <>
-            <h3 style={{ color: brand.navy }}>
-              Certification{notice.certifications.length > 1 ? "s" : ""}
-            </h3>
-            {notice.certifications.map((cert) => (
-              <div key={cert.letter} style={{ marginBottom: "14px" }}>
-                <p style={{ fontSize: "13px", fontWeight: 700, color: brand.navy, margin: "0 0 4px" }}>{cert.heading}</p>
-                <p style={{ fontSize: "13px", fontStyle: "italic", margin: "0 0 6px" }}>{cert.certificationText}</p>
-                <p style={{ fontSize: "14px", margin: 0 }}>
-                  <strong>Signed:</strong> {cert.signedByName} — {new Date(cert.signedAt).toLocaleString()}
+          <h3 style={{ color: brand.navy }}>Waste line{notice.wasteLines.length > 1 ? "s" : ""}</h3>
+          {notice.wasteLines.map((w, i) => (
+            <div key={i} style={{ borderTop: i > 0 ? "1px solid #eee" : undefined, paddingTop: i > 0 ? "10px" : 0, marginTop: i > 0 ? "10px" : 0 }}>
+              {w.manifestLineNumber !== null && (
+                <p style={{ margin: "0 0 4px", fontSize: "12px", color: "#888" }}>Manifest line {w.manifestLineNumber}</p>
+              )}
+              <p style={{ margin: "4px 0" }}>
+                <strong>EPA Hazardous Waste Number(s):</strong> {w.epaHazardousWasteNumbers.join(", ") || "—"}
+              </p>
+              <p style={{ margin: "4px 0" }}>
+                <strong>How must be managed:</strong> {LDR_MANAGEMENT_OPTIONS[w.howManaged].shortLabel}
+              </p>
+              <p style={{ margin: "4px 0" }}>
+                <strong>Category:</strong> {w.wastewaterCategory === "wastewater" ? "Wastewater" : "Nonwastewater"}
+                {w.subdivision ? ` — ${w.subdivision}` : ""}
+              </p>
+              {w.constituentsOfConcern && (
+                <p style={{ margin: "4px 0" }}>
+                  <strong>Constituents of concern:</strong> {w.constituentsOfConcern}
                 </p>
-              </div>
-            ))}
-          </>
-        )}
+              )}
+              {w.wasteAnalysisData && (
+                <p style={{ margin: "4px 0" }}>
+                  <strong>Waste analysis data:</strong> {w.wasteAnalysisData}
+                </p>
+              )}
+            </div>
+          ))}
 
-        <p style={{ fontSize: "13px", color: "#666", marginTop: "22px" }}>
-          Prepared by {notice.preparedByName || "—"} on {notice.preparedDate}
-        </p>
+          {notice.certifications.length > 0 && (
+            <>
+              <h3 style={{ color: brand.navy }}>
+                Certification{notice.certifications.length > 1 ? "s" : ""}
+              </h3>
+              {notice.certifications.map((cert) => (
+                <div key={cert.letter} style={{ marginBottom: "14px" }}>
+                  <p style={{ fontSize: "13px", fontWeight: 700, color: brand.navy, margin: "0 0 4px" }}>{cert.heading}</p>
+                  <p style={{ fontSize: "13px", fontStyle: "italic", margin: "0 0 6px" }}>{cert.certificationText}</p>
+                  <p style={{ fontSize: "14px", margin: 0 }}>
+                    <strong>Signed:</strong> {cert.signedByName} — {new Date(cert.signedAt).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </>
+          )}
 
-        <p style={{ fontSize: "10.5px", color: "#999", marginTop: "10px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
-          {LDR_DISCLAIMER}
-        </p>
-      </div>
+          <p style={{ fontSize: "13px", color: "#666", marginTop: "22px" }}>
+            Prepared by {notice.preparedByName || "—"} on {notice.preparedDate}
+          </p>
+
+          <p style={{ fontSize: "10.5px", color: "#999", marginTop: "10px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+            {LDR_DISCLAIMER}
+          </p>
+        </div>
+      )}
 
       <p className="no-print" style={{ fontSize: "12px", color: "#888", marginTop: "10px" }}>
         Retain a copy on-site for 3 years from the date this waste was last sent (40 CFR 268.7(a)(8)).

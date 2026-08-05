@@ -1,14 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describePostgrestError } from "@/services/manifestRepository";
-import { computeWasteCodeKey, type LdrCertification, type LdrNotice, type LdrWasteLineEntry } from "@/lib/ldr/types";
+import {
+  computeWasteCodeKey,
+  type LdrCertification,
+  type LdrNotice,
+  type LdrNoticeSource,
+  type LdrWasteLineEntry,
+} from "@/lib/ldr/types";
 
 interface LdrNoticeRow {
   id: string;
   manifest_id: string | null;
   epa_mtn: string | null;
-  generator_epa_site_id: string;
-  receiving_facility_epa_site_id: string;
-  receiving_facility_name: string;
+  generator_epa_site_id: string | null;
+  receiving_facility_epa_site_id: string | null;
+  receiving_facility_name: string | null;
   waste_lines: LdrWasteLineEntry[];
   waste_code_key: string;
   prepared_date: string;
@@ -17,10 +23,12 @@ interface LdrNoticeRow {
   superseded_at: string | null;
   created_at: string;
   updated_at: string;
+  source: LdrNoticeSource;
+  third_party_name: string | null;
 }
 
 const SELECT_COLUMNS =
-  "id, manifest_id, epa_mtn, generator_epa_site_id, receiving_facility_epa_site_id, receiving_facility_name, waste_lines, waste_code_key, prepared_date, prepared_by_name, certifications, superseded_at, created_at, updated_at";
+  "id, manifest_id, epa_mtn, generator_epa_site_id, receiving_facility_epa_site_id, receiving_facility_name, waste_lines, waste_code_key, prepared_date, prepared_by_name, certifications, superseded_at, created_at, updated_at, source, third_party_name";
 
 function fromRow(row: LdrNoticeRow): LdrNotice {
   return {
@@ -38,6 +46,8 @@ function fromRow(row: LdrNoticeRow): LdrNotice {
     supersededAt: row.superseded_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    source: row.source,
+    thirdPartyName: row.third_party_name,
   };
 }
 
@@ -193,6 +203,64 @@ export async function createLdrNotice(
       waste_code_key: wasteCodeKey,
       certifications: input.certifications,
     })
+    .select(SELECT_COLUMNS)
+    .single();
+
+  if (error) return { success: false, error: describePostgrestError(error) };
+  return { success: true, notice: fromRow(data as LdrNoticeRow) };
+}
+
+export interface CreateThirdPartyLdrNoticeInput {
+  /** Optional -- can be left blank and attached later via
+   * attachMtnToLdrNotice, per the user's own "unattached/orphaned until
+   * you go back and add it" framing. */
+  epaMtn: string | null;
+  thirdPartyName: string;
+}
+
+/**
+ * A notice someone else already prepared and sent as a PDF -- no
+ * generator/facility/waste-line picking, no certification. ManifestMate
+ * is just storing the document (via uploadLdrNoticeAttachment, called
+ * separately once this row exists) and tracking which MTN it belongs to.
+ */
+export async function createThirdPartyLdrNotice(
+  supabase: SupabaseClient,
+  userId: string,
+  input: CreateThirdPartyLdrNoticeInput
+): Promise<{ success: true; notice: LdrNotice } | { success: false; error: string }> {
+  const { data, error } = await supabase
+    .from("ldr_notices")
+    .insert({
+      user_id: userId,
+      epa_mtn: input.epaMtn,
+      third_party_name: input.thirdPartyName,
+      source: "third_party",
+      waste_lines: [],
+      waste_code_key: "",
+      certifications: [],
+    })
+    .select(SELECT_COLUMNS)
+    .single();
+
+  if (error) return { success: false, error: describePostgrestError(error) };
+  return { success: true, notice: fromRow(data as LdrNoticeRow) };
+}
+
+/** Backfills the MTN on a notice that was created "unattached" -- the
+ * action layer re-verifies ownership via the user_id filter before this
+ * ever runs, same pattern as deleteLdrNoticeAttachment. */
+export async function attachMtnToLdrNotice(
+  supabase: SupabaseClient,
+  userId: string,
+  noticeId: string,
+  epaMtn: string
+): Promise<{ success: true; notice: LdrNotice } | { success: false; error: string }> {
+  const { data, error } = await supabase
+    .from("ldr_notices")
+    .update({ epa_mtn: epaMtn })
+    .eq("id", noticeId)
+    .eq("user_id", userId)
     .select(SELECT_COLUMNS)
     .single();
 

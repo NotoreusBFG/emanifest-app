@@ -2,7 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 import {
+  attachMtnToLdrNotice,
   createLdrNotice,
+  createThirdPartyLdrNotice,
   deleteLdrNoticeAttachment,
   findActiveLdrNotice,
   getLdrAttachmentDownloadUrl,
@@ -159,6 +161,54 @@ export async function createLdrNoticeAction(
 
   if (!result.success) return { success: false, error: result.error };
   return { success: true, notice: result.notice };
+}
+
+export type CreateThirdPartyLdrNoticeState =
+  | { success: true; notice: LdrNotice }
+  | { success: false; error: string };
+
+/** Third-party path: no waste codes, no certification -- just who sent it
+ * and (optionally) which shipment it's for. See createThirdPartyLdrNotice. */
+export async function createThirdPartyLdrNoticeAction(
+  prevState: CreateThirdPartyLdrNoticeState | null,
+  formData: FormData
+): Promise<CreateThirdPartyLdrNoticeState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  const thirdPartyName = (formData.get("thirdPartyName") as string)?.trim();
+  const epaMtn = (formData.get("epaMtn") as string)?.trim() || null;
+
+  if (!thirdPartyName) return { success: false, error: "Enter who prepared or sent this notice." };
+
+  const result = await createThirdPartyLdrNotice(supabase, user.id, { epaMtn, thirdPartyName });
+  if (!result.success) return { success: false, error: result.error };
+  return { success: true, notice: result.notice };
+}
+
+export type AttachMtnState = { success: true } | { success: false; error: string } | null;
+
+/** Backfills the MTN on a notice filed "unattached" (no MTN known yet). */
+export async function attachMtnToLdrNoticeAction(
+  prevState: AttachMtnState,
+  formData: FormData
+): Promise<AttachMtnState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  const noticeId = formData.get("noticeId") as string;
+  const epaMtn = (formData.get("epaMtn") as string)?.trim();
+  if (!epaMtn) return { success: false, error: "Enter an MTN." };
+
+  const result = await attachMtnToLdrNotice(supabase, user.id, noticeId, epaMtn);
+  if (!result.success) return { success: false, error: result.error };
+  return { success: true };
 }
 
 export interface LdrAttachmentWithUrl {

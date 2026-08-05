@@ -53,25 +53,37 @@ export interface LdrCertification {
   signedAt: string; // ISO timestamp
 }
 
+/** "prepared" -- built through ManifestMate's own structured A-I letter
+ * form. "third_party" -- someone else (the receiving facility, a broker, a
+ * lab) already prepared the notice; ManifestMate just stores their PDF and
+ * tracks which MTN it belongs to. See
+ * 20260822_add_third_party_ldr_notices.sql. */
+export type LdrNoticeSource = "prepared" | "third_party";
+
 export interface LdrNotice {
   id: string;
   manifestId: string | null;
   epaMtn: string | null;
-  generatorEpaSiteId: string;
-  receivingFacilityEpaSiteId: string;
-  receivingFacilityName: string;
+  /** Null for a third-party notice -- there's no structured pick-a-site
+   * step for that path, only a third-party name and (optionally) an MTN. */
+  generatorEpaSiteId: string | null;
+  receivingFacilityEpaSiteId: string | null;
+  receivingFacilityName: string | null;
   wasteLines: LdrWasteLineEntry[];
   wasteCodeKey: string;
   preparedDate: string; // ISO date
   /** Every notice is named and dated regardless of whether any waste
    * line's letter actually triggers a certification (matches real LDR
    * forms) -- distinct from LdrCertification.signedByName, which only
-   * exists for letters that require one. */
+   * exists for letters that require one. Empty for a third-party notice. */
   preparedByName: string;
   certifications: LdrCertification[];
   supersededAt: string | null;
   createdAt: string;
   updatedAt: string;
+  source: LdrNoticeSource;
+  /** Who sent/prepared this notice, for a third-party-sourced record only. */
+  thirdPartyName: string | null;
 }
 
 /** The practical "is this the same waste stream" comparison key — a sorted,

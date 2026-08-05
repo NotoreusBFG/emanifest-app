@@ -1061,6 +1061,7 @@ export default function NewManifestPage() {
                 <input
                   name={`quantity_${line.id}`}
                   type="number"
+                  step="any"
                   value={line.quantity}
                   onChange={(e) => updateWasteLine(line.id, { quantity: e.target.value })}
                   style={inputStyle}

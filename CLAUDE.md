@@ -80,6 +80,13 @@ this project.
 lookup tables for DOT/EPA waste and hazmat codes — treat as data, not code to
 hand-edit.
 
+## Project ideas
+
+Cross-project idea log (not specific to this repo) lives in
+`NotoreusBFG/project-ideas` on GitHub — `project-ideas.md` there is the
+running list. If asked to check, add to, or update "project ideas," look
+there (clone/fetch it if it isn't already available in the session).
+
 ## Environment
 
 `.env.local` (gitignored) needs: `NEXT_PUBLIC_SUPABASE_URL`,

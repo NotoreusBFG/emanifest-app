@@ -70,6 +70,18 @@ path/commit), not just a description — the same discipline
 If nothing new turns up, say that plainly rather than padding the report
 with old/already-known information restated as if new.
 
+## Notification — guaranteed, not discretionary
+
+**If the "Actionable" section has any entries, send a push notification
+before finishing** — don't leave this to judgment call by call. This is
+the whole point of running unattended: the user shouldn't have to
+remember to go check `docs/emanifest-news-log.md`. Keep the notification
+to one line, lead with the finding itself (e.g. "EPA proposed Paper
+Manifest Sunset Rule — would require e-Manifest registration for
+transporters/PCB/VSQGs"), not a generic "new report available." No
+notification needed for Content-opportunity-only or FYI-only runs, or
+when nothing new turned up — that's not something worth interrupting for.
+
 ## State tracking (for the scheduled check)
 
 This skill also runs on a **daily cloud routine** that gates itself to

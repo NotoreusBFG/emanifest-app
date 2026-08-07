@@ -86,7 +86,10 @@ hand-edit.
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ENCRYPTION_SECRET_KEY`, `RCRAINFO_ENV`
 (`preprod`|`prod`), `RCRAINFO_API_ID`, `RCRAINFO_API_KEY`, `RESEND_API_KEY`,
 `RESEND_EMAIL_DOMAIN`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
-`TWILIO_FROM_NUMBER`, `BLOB_READ_WRITE_TOKEN`, `BLOB_STORE_ID` (Vercel Blob).
+`TWILIO_FROM_NUMBER`, `BLOB_READ_WRITE_TOKEN`, `BLOB_STORE_ID` (Vercel Blob),
+`ADMIN_EMAILS` (comma-separated, gates `/admin` and feature-flag actions —
+see `src/lib/admin.ts`; moved out of source 2026-08-07 since this repo is
+public on GitHub and a hardcoded admin email is free phishing-target info).
 RCRAInfo is currently pointed at EPA's **preprod sandbox**, not production —
 don't assume live manifest actions have real-world regulatory effect unless
 `RCRAINFO_ENV=prod` is confirmed.

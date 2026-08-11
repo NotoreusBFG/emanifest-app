@@ -11,6 +11,11 @@ const FLAG_LABELS: Record<string, { label: string; description: string }> = {
     description:
       "Generator/transporter account types, the transporter dashboard, and the new sidebar nav. Off means everyone sees today's single top-nav layout regardless of account type.",
   },
+  generator_manifest_search: {
+    label: "Search manifests by generator",
+    description:
+      "The \"By generator\" mode on the manifest lookup page — searches EPA's live records by generator name/EPA ID, with status/date-range filters and a printable waste-line table. Off means only the existing by-tracking-number lookup is shown.",
+  },
 };
 
 export default async function AdminPage() {

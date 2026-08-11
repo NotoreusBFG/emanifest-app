@@ -25,6 +25,7 @@ import type {
   FederalWasteCode,
   Manifest,
   ManifestOperationResult,
+  ManifestSearchParams,
   NewManifestInput,
   QuickerSignParameters,
   QuickerSignResult,
@@ -176,6 +177,27 @@ export class RcrainfoClient {
    */
   async searchSites(params: SiteSearchParams): Promise<SiteSearchResponse> {
     return this.request<SiteSearchResponse>(`/site-search`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify(params),
+    });
+  }
+
+  /**
+   * POST /emanifest/search
+   *
+   * Documented in EPA's own reference repo
+   * (github.com/USEPA/e-manifest, docs/Services/Manifest/search.md) but
+   * never implemented in this client before — confirm the Content-Type
+   * quirk live (see `searchSites` above; `site-search` and `quicker-sign`
+   * both unexpectedly reject `application/json`, only `text/plain;
+   * charset=UTF-8` works, despite a JSON body). Returns a flat array of
+   * MTN strings, same as `getManifestTrackingNumbers` — no per-manifest
+   * status/waste data, just filtered by site/status/date range server-side.
+   * Either `stateCode` or `siteId` is required by EPA.
+   */
+  async searchManifests(params: ManifestSearchParams): Promise<string[]> {
+    return this.request<string[]>(`/emanifest/search`, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=UTF-8" },
       body: JSON.stringify(params),

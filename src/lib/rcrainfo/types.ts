@@ -162,23 +162,26 @@ export type ManifestStatus =
   | "MtnValidationFailed"
   | "Deleted";
 
+/**
+ * POST /emanifest/search — confirmed against EPA's own reference docs
+ * (github.com/USEPA/e-manifest, docs/Services/Manifest/search.md), not
+ * discovered live. Either `stateCode` or `siteId` is required (not both
+ * needed); ManifestMate only ever passes `siteId`.
+ *
+ * This replaces an earlier speculative `ManifestSearchParams` stub that
+ * guessed wrong — it assumed the endpoint returned manifest objects with a
+ * `ManifestSummary` shape. The real response is a flat `string[]` of MTNs,
+ * same shape as `getManifestTrackingNumbers`, just filterable server-side.
+ */
 export interface ManifestSearchParams {
-  siteId: string;
-  status?: ManifestStatus;
-  /** ISO date, e.g. "2026-01-01" — confirm exact param name against Swagger */
-  shippedDateFrom?: string;
-  shippedDateTo?: string;
-}
-
-/** Minimal shape of a single row returned by the MTN search endpoint. */
-export interface ManifestSummary {
-  manifestTrackingNumber: string;
-  status: ManifestStatus;
-  submissionType?: string;
-  generatorId?: string;
-  designatedFacilityId?: string;
-  shippedDate?: string;
-  receivedDate?: string;
+  stateCode?: string;
+  siteId?: string;
+  siteType?: "Generator" | "Transporter" | "Tsdf";
+  status?: ManifestStatus | "SignedComplete";
+  dateType?: "ShippedDate" | "ReceivedDate" | "CertifiedDate" | "UpdatedDate";
+  /** YYYY-MM-DDThh:mm:ss.sTZD — required together with dateType/endDate for a date-range search. */
+  startDate?: string;
+  endDate?: string;
 }
 
 export class RcrainfoApiError extends Error {

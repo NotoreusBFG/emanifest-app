@@ -44,6 +44,12 @@ export async function sendSms(to: string, body: string): Promise<void> {
   }
 
   const normalizedTo = normalizeUsPhoneNumber(to);
+  // Every message_sample registered with Twilio's A2P 10DLC campaign ends
+  // with this line — the campaign was rejected once already (error 30896)
+  // for a compliance story that didn't match what the app actually sends,
+  // so this appends it centrally rather than trusting every call site to
+  // repeat it verbatim.
+  const fullBody = `${body} Reply STOP to opt out.`;
 
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
     method: "POST",
@@ -51,7 +57,7 @@ export async function sendSms(to: string, body: string): Promise<void> {
       Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: new URLSearchParams({ To: normalizedTo, From: fromNumber, Body: body }),
+    body: new URLSearchParams({ To: normalizedTo, From: fromNumber, Body: fullBody }),
   });
 
   if (!res.ok) {

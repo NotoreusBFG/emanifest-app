@@ -154,6 +154,16 @@ export default function OnboardingPage() {
             have one yet, register as an <strong>Industry User</strong> from the RCRAInfo sign-in
             screen.
           </p>
+          <p style={StepBodyText}>
+            <strong>Note:</strong> the video above is right that you should never share your CDX
+            username or password with anyone who isn&apos;t registered themselves — that&apos;s a
+            real EPA security rule. ManifestMate&apos;s driver-signing and delegate features don&apos;t
+            do that: your login and API credentials stay encrypted on our server and are never sent
+            to a driver&apos;s or delegate&apos;s device. They&apos;re signing under your account&apos;s
+            authority (the same &quot;on behalf of&quot; concept EPA already allows for paper
+            manifests) — EPA&apos;s own record will still show you, the credential holder, as the
+            signer.
+          </p>
           <ExternalLink href="https://rcrainfo.epa.gov/">
             Go to RCRAInfo sign-in / registration →
           </ExternalLink>

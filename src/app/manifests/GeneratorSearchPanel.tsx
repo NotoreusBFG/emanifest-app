@@ -39,6 +39,18 @@ const DATE_TYPE_OPTIONS = [
   { value: "UpdatedDate", label: "Updated date" },
 ] as const satisfies readonly { value: NonNullable<GeneratorManifestSearchFilters["dateType"]>; label: string }[];
 
+const RANGE_PRESETS = [
+  { value: "30", label: "Last 30 days", days: 30 },
+  { value: "90", label: "Last 90 days", days: 90 },
+  { value: "180", label: "Last 180 days", days: 180 },
+  { value: "365", label: "Last year", days: 365 },
+] as const;
+
+/** YYYY-MM-DD, matching what a native <input type="date"> expects/emits. */
+function toDateInputValue(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
 /**
  * Two ways to identify a generator (search by name via the existing
  * SiteSearchField, or type a known EPA ID directly), plus optional status
@@ -52,11 +64,30 @@ export function GeneratorSearchPanel({ onResolved }: GeneratorSearchPanelProps) 
   const [directId, setDirectId] = useState("");
   const [status, setStatus] = useState<ManifestStatus | "">("");
   const [dateType, setDateType] = useState<GeneratorManifestSearchFilters["dateType"] | "">("");
+  const [range, setRange] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Fills From/To from a preset ("Last 30 days" etc.) rather than requiring
+  // the user to compute and type two exact dates by hand. Also defaults
+  // Date type to "Updated date" if nothing's chosen yet, since a range is
+  // useless without a dateType to apply it to (EPA requires all three
+  // together — see buildFilters below) — the user can still override Date
+  // type afterward. Picking "Custom…" just stops auto-filling; it doesn't
+  // clear whatever's already in From/To, so refining a preset by hand works.
+  const applyRangePreset = (value: string) => {
+    setRange(value);
+    const preset = RANGE_PRESETS.find((p) => p.value === value);
+    if (!preset) return;
+    const end = new Date();
+    const start = new Date(end.getTime() - preset.days * 24 * 60 * 60 * 1000);
+    setStartDate(toDateInputValue(start));
+    setEndDate(toDateInputValue(end));
+    setDateType((current) => current || "UpdatedDate");
+  };
 
   const buildFilters = (): GeneratorManifestSearchFilters | undefined => {
     const filters: GeneratorManifestSearchFilters = {};
@@ -177,10 +208,26 @@ export function GeneratorSearchPanel({ onResolved }: GeneratorSearchPanelProps) 
             </label>
           </div>
           {/* Grouped in its own flex container (not just adjacent labels in
-              the outer wrapping row) so From and To always stay on the same
-              line together — the pair moves as a unit if the row wraps,
-              rather than "To" wrapping away from "From" on narrower widths. */}
+              the outer wrapping row) so Range/From/To always stay on the
+              same line together — the group moves as a unit if the row
+              wraps, rather than "To" wrapping away from "From" on narrower
+              widths. */}
           <div style={{ display: "flex", gap: "10px" }}>
+            <label style={{ fontSize: "13px" }}>
+              Range
+              <select
+                value={range}
+                onChange={(e) => applyRangePreset(e.target.value)}
+                style={{ ...inputStyle, marginTop: "2px" }}
+              >
+                <option value="">Custom…</option>
+                {RANGE_PRESETS.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label style={{ fontSize: "13px" }}>
               From
               <input

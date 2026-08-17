@@ -1,7 +1,7 @@
 -- Extends signature_consents to support the SMS-to-driver transporter
 -- signing flow -- the first ManifestMate feature where the person
 -- actually clicking "Sign" has no auth.users row at all, so user_id
--- (previously always the real caller, per 20260726_create_signature_consents.sql)
+-- (previously always the real caller, per 2026072602_create_signature_consents.sql)
 -- needs to become nullable for these rows specifically.
 -- driver_sign_token_id is what stands in for "who triggered this"
 -- instead, tracing back to driver_sign_tokens.created_by_user_id (the

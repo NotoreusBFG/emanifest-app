@@ -1,6 +1,6 @@
 -- Adds PIN-gated driver signing and a lightweight self-serve
 -- manage/revoke mechanism to public.transporters, for the self-serve
--- registration flow added in 20260811_create_transporter_registration_tokens.sql
+-- registration flow added in 2026081102_create_transporter_registration_tokens.sql
 -- (that migration's complete_transporter_registration function writes
 -- pin_hash/management_token, so this one must run FIRST).
 --

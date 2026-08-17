@@ -13,7 +13,7 @@
 --
 -- Run this in the Supabase Dashboard -> SQL Editor, same as the other
 -- migrations in this folder. Depends on the `manifests` table already
--- existing (20260725_create_manifests_table.sql).
+-- existing (2026072501_create_manifests_table.sql).
 
 create table if not exists public.signature_consents (
   id uuid primary key default gen_random_uuid(),

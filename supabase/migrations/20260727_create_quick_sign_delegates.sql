@@ -7,7 +7,7 @@
 -- actually driving the request) -- accountability for "which real person
 -- triggered this" lives entirely in this app's own audit trail
 -- (signature_consents.user_id, already the real caller, independent of whose
--- credentials get used to sign -- see 20260726_create_signature_consents.sql).
+-- credentials get used to sign -- see 2026072602_create_signature_consents.sql).
 --
 -- v1 scoping decisions (documented here since the design doc left these
 -- open): a delegate may hold at most one active delegation at a time

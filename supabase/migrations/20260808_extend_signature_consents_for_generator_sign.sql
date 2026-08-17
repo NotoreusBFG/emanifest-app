@@ -79,7 +79,7 @@ grant execute on function public.record_generator_sign_result(
 
 -- Updates the local manifests mirror's generator_signed_at, mirroring
 -- update_manifest_transporter_signed_at -- the column already exists
--- (20260726_add_signature_status_to_manifests.sql), no schema change
+-- (2026072601_add_signature_status_to_manifests.sql), no schema change
 -- needed there.
 create or replace function public.update_manifest_generator_signed_at(
   p_user_id uuid,

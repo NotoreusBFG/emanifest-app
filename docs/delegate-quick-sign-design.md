@@ -67,7 +67,7 @@ have. Fixed:
   post-sign refresh) now goes through it, recording the result under the
   *owner's* account either way — consistent with how a delegated sign
   already worked, so lookup and sign always agree on whose data this is.
-- New migration `20260728_add_delegate_read_access.sql`: the first
+- New migration `2026072801_add_delegate_read_access.sql`: the first
   migration only granted delegates INSERT/UPDATE on
   manifests/manifest_documents/storage.objects, not SELECT — which
   silently breaks `recordManifestLocally`'s `.upsert().select()` (Postgres

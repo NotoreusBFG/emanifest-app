@@ -670,7 +670,7 @@ export async function listStoredDocumentsAction(mtn: string): Promise<StoredDocu
 
   // No explicit user_id filter — RLS already restricts this to rows the
   // caller owns or is an active Quick-Sign delegate for (see
-  // 20260728_add_delegate_read_access.sql), so a delegate can see documents
+  // 2026072801_add_delegate_read_access.sql), so a delegate can see documents
   // recorded under their delegation owner's account too.
   const { data: manifestRow } = await supabase
     .from("manifests")

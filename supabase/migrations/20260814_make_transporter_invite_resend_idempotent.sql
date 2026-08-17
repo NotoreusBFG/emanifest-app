@@ -20,7 +20,7 @@
 --
 -- Run this in the Supabase Dashboard -> SQL Editor, same as the other
 -- migrations in this folder. Depends on
--- 20260811_create_transporter_registration_tokens.sql already being
+-- 2026081102_create_transporter_registration_tokens.sql already being
 -- applied.
 
 create or replace function public.create_transporter_registration_token(

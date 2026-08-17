@@ -9,7 +9,7 @@
 --
 -- Run this in the Supabase Dashboard -> SQL Editor, same as the other
 -- migrations in this folder. Depends on the `manifests` table already
--- existing (20260725_create_manifests_table.sql).
+-- existing (2026072501_create_manifests_table.sql).
 
 insert into storage.buckets (id, name, public)
 values ('manifest-documents', 'manifest-documents', false)

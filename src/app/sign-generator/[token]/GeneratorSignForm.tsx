@@ -20,6 +20,7 @@ import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
  */
 export function GeneratorSignForm({ token, session }: { token: string; session: GeneratorSignSession }) {
   const [signerName, setSignerName] = useState("");
+  const [mmin, setMmin] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -34,7 +35,7 @@ export function GeneratorSignForm({ token, session }: { token: string; session: 
     }
     setSubmitting(true);
     setResult(null);
-    const state = await submitGeneratorSignAction({ token, signerName: signerName.trim() });
+    const state = await submitGeneratorSignAction({ token, signerName: signerName.trim(), mmin: mmin.trim() });
     setSubmitting(false);
     setResult(
       state.success ? { success: true, message: state.message } : { success: false, message: state.error }
@@ -60,6 +61,23 @@ export function GeneratorSignForm({ token, session }: { token: string; session: 
           Your name (required)
         </label>
         <input value={signerName} onChange={(e) => setSignerName(e.target.value)} style={inputStyle} />
+      </div>
+
+      <div style={{ marginTop: "10px" }}>
+        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+          4-digit signing code (required)
+        </label>
+        <input
+          value={mmin}
+          onChange={(e) => setMmin(e.target.value)}
+          inputMode="numeric"
+          maxLength={4}
+          style={inputStyle}
+        />
+        <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
+          Ask {generatorName} for this manifest&apos;s 4-digit signing code (MMIN) before signing. This
+          confirms the link reached the right person for this specific shipment.
+        </p>
       </div>
 
       <CertificationDisplay certification={certification} />

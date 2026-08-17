@@ -9,6 +9,7 @@ import { getEpaCredentials } from "@/services/epaService";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
 import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
 import { sendEmail, EmailNotConfiguredError } from "@/lib/email/resendClient";
+import { timingSafeCompareMmin } from "@/lib/mmin";
 import { currentOrigin } from "./driverSignActions";
 import {
   createGeneratorSignToken,
@@ -16,6 +17,7 @@ import {
   claimGeneratorSignToken,
   releaseGeneratorSignToken,
   getOwnerCredentialsForToken,
+  getManifestMminForGeneratorToken,
   recordGeneratorSignResult,
   updateManifestGeneratorSignedAt,
   type GeneratorSignSession,
@@ -148,6 +150,7 @@ export async function getGeneratorSignSessionAction(token: string): Promise<Gene
 export interface SubmitGeneratorSignParams {
   token: string;
   signerName: string;
+  mmin: string;
 }
 
 export type SubmitGeneratorSignState =
@@ -183,6 +186,11 @@ export async function submitGeneratorSignAction(
 
   const certification = certificationTextFor("Generator");
 
+  // Set true only after a successful MMIN compare below — every
+  // recordResult call before that point (including this one) records
+  // mminVerified: false, which is accurate: the gate wasn't satisfied.
+  let mminVerified = false;
+
   const recordResult = (outcome: { signSucceeded: boolean; epaReportId?: string; epaError?: string }, siteId: string) =>
     recordGeneratorSignResult(supabase, {
       tokenId: claimed.tokenId,
@@ -194,6 +202,7 @@ export async function submitGeneratorSignAction(
       certificationIsVerbatim: certification.isVerbatim,
       ipAddress,
       userAgent,
+      mminVerified,
       ...outcome,
     });
 
@@ -204,6 +213,28 @@ export async function submitGeneratorSignAction(
       await recordResult({ signSucceeded: false, epaError: "Owner credentials unavailable." }, "");
       return { success: false, error: "This signing link is no longer valid." };
     }
+
+    // MMIN gate — checked before the live manifest re-fetch and before any
+    // RCRAInfo call, so a wrong code never spends a real EPA API round
+    // trip. Fails CLOSED (not open) when no MMIN is set, same reasoning as
+    // submitDriverSignAction's identical gate.
+    const actualMmin = await getManifestMminForGeneratorToken(supabase, claimed.tokenId);
+    if (actualMmin === null) {
+      await releaseGeneratorSignToken(supabase, claimed.tokenId);
+      await recordResult({ signSucceeded: false, epaError: "This manifest hasn't been assigned a signing code yet." }, "");
+      return {
+        success: false,
+        error: "This manifest hasn't been assigned a signing code yet — ask the generator to reopen it once, then try again.",
+      };
+    }
+    if (!timingSafeCompareMmin(params.mmin.trim(), actualMmin)) {
+      // Increments the EXISTING failed_attempt_count via releaseGeneratorSignToken
+      // — same rate-limit convention submitDriverSignAction relies on.
+      await releaseGeneratorSignToken(supabase, claimed.tokenId);
+      await recordResult({ signSucceeded: false, epaError: "Incorrect MMIN." }, "");
+      return { success: false, error: "Incorrect code — check with the generator and try again." };
+    }
+    mminVerified = true;
 
     const client = clientFor(credentials);
 

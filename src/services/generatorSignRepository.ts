@@ -92,6 +92,19 @@ export async function getOwnerCredentialsForToken(
   };
 }
 
+/**
+ * Deliberately separate from getOwnerCredentialsForToken, mirroring
+ * getManifestMmin in driverSignRepository.ts — keyed on the CLAIMED token
+ * id, never a bare id. Returns the decrypted 4-digit MMIN, or null if this
+ * manifest hasn't been assigned one yet.
+ */
+export async function getManifestMminForGeneratorToken(supabase: SupabaseClient, tokenId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("get_mmin_for_claimed_generator_token", { p_token_id: tokenId });
+  if (error) throw new Error(error.message);
+  const mminEncrypted = data?.[0]?.mmin_encrypted ?? null;
+  return mminEncrypted ? decrypt(mminEncrypted) : null;
+}
+
 export interface RecordGeneratorSignResultParams {
   tokenId: string;
   epaMtn: string;
@@ -105,6 +118,7 @@ export interface RecordGeneratorSignResultParams {
   signSucceeded: boolean;
   epaReportId?: string;
   epaError?: string;
+  mminVerified: boolean;
 }
 
 /** Always called, success or failure — mirrors signManifestAction/submitDriverSignAction's "record the attempt either way" behavior. */
@@ -125,6 +139,7 @@ export async function recordGeneratorSignResult(
     p_sign_succeeded: params.signSucceeded,
     p_epa_report_id: params.epaReportId ?? null,
     p_epa_error: params.epaError ?? null,
+    p_mmin_verified: params.mminVerified,
   });
   if (error) console.error("recordGeneratorSignResult FAILED — audit trail gap:", error.message);
 }

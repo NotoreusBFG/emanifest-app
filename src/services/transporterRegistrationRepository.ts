@@ -86,7 +86,6 @@ export async function completeTransporterRegistration(
     companyName: string;
     encryptedApiId: string;
     encryptedApiKey: string;
-    pinHash: string;
   }
 ): Promise<CompletedTransporterRegistration> {
   const { data, error } = await supabase.rpc("complete_transporter_registration", {
@@ -94,7 +93,6 @@ export async function completeTransporterRegistration(
     p_company_name: params.companyName,
     p_epa_api_id_encrypted: params.encryptedApiId,
     p_epa_api_key_encrypted: params.encryptedApiKey,
-    p_pin_hash: params.pinHash,
   });
   if (error) throw new Error(error.message);
   const row = data?.[0];
@@ -143,7 +141,6 @@ export interface TransporterManagementSession {
   companyName: string | null;
   epaSiteId: string;
   revokedAt: string | null;
-  pinSetAt: string | null;
 }
 
 /** Anonymous-facing read for the /manage-transporter/[managementToken] page. */
@@ -161,7 +158,6 @@ export async function getTransporterManagementSession(
     companyName: row.company_name,
     epaSiteId: row.epa_site_id,
     revokedAt: row.revoked_at,
-    pinSetAt: row.pin_set_at,
   };
 }
 
@@ -209,18 +205,6 @@ export async function unrevokeTransporterByManagementToken(supabase: SupabaseCli
   if (error) throw new Error(error.message);
 }
 
-export async function updateTransporterPinByManagementToken(
-  supabase: SupabaseClient,
-  managementToken: string,
-  pinHash: string
-): Promise<void> {
-  const { error } = await supabase.rpc("update_transporter_pin_by_management_token", {
-    p_management_token: managementToken,
-    p_pin_hash: pinHash,
-  });
-  if (error) throw new Error(error.message);
-}
-
 export interface TransporterInviteSummary {
   tokenId: string;
   epaSiteId: string;
@@ -234,7 +218,6 @@ export interface TransporterInviteSummary {
   cancelledAt: string | null;
   transporterCompanyName: string | null;
   transporterRevokedAt: string | null;
-  transporterPinSetAt: string | null;
   transporterHasLoginAccount: boolean;
 }
 
@@ -255,7 +238,6 @@ export async function listTransporterInvitesForOwner(supabase: SupabaseClient): 
     cancelledAt: row.cancelled_at as string | null,
     transporterCompanyName: row.transporter_company_name as string | null,
     transporterRevokedAt: row.transporter_revoked_at as string | null,
-    transporterPinSetAt: row.transporter_pin_set_at as string | null,
     transporterHasLoginAccount: Boolean(row.transporter_has_login_account),
   }));
 }

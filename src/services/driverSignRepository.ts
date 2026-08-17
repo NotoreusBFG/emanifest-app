@@ -97,20 +97,22 @@ export async function getTransporterCredentials(
 
 /**
  * Deliberately separate from getTransporterCredentials — that function
- * takes a bare transporter_id (no token/claim check) and is safe to expose
- * that loosely only because epa_api_id/epa_api_key are AES-encrypted and
- * useless without the server-only ENCRYPTION_SECRET_KEY. pin_hash has no
- * such protection (a salted hash of a bare 4-6 digit PIN is crackable
- * offline in minutes), so this is keyed on the CLAIMED token id instead —
- * same get_owner_credentials_for_token-class fix, see
- * 20260813_fix_pin_hash_exposure.sql.
+ * takes a bare transporter_id (no token/claim check), which is fine there
+ * only because epa_api_id/epa_api_key are AES-encrypted and useless
+ * without the server-only ENCRYPTION_SECRET_KEY. This is keyed on the
+ * CLAIMED token id instead, same get_owner_credentials_for_token-class
+ * pattern as the old PIN check it replaces (see
+ * 20260813_fix_pin_hash_exposure.sql, 20260824_add_mmin_to_manifests.sql).
+ * Returns the decrypted 4-digit MMIN, or null if this manifest hasn't been
+ * assigned one yet.
  */
-export async function getTransporterPinHash(supabase: SupabaseClient, tokenId: string): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_transporter_pin_hash_for_claimed_token", {
+export async function getManifestMmin(supabase: SupabaseClient, tokenId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("get_mmin_for_claimed_token", {
     p_token_id: tokenId,
   });
   if (error) throw new Error(error.message);
-  return data?.[0]?.pin_hash ?? null;
+  const mminEncrypted = data?.[0]?.mmin_encrypted ?? null;
+  return mminEncrypted ? decrypt(mminEncrypted) : null;
 }
 
 export interface RecordDriverSignResultParams {
@@ -129,7 +131,9 @@ export interface RecordDriverSignResultParams {
   signSucceeded: boolean;
   epaReportId?: string;
   epaError?: string;
+  /** Frozen historical column — the old company-PIN gate this replaced. Always false post-cutover. */
   pinVerified: boolean;
+  mminVerified: boolean;
 }
 
 /** Always called, success or failure — mirrors signManifestAction's "record the attempt either way" behavior in manifestActions.ts. */
@@ -154,6 +158,7 @@ export async function recordDriverSignResult(
     p_epa_report_id: params.epaReportId ?? null,
     p_epa_error: params.epaError ?? null,
     p_pin_verified: params.pinVerified,
+    p_mmin_verified: params.mminVerified,
   });
   if (error) console.error("recordDriverSignResult FAILED — audit trail gap:", error.message);
 }

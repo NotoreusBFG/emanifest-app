@@ -19,36 +19,20 @@
  *
  * Usage:
  *   SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/add-transporter-credentials.ts \
- *     <epaSiteId> <companyName> <apiId> <apiKey> [--pin <4-6 digits>]
+ *     <epaSiteId> <companyName> <apiId> <apiKey>
  *
- * --pin is REQUIRED before the PIN-gated driver-signing feature ships (see
- * submitDriverSignAction in src/app/actions/driverSignActions.ts): that
- * code fails CLOSED when a transporter has no pin_hash set, so every
- * Phase-1 row added by this script before the PIN gate existed needs a
- * one-time backfill run with --pin, or their drivers silently lose SMS
- * signing the moment the new code deploys. Omitting --pin on an existing
- * row leaves its current pin_hash untouched (not cleared).
+ * Driver-signing no longer needs a company PIN backfilled here — see
+ * 20260824_add_mmin_to_manifests.sql / 20260825_remove_transporter_pin.sql:
+ * signing is now gated by a per-manifest MMIN generated automatically,
+ * not anything set on the transporter row.
  */
 import { encrypt } from "../src/lib/cryptoUtils";
-import { hashPin } from "../src/lib/pinUtils";
-
-function extractPinFlag(args: string[]): { rest: string[]; pin: string | null } {
-  const idx = args.indexOf("--pin");
-  if (idx === -1) return { rest: args, pin: null };
-  const pin = args[idx + 1];
-  if (!pin || !/^\d{4,6}$/.test(pin)) {
-    console.error("--pin requires a 4-6 digit value.");
-    process.exit(1);
-  }
-  return { rest: [...args.slice(0, idx), ...args.slice(idx + 2)], pin };
-}
 
 async function main() {
-  const { rest, pin } = extractPinFlag(process.argv.slice(2));
-  const [epaSiteId, companyName, apiId, apiKey] = rest;
+  const [epaSiteId, companyName, apiId, apiKey] = process.argv.slice(2);
   if (!epaSiteId || !companyName || !apiId || !apiKey) {
     console.error(
-      "Usage: SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/add-transporter-credentials.ts <epaSiteId> <companyName> <apiId> <apiKey> [--pin <4-6 digits>]"
+      "Usage: SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/add-transporter-credentials.ts <epaSiteId> <companyName> <apiId> <apiKey>"
     );
     process.exit(1);
   }
@@ -83,7 +67,6 @@ async function main() {
       epa_api_id: encrypt(apiId),
       epa_api_key: encrypt(apiKey),
       revoked_at: null,
-      ...(pin ? { pin_hash: await hashPin(pin), pin_set_at: new Date().toISOString() } : {}),
     }),
   });
 
@@ -93,9 +76,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(
-    `Saved credentials for ${companyName} (${epaSiteId})${pin ? " with a PIN set" : " (no PIN set — driver signing will be blocked until one is)"} — ready for SMS signing.`
-  );
+  console.log(`Saved credentials for ${companyName} (${epaSiteId}) — ready for SMS signing.`);
 }
 
 main().catch((err) => {

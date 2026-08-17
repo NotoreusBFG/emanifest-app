@@ -44,6 +44,9 @@ export default async function TransporterDashboardPage() {
                       {m.generatorName ?? "—"} → {m.designatedFacilityName ?? "—"}
                     </p>
                     <p className="text-xs text-gray-400">Leg {m.transporterOrder}</p>
+                    {m.mmin && (
+                      <p className="mt-0.5 truncate text-xs font-semibold text-gray-500">🔑 MMIN: {m.mmin}</p>
+                    )}
                   </div>
                   {badge && <Badge variant={badge.variant}>{badge.label}</Badge>}
                 </div>

@@ -1,13 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  revokeTransporterAction,
-  unrevokeTransporterAction,
-  updateTransporterPinAction,
-} from "@/app/actions/transporterRegistrationActions";
+import { revokeTransporterAction, unrevokeTransporterAction } from "@/app/actions/transporterRegistrationActions";
 import type { TransporterManagementSession } from "@/services/transporterRegistrationRepository";
-import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
+import { primaryButtonStyle } from "@/lib/formStyles";
 
 export function ManageTransporterForm({
   managementToken,
@@ -20,11 +16,6 @@ export function ManageTransporterForm({
   const [toggling, setToggling] = useState(false);
   const [toggleError, setToggleError] = useState<string | null>(null);
 
-  const [pin, setPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
-  const [savingPin, setSavingPin] = useState(false);
-  const [pinResult, setPinResult] = useState<{ success: boolean; message: string } | null>(null);
-
   const handleToggle = async () => {
     setToggling(true);
     setToggleError(null);
@@ -34,22 +25,6 @@ export function ManageTransporterForm({
       setRevoked(!revoked);
     } else {
       setToggleError(state.error);
-    }
-  };
-
-  const handlePinSave = async () => {
-    setSavingPin(true);
-    setPinResult(null);
-    const state = await updateTransporterPinAction(managementToken, pin.trim(), confirmPin.trim());
-    setSavingPin(false);
-    setPinResult(
-      state.success
-        ? { success: true, message: "PIN updated." }
-        : { success: false, message: state.error }
-    );
-    if (state.success) {
-      setPin("");
-      setConfirmPin("");
     }
   };
 
@@ -85,38 +60,6 @@ export function ManageTransporterForm({
           {toggling ? "Working…" : revoked ? "Reactivate" : "Revoke access"}
         </button>
         {toggleError && <p style={{ color: "red", fontSize: "13px", marginTop: "8px" }}>❌ {toggleError}</p>}
-      </div>
-
-      <div style={{ marginTop: "20px" }}>
-        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>New company PIN (4-6 digits)</label>
-        <input
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          inputMode="numeric"
-          maxLength={6}
-          style={inputStyle}
-        />
-        <label style={{ display: "block", margin: "8px 0 5px", fontSize: "14px" }}>Confirm new PIN</label>
-        <input
-          value={confirmPin}
-          onChange={(e) => setConfirmPin(e.target.value)}
-          inputMode="numeric"
-          maxLength={6}
-          style={inputStyle}
-        />
-        <button
-          type="button"
-          disabled={savingPin || !pin || !confirmPin}
-          onClick={handlePinSave}
-          style={{ ...primaryButtonStyle(savingPin || !pin || !confirmPin), marginTop: "10px" }}
-        >
-          {savingPin ? "Saving…" : "Update PIN"}
-        </button>
-        {pinResult && (
-          <p style={{ color: pinResult.success ? "green" : "red", fontSize: "13px", marginTop: "8px" }}>
-            {pinResult.success ? "✅" : "❌"} {pinResult.message}
-          </p>
-        )}
       </div>
     </div>
   );

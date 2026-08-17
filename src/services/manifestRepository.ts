@@ -2,6 +2,8 @@ import JSZip from "jszip";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { getHandlerSignatureStatus, type Manifest, type ManifestStatus } from "@/lib/rcrainfo/types";
 import type { RcrainfoClient } from "@/lib/rcrainfo/client";
+import { encrypt, decrypt } from "@/lib/cryptoUtils";
+import { generateMmin } from "@/lib/mmin";
 
 /**
  * Next.js forwards server-side `console.error` calls to the browser's dev
@@ -26,9 +28,26 @@ export interface LocalManifestRecord {
   generator_signed_at: string | null;
   transporter_signed_at: string | null;
   facility_signed_at: string | null;
+  mmin_encrypted: string | null;
   created_at: string;
   updated_at: string;
   last_synced_at: string;
+}
+
+/**
+ * Decrypts a manifest's MMIN for display — returns null on missing or
+ * malformed ciphertext rather than throwing, since dashboard rendering
+ * must never crash on a bad row (see recordManifestLocally for how
+ * mmin_encrypted gets set).
+ */
+export function decryptMmin(mminEncrypted: string | null): string | null {
+  if (!mminEncrypted) return null;
+  try {
+    return decrypt(mminEncrypted);
+  } catch (err) {
+    console.error("decryptMmin failed on malformed ciphertext (non-fatal):", err instanceof Error ? err.message : err);
+    return null;
+  }
 }
 
 /**
@@ -117,6 +136,22 @@ export async function recordManifestLocally(
     transporterSignedAt = justSigned.signedAt;
   }
 
+  // Generated ONCE per manifest, the first time a local mirror row is
+  // created for it (save, sign, or lookup -- whichever runs first) --
+  // preserved unchanged on every later upsert so it never regenerates out
+  // from under a code the generator already relayed to a driver. The tiny
+  // TOCTOU window here (two truly simultaneous first-ever upserts for the
+  // same brand-new MTN both generating different codes, last write wins)
+  // is accepted: this is the local mirror table, not a security boundary
+  // (see manifests' own RLS), and it's a one-in-a-million race with a
+  // low-stakes outcome (the dashboard just shows whichever code won).
+  const { data: existingRow } = await supabase
+    .from("manifests")
+    .select("mmin_encrypted")
+    .eq("epa_mtn", manifest.manifestTrackingNumber)
+    .maybeSingle();
+  const mminEncrypted = existingRow?.mmin_encrypted ?? encrypt(generateMmin());
+
   const { data, error } = await supabase
     .from("manifests")
     .upsert(
@@ -136,6 +171,7 @@ export async function recordManifestLocally(
         generator_signed_at: generatorSignedAt,
         transporter_signed_at: transporterSignedAt,
         facility_signed_at: facilitySignedAt,
+        mmin_encrypted: mminEncrypted,
         last_synced_at: new Date().toISOString(),
       },
       { onConflict: "epa_mtn" }
@@ -205,7 +241,7 @@ export async function listManifestsForUser(
   const { data, error } = await supabase
     .from("manifests")
     .select(
-      "id, epa_mtn, epa_status, generator_name, generator_epa_site_id, transporter_names, designated_facility_name, designated_facility_epa_site_id, generator_signed_at, transporter_signed_at, facility_signed_at, created_at, updated_at, last_synced_at"
+      "id, epa_mtn, epa_status, generator_name, generator_epa_site_id, transporter_names, designated_facility_name, designated_facility_epa_site_id, generator_signed_at, transporter_signed_at, facility_signed_at, mmin_encrypted, created_at, updated_at, last_synced_at"
     )
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });

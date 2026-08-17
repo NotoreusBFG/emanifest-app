@@ -15,8 +15,6 @@ export function TransporterRegistrationForm({
   const [companyName, setCompanyName] = useState(session.companyNameSnapshot ?? "");
   const [apiId, setApiId] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [pin, setPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -30,8 +28,6 @@ export function TransporterRegistrationForm({
       companyName: companyName.trim(),
       apiId: apiId.trim(),
       apiKey: apiKey.trim(),
-      pin: pin.trim(),
-      confirmPin: confirmPin.trim(),
     });
     setSubmitting(false);
     if (state.success) {
@@ -47,7 +43,7 @@ export function TransporterRegistrationForm({
       <div>
         <p style={{ color: "green", fontSize: "15px" }}>✅ {result.message}</p>
         <p style={{ fontSize: "13px", color: "#333", marginTop: "10px" }}>
-          Save this link — it lets you revoke access or change your PIN anytime, with no login required:
+          Save this link — it lets you revoke access anytime, with no login required:
         </p>
         <p style={{ fontSize: "13px", wordBreak: "break-all" }}>
           <a href={manageLink ?? "#"}>{manageLink}</a>
@@ -112,34 +108,6 @@ export function TransporterRegistrationForm({
           exact site this invitation names — that check happens on EPA&apos;s side, at the moment a driver
           actually signs, not here. Make sure the API ID and Key are your own company&apos;s, generated in
           your own RCRAInfo account.
-        </p>
-      </div>
-
-      <div style={{ marginTop: "16px" }}>
-        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
-          Set a company PIN (4-6 digits)
-        </label>
-        <input
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          inputMode="numeric"
-          maxLength={6}
-          style={inputStyle}
-        />
-        <label style={{ display: "block", margin: "8px 0 5px", fontSize: "14px" }}>Confirm PIN</label>
-        <input
-          value={confirmPin}
-          onChange={(e) => setConfirmPin(e.target.value)}
-          inputMode="numeric"
-          maxLength={6}
-          style={inputStyle}
-        />
-        <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
-          Any of your drivers will need this PIN to sign a manifest for you through a ManifestMate text link.
-          It&apos;s one PIN shared across your whole company, not a separate one per driver — it&apos;s meant
-          to catch a text that reached the wrong number or the wrong company, not to verify which specific
-          driver is signing. Share it only with people authorized to accept waste on your company&apos;s
-          behalf, and change it anytime using your management link.
         </p>
       </div>
 

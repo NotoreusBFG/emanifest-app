@@ -19,7 +19,7 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
   const [driverName, setDriverName] = useState("");
   const [driverIdNumber, setDriverIdNumber] = useState("");
   const [truckNumber, setTruckNumber] = useState("");
-  const [companyPin, setCompanyPin] = useState("");
+  const [mmin, setMmin] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -38,7 +38,7 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
       driverName: driverName.trim(),
       driverIdNumber: driverIdNumber.trim() || undefined,
       truckNumber: truckNumber.trim() || undefined,
-      companyPin: companyPin.trim(),
+      mmin: mmin.trim(),
     });
     setSubmitting(false);
     setResult(
@@ -91,18 +91,18 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
       </div>
       <div style={{ marginTop: "10px" }}>
         <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
-          Company PIN (required)
+          4-digit signing code (required)
         </label>
         <input
-          value={companyPin}
-          onChange={(e) => setCompanyPin(e.target.value)}
+          value={mmin}
+          onChange={(e) => setMmin(e.target.value)}
           inputMode="numeric"
-          maxLength={6}
+          maxLength={4}
           style={inputStyle}
         />
         <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
-          Ask your dispatcher for {session.transporterCompanyName ?? "your company"}&apos;s ManifestMate PIN
-          before signing. This confirms the text reached the right company — it isn&apos;t tied to you
+          Ask your dispatcher for this manifest&apos;s 4-digit signing code (MMIN) before signing. This
+          confirms the text reached the right company for this specific shipment — it isn&apos;t tied to you
           personally, and it doesn&apos;t replace the name and ID above.
         </p>
       </div>

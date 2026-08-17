@@ -6,7 +6,7 @@ import { RcrainfoClient } from "@/lib/rcrainfo/client";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { formatRcrainfoError } from "@/lib/rcrainfo/formatError";
 import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
-import { verifyPin } from "@/lib/pinUtils";
+import { timingSafeCompareMmin } from "@/lib/mmin";
 import { getTransporterForGenerator } from "@/services/transporterRepository";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
 import {
@@ -15,7 +15,7 @@ import {
   claimDriverSignToken,
   releaseDriverSignToken,
   getTransporterCredentials,
-  getTransporterPinHash,
+  getManifestMmin,
   recordDriverSignResult,
   updateManifestTransporterSignedAt,
   type DriverSignSession,
@@ -183,7 +183,7 @@ export interface SubmitDriverSignParams {
   driverName: string;
   driverIdNumber?: string;
   truckNumber?: string;
-  companyPin: string;
+  mmin: string;
 }
 
 export type SubmitDriverSignState =
@@ -221,10 +221,12 @@ export async function submitDriverSignAction(
 
   const certification = certificationTextFor("Transporter");
 
-  // Set true only after a successful verifyPin call below — every
+  // Set true only after a successful MMIN compare below — every
   // recordResult call before that point (including this one) records
-  // pinVerified: false, which is accurate: the gate wasn't satisfied.
-  let pinVerified = false;
+  // mminVerified: false, which is accurate: the gate wasn't satisfied.
+  // pinVerified is a frozen historical column (the PIN gate this
+  // replaced) and always false post-cutover.
+  let mminVerified = false;
 
   const recordResult = (outcome: { signSucceeded: boolean; epaReportId?: string; epaError?: string }, siteId: string) =>
     recordDriverSignResult(supabase, {
@@ -240,7 +242,8 @@ export async function submitDriverSignAction(
       certificationIsVerbatim: certification.isVerbatim,
       ipAddress,
       userAgent,
-      pinVerified,
+      pinVerified: false,
+      mminVerified,
       ...outcome,
     });
 
@@ -252,29 +255,29 @@ export async function submitDriverSignAction(
       return { success: false, error: "This transporter's SMS signing access has been revoked." };
     }
 
-    // Company-PIN gate — checked before the live manifest re-fetch and
-    // before any RCRAInfo call, so a wrong PIN never spends a real EPA API
-    // round trip. Fails CLOSED (not open) when pinHash is null, matching
-    // this app's established pattern of never silently skipping a
-    // security gate for an ambiguous state — a transporter registered
-    // before this feature existed needs a one-time admin backfill (see
-    // scripts/add-transporter-credentials.ts's --pin flag), not a runtime
-    // bypass.
-    const pinHash = await getTransporterPinHash(supabase, claimed.tokenId);
-    if (pinHash === null) {
+    // MMIN gate — checked before the live manifest re-fetch and before any
+    // RCRAInfo call, so a wrong code never spends a real EPA API round
+    // trip. Fails CLOSED (not open) when no MMIN is set, matching this
+    // app's established pattern of never silently skipping a security gate
+    // for an ambiguous state.
+    const actualMmin = await getManifestMmin(supabase, claimed.tokenId);
+    if (actualMmin === null) {
       await releaseDriverSignToken(supabase, claimed.tokenId);
-      await recordResult({ signSucceeded: false, epaError: "This transporter hasn't set up a signing PIN yet." }, credentials.epaSiteId);
-      return { success: false, error: "This transporter hasn't set up a signing PIN yet — contact your dispatcher." };
+      await recordResult({ signSucceeded: false, epaError: "This manifest hasn't been assigned a signing code yet." }, credentials.epaSiteId);
+      return {
+        success: false,
+        error: "This manifest hasn't been assigned a signing code yet — ask the generator to reopen it once, then try again.",
+      };
     }
-    if (!(await verifyPin(params.companyPin, pinHash))) {
+    if (!timingSafeCompareMmin(params.mmin.trim(), actualMmin)) {
       // Increments the EXISTING failed_attempt_count via releaseDriverSignToken
       // — no new counter, reusing the one rate-limit convention already
       // used twice in this codebase (driver_sign_tokens, generator_sign_tokens).
       await releaseDriverSignToken(supabase, claimed.tokenId);
-      await recordResult({ signSucceeded: false, epaError: "Incorrect company PIN." }, credentials.epaSiteId);
-      return { success: false, error: "Incorrect PIN — check with your dispatcher and try again." };
+      await recordResult({ signSucceeded: false, epaError: "Incorrect MMIN." }, credentials.epaSiteId);
+      return { success: false, error: "Incorrect code — check with your dispatcher and try again." };
     }
-    pinVerified = true;
+    mminVerified = true;
 
     const client = clientFor(credentials);
 

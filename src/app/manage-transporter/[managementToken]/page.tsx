@@ -5,9 +5,9 @@ import { brand } from "@/lib/brandColors";
 /**
  * Public, accountless route — deliberately NOT in middleware.ts's
  * protectedPaths list. Anyone holding this link can revoke/reactivate
- * this transporter's signing access or change its PIN — that's the
- * entire trust model, stated plainly on the page itself, same pattern as
- * every other token-gated route in this app.
+ * this transporter's signing access — that's the entire trust model,
+ * stated plainly on the page itself, same pattern as every other
+ * token-gated route in this app.
  */
 export default async function ManageTransporterPage({
   params,

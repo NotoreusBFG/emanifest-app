@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { RcrainfoClient } from "@/lib/rcrainfo/client";
 import { formatRcrainfoError } from "@/lib/rcrainfo/formatError";
 import { encrypt } from "@/lib/cryptoUtils";
-import { hashPin } from "@/lib/pinUtils";
 import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
 import { sendEmail, EmailNotConfiguredError } from "@/lib/email/resendClient";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
@@ -19,7 +18,6 @@ import {
   getTransporterManagementSession,
   revokeTransporterByManagementToken,
   unrevokeTransporterByManagementToken,
-  updateTransporterPinByManagementToken,
   listTransporterInvitesForOwner,
   getTransporterNotifyContact,
   cancelTransporterRegistrationInvite,
@@ -35,10 +33,6 @@ function clientFor(credentials: { apiId: string; apiKey: string }) {
     environment: (process.env.RCRAINFO_ENV as "preprod" | "prod") ?? "preprod",
     credentials,
   });
-}
-
-function isValidPin(pin: string): boolean {
-  return /^\d{4,6}$/.test(pin);
 }
 
 interface InviteSendResult {
@@ -271,8 +265,6 @@ export interface CompleteTransporterRegistrationParams {
   companyName: string;
   apiId: string;
   apiKey: string;
-  pin: string;
-  confirmPin: string;
 }
 
 export type CompleteTransporterRegistrationState =
@@ -294,8 +286,6 @@ export async function completeTransporterRegistrationAction(
   if (!params.apiId.trim() || !params.apiKey.trim()) {
     return { success: false, error: "Enter your RCRAInfo API ID and Key." };
   }
-  if (params.pin !== params.confirmPin) return { success: false, error: "PINs don't match." };
-  if (!isValidPin(params.pin)) return { success: false, error: "PIN must be 4-6 digits." };
 
   const supabase = await createClient();
 
@@ -315,13 +305,11 @@ export async function completeTransporterRegistrationAction(
       return { success: false, error: `Couldn't verify those credentials with RCRAInfo: ${formatRcrainfoError(err)}` };
     }
 
-    const pinHash = await hashPin(params.pin);
     const { managementToken } = await completeTransporterRegistration(supabase, {
       tokenId: claimed.tokenId,
       companyName: params.companyName.trim(),
       encryptedApiId: encrypt(params.apiId.trim()),
       encryptedApiKey: encrypt(params.apiKey.trim()),
-      pinHash,
     });
 
     const origin = await currentOrigin();
@@ -330,7 +318,7 @@ export async function completeTransporterRegistrationAction(
 
     // Best-effort confirmation back to the transporter's own contact
     // channels (whichever were actually used at invite time) — never
-    // echoes the plaintext API key or PIN, only the manage link.
+    // echoes the plaintext API key, only the manage link.
     const recap = `ManifestMate: ${companyName} is registered. Manage or revoke access anytime: ${manageLink}`;
     if (claimed.recipientPhone) {
       try {
@@ -475,24 +463,6 @@ export async function revokeTransporterAsInvitingGeneratorAction(epaSiteId: stri
   try {
     const contact = await revokeTransporterForInvitingGenerator(supabase, epaSiteId);
     await sendRevokeNotification(contact);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Unknown error." };
-  }
-}
-
-export async function updateTransporterPinAction(
-  managementToken: string,
-  pin: string,
-  confirmPin: string
-): Promise<ManageTransporterActionState> {
-  if (pin !== confirmPin) return { success: false, error: "PINs don't match." };
-  if (!isValidPin(pin)) return { success: false, error: "PIN must be 4-6 digits." };
-
-  const supabase = await createClient();
-  try {
-    const pinHash = await hashPin(pin);
-    await updateTransporterPinByManagementToken(supabase, managementToken, pinHash);
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Unknown error." };

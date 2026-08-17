@@ -49,9 +49,10 @@ const sections: Section[] = [
           other signer, we collect that number to send the signature-request text message.
         </li>
         <li>
-          <strong>Business information:</strong> company name, EPA Site ID, and (for registered
-          transporter companies) a PIN you set, which we store as a one-way hash and never in
-          plain text.
+          <strong>Business information:</strong> company name and EPA Site ID for registered
+          transporter companies, and a randomly generated 4-digit signing code (MMIN) per
+          manifest, which we store encrypted so it can be displayed to you and, where applicable,
+          the assigned transporter.
         </li>
         <li>
           <strong>Manifest data:</strong> the waste, generator, transporter, and disposal-facility
@@ -147,8 +148,9 @@ const sections: Section[] = [
     title: "Data security",
     body: (
       <>
-        Your RCRAInfo API credentials and any transporter PIN are encrypted or hashed at rest, and
-        never stored or transmitted in plain text. Access to your account&apos;s data is enforced
+        Your RCRAInfo API credentials and each manifest&apos;s signing code (MMIN) are encrypted at
+        rest, and never transmitted in plain text outside your own account&apos;s dashboard views.
+        Access to your account&apos;s data is enforced
         at the database level, so it is not reachable by any other company&apos;s account under
         normal use of the application.
       </>

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { listManifestIdsWithDocuments, listManifestsForUser } from "@/services/manifestRepository";
+import { decryptMmin, listManifestIdsWithDocuments, listManifestsForUser } from "@/services/manifestRepository";
 import { listActiveLdrNoticesByMtn } from "@/services/ldrRepository";
 import { listDriverSignInfoByMtn } from "@/services/driverSignRepository";
 import { getOnboardingProgress } from "@/services/onboardingRepository";
@@ -93,6 +93,7 @@ export default async function DashboardPage() {
             );
             const ldrNotice = ldrNoticesByMtn[m.epa_mtn];
             const driverInfo = driverSignInfoByMtn[m.epa_mtn];
+            const mmin = decryptMmin(m.mmin_encrypted);
 
             return (
               <Card key={m.id} className="p-4">
@@ -109,6 +110,9 @@ export default async function DashboardPage() {
                     </p>
                     {m.transporter_names && (
                       <p className="truncate text-xs text-gray-400">via {m.transporter_names}</p>
+                    )}
+                    {mmin && (
+                      <p className="truncate text-xs font-semibold text-gray-500">🔑 MMIN: {mmin}</p>
                     )}
                     {driverInfo && (
                       <p className="truncate text-xs text-gray-400">

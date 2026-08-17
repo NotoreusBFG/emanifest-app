@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { decryptMmin } from "@/services/manifestRepository";
 
 export interface TransporterManifestRow {
   epaMtn: string;
@@ -13,6 +14,7 @@ export interface TransporterManifestRow {
   transporterEpaSiteId: string;
   transporterOrder: number;
   updatedAt: string;
+  mmin: string | null;
 }
 
 /** View-only status list for a logged-in transporter company account — see list_manifests_for_transporter_owner's comment for the security-boundary reasoning. */
@@ -36,6 +38,7 @@ export async function listManifestsForTransporterOwner(supabase: SupabaseClient)
       transporter_epa_site_id: string;
       transporter_order: number;
       updated_at: string;
+      mmin_encrypted: string | null;
     }) => ({
       epaMtn: r.epa_mtn,
       epaStatus: r.epa_status,
@@ -49,6 +52,7 @@ export async function listManifestsForTransporterOwner(supabase: SupabaseClient)
       transporterEpaSiteId: r.transporter_epa_site_id,
       transporterOrder: r.transporter_order,
       updatedAt: r.updated_at,
+      mmin: decryptMmin(r.mmin_encrypted),
     })
   );
 }

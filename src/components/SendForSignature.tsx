@@ -224,7 +224,7 @@ function InviteGeneratorPanel({ mtn }: { mtn: string }) {
         They&apos;ll sign using <strong>your</strong> RCRAInfo credentials — no account needed on their
         end. One-time, for this manifest only.
       </p>
-      <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="+1 555 555 5555" />
+      <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
       <FieldRow label="Email address" value={email} onChange={setEmail} placeholder="name@example.com" />
       <SendRow sending={sending} onSend={handleSend} label="Send invite" />
       <ResultDisplay result={result} />
@@ -315,7 +315,7 @@ function InviteTransporterPanel({ mtn }: { mtn: string }) {
           </select>
         </div>
       )}
-      <FieldRow label="Driver's phone number" value={phone} onChange={setPhone} placeholder="+1 555 555 5555" />
+      <FieldRow label="Driver's phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
       <SendRow sending={sending} onSend={handleSend} label="Send text" />
       <ResultDisplay result={result} />
       {notRegistered && (
@@ -408,7 +408,7 @@ function RegisterTransporterCta({
       )}
       {!result?.success && (
         <>
-          <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="+1 555 555 5555" />
+          <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
           <FieldRow label="Email address" value={email} onChange={setEmail} placeholder="name@example.com" />
           <SendRow sending={sending} onSend={handleSend} label={pending ? "Resend invite" : "Send registration invite"} />
         </>
@@ -423,16 +423,19 @@ function FieldRow({
   value,
   onChange,
   placeholder,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
+  type?: string;
 }) {
   return (
     <div style={{ marginBottom: "8px" }}>
       <label style={{ display: "block", fontSize: "12px", color: "#666", marginBottom: "4px" }}>{label}</label>
       <input
+        type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

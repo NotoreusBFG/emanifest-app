@@ -3,7 +3,7 @@ import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { getHandlerSignatureStatus, type Manifest, type ManifestStatus } from "@/lib/rcrainfo/types";
 import type { RcrainfoClient } from "@/lib/rcrainfo/client";
 import { encrypt, decrypt } from "@/lib/cryptoUtils";
-import { generateMmin } from "@/lib/mmin";
+import { generateVerificationCode } from "@/lib/verificationCode";
 
 /**
  * Next.js forwards server-side `console.error` calls to the browser's dev
@@ -150,7 +150,7 @@ export async function recordManifestLocally(
     .select("mmin_encrypted")
     .eq("epa_mtn", manifest.manifestTrackingNumber)
     .maybeSingle();
-  const mminEncrypted = existingRow?.mmin_encrypted ?? encrypt(generateMmin());
+  const mminEncrypted = existingRow?.mmin_encrypted ?? encrypt(generateVerificationCode());
 
   const { data, error } = await supabase
     .from("manifests")

@@ -9,7 +9,7 @@ import { getEpaCredentials } from "@/services/epaService";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
 import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
 import { sendEmail, EmailNotConfiguredError } from "@/lib/email/resendClient";
-import { timingSafeCompareMmin } from "@/lib/mmin";
+import { timingSafeCompareCode } from "@/lib/verificationCode";
 import { currentOrigin } from "./driverSignActions";
 import {
   createGeneratorSignToken,
@@ -227,7 +227,7 @@ export async function submitGeneratorSignAction(
         error: "This manifest hasn't been assigned a signing code yet — ask the generator to reopen it once, then try again.",
       };
     }
-    if (!timingSafeCompareMmin(params.mmin.trim(), actualMmin)) {
+    if (!timingSafeCompareCode(params.mmin.trim(), actualMmin)) {
       // Increments the EXISTING failed_attempt_count via releaseGeneratorSignToken
       // — same rate-limit convention submitDriverSignAction relies on.
       await releaseGeneratorSignToken(supabase, claimed.tokenId);

@@ -6,7 +6,7 @@ import { RcrainfoClient } from "@/lib/rcrainfo/client";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { formatRcrainfoError } from "@/lib/rcrainfo/formatError";
 import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
-import { timingSafeCompareMmin } from "@/lib/mmin";
+import { timingSafeCompareCode } from "@/lib/verificationCode";
 import { getTransporterForGenerator } from "@/services/transporterRepository";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
 import {
@@ -269,7 +269,7 @@ export async function submitDriverSignAction(
         error: "This manifest hasn't been assigned a signing code yet — ask the generator to reopen it once, then try again.",
       };
     }
-    if (!timingSafeCompareMmin(params.mmin.trim(), actualMmin)) {
+    if (!timingSafeCompareCode(params.mmin.trim(), actualMmin)) {
       // Increments the EXISTING failed_attempt_count via releaseDriverSignToken
       // — no new counter, reusing the one rate-limit convention already
       // used twice in this codebase (driver_sign_tokens, generator_sign_tokens).

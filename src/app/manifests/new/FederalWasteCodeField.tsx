@@ -13,6 +13,10 @@ interface FederalWasteCodeFieldProps {
   name: string;
   value: string;
   onChange: (value: string) => void;
+  /** Defaults to the logged-in-owner fetch action — the manifest-prep
+   * delegate flow (no ManifestMate account) passes a token-gated variant
+   * instead (getFederalWasteCodesForPrepTokenAction). */
+  fetchFn?: () => Promise<{ success: true; codes: FederalWasteCode[] } | { success: false; error: string }>;
 }
 
 function parseCodes(value: string): string[] {
@@ -34,7 +38,7 @@ function parseCodes(value: string): string[] {
  * fetched once and filtered client-side rather than round-tripping to the
  * server on every keystroke.
  */
-export function FederalWasteCodeField({ name, value, onChange }: FederalWasteCodeFieldProps) {
+export function FederalWasteCodeField({ name, value, onChange, fetchFn = getFederalWasteCodesAction }: FederalWasteCodeFieldProps) {
   const [allCodes, setAllCodes] = useState<FederalWasteCode[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -43,7 +47,7 @@ export function FederalWasteCodeField({ name, value, onChange }: FederalWasteCod
 
   useEffect(() => {
     let cancelled = false;
-    getFederalWasteCodesAction().then((state) => {
+    fetchFn().then((state) => {
       if (cancelled) return;
       if (state.success) setAllCodes(state.codes);
       else setLoadError(state.error);
@@ -51,6 +55,7 @@ export function FederalWasteCodeField({ name, value, onChange }: FederalWasteCod
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchFn intentionally omitted: it's a stable, mount-bound function (defaults to the module-level getFederalWasteCodesAction; a caller-supplied override, e.g. PrepManifestForm's useCallback, is expected to be referentially stable too), not per-render state
   }, []);
 
   useClickOutside(containerRef, () => setIsOpen(false));

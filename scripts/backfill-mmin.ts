@@ -14,7 +14,7 @@
  *   SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/backfill-mmin.ts
  */
 import { encrypt } from "../src/lib/cryptoUtils";
-import { generateMmin } from "../src/lib/mmin";
+import { generateVerificationCode } from "../src/lib/verificationCode";
 
 async function main() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -47,7 +47,7 @@ async function main() {
     const res = await fetch(`${supabaseUrl}/rest/v1/manifests?id=eq.${row.id}`, {
       method: "PATCH",
       headers,
-      body: JSON.stringify({ mmin_encrypted: encrypt(generateMmin()) }),
+      body: JSON.stringify({ mmin_encrypted: encrypt(generateVerificationCode()) }),
     });
     if (!res.ok) {
       console.error(`Failed for ${row.epa_mtn} (${res.status}): ${await res.text()}`);

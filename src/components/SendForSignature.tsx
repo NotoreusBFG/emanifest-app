@@ -8,12 +8,13 @@ import {
   getManifestTransportersForSendAction,
 } from "@/app/actions/driverSignActions";
 import { createGeneratorSignLinkAction } from "@/app/actions/generatorSignActions";
+import { createWasteLineEditLinkAction } from "@/app/actions/wasteLineEditActions";
 import {
   createTransporterRegistrationInviteAction,
   hasPendingTransporterInviteAction,
 } from "@/app/actions/transporterRegistrationActions";
 
-type Panel = "share" | "generator" | "transporter" | null;
+type Panel = "share" | "generator" | "transporter" | "wasteLines" | null;
 
 /**
  * Single "Send for signature" entry point, replacing the previous
@@ -84,14 +85,21 @@ export function SendForSignature({ mtn }: { mtn: string }) {
           onClick={() => setPanel(panel === "generator" ? null : "generator")}
           style={panel === "generator" ? primaryToggleStyle : outlineButtonStyle}
         >
-          Invite as generator
+          Send to delegate
         </button>
         <button
           type="button"
           onClick={() => setPanel(panel === "transporter" ? null : "transporter")}
           style={panel === "transporter" ? primaryToggleStyle : outlineButtonStyle}
         >
-          Invite as transporter
+          Send to driver
+        </button>
+        <button
+          type="button"
+          onClick={() => setPanel(panel === "wasteLines" ? null : "wasteLines")}
+          style={panel === "wasteLines" ? primaryToggleStyle : outlineButtonStyle}
+        >
+          Add waste lines
         </button>
         <button
           type="button"
@@ -110,6 +118,7 @@ export function SendForSignature({ mtn }: { mtn: string }) {
       )}
       {panel === "generator" && <InviteGeneratorPanel mtn={mtn} />}
       {panel === "transporter" && <InviteTransporterPanel mtn={mtn} />}
+      {panel === "wasteLines" && <AddWasteLinesPanel mtn={mtn} />}
     </div>
   );
 }
@@ -223,6 +232,52 @@ function InviteGeneratorPanel({ mtn }: { mtn: string }) {
       <p style={{ fontSize: "12px", color: "#666", margin: "0 0 8px" }}>
         They&apos;ll sign using <strong>your</strong> RCRAInfo credentials — no account needed on their
         end. One-time, for this manifest only.
+      </p>
+      <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
+      <FieldRow label="Email address" value={email} onChange={setEmail} placeholder="name@example.com" />
+      <SendRow sending={sending} onSend={handleSend} label="Send invite" />
+      <ResultDisplay result={result} />
+    </div>
+  );
+}
+
+/** Accountless, one-time waste-line-only edit — the manifest's own MMIN gates it (not a separately-generated code), so no code is returned/shown here; the sender relays the MMIN already visible on the manifest's dashboard card. */
+function AddWasteLinesPanel({ mtn }: { mtn: string }) {
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ success: boolean; message: string; link?: string } | null>(null);
+
+  const handleSend = async () => {
+    if (!phone.trim() && !email.trim()) {
+      setResult({ success: false, message: "Enter a phone number and/or an email address first." });
+      return;
+    }
+    setSending(true);
+    setResult(null);
+    const state = await createWasteLineEditLinkAction(mtn, phone.trim() || null, email.trim() || null);
+    setSending(false);
+    if (state.success) {
+      const sentVia = [state.smsSent && "text", state.emailSent && "email"].filter(Boolean).join(" and ");
+      setResult({
+        success: true,
+        message: sentVia
+          ? `Sent via ${sentVia}.`
+          : `Link created, but nothing could be sent (${state.smsError ?? state.emailError ?? "channel not configured"}) — share this link manually:`,
+        link: sentVia ? undefined : state.link,
+      });
+    } else {
+      setResult({ success: false, message: state.error });
+    }
+  };
+
+  return (
+    <div style={{ marginTop: "10px", borderTop: `1px solid ${brand.tint}`, paddingTop: "10px" }}>
+      <p style={{ fontSize: "12px", color: "#666", margin: "0 0 8px" }}>
+        They can add waste line details using <strong>your</strong> RCRAInfo credentials — no account
+        needed, and they can&apos;t change the generator, transporter, or disposal facility. Give them
+        this manifest&apos;s MMIN (shown on its dashboard card) separately — it&apos;s not included in
+        the message.
       </p>
       <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
       <FieldRow label="Email address" value={email} onChange={setEmail} placeholder="name@example.com" />

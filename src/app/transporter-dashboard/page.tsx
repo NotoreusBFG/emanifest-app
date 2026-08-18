@@ -47,6 +47,20 @@ export default async function TransporterDashboardPage() {
                     {m.mmin && (
                       <p className="mt-0.5 truncate text-xs font-semibold text-gray-500">🔑 MMIN: {m.mmin}</p>
                     )}
+                    {m.generatorSignerName && m.generatorSignerSignedAt && (
+                      <p className="truncate text-xs text-gray-400">
+                        📝 {m.generatorSignerName} · {new Date(m.generatorSignerSignedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                    {m.driverName && m.driverSignedAt && (
+                      <p className="truncate text-xs text-gray-400">
+                        🚚 {m.driverName}
+                        {m.driverIdNumber && ` · ID ${m.driverIdNumber}`}
+                        {m.truckNumber && ` · Truck ${m.truckNumber}`}
+                        {" · "}
+                        {new Date(m.driverSignedAt).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                   {badge && <Badge variant={badge.variant}>{badge.label}</Badge>}
                 </div>

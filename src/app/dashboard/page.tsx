@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { decryptMmin, listManifestIdsWithDocuments, listManifestsForUser } from "@/services/manifestRepository";
 import { listActiveLdrNoticesByMtn } from "@/services/ldrRepository";
 import { listDriverSignInfoByMtn } from "@/services/driverSignRepository";
+import { listGeneratorSignInfoByMtn } from "@/services/generatorSignRepository";
 import { getOnboardingProgress } from "@/services/onboardingRepository";
 import { brand } from "@/lib/brandColors";
 import { Card } from "@/components/ui/Card";
@@ -41,6 +42,9 @@ export default async function DashboardPage() {
     : {};
   const driverSignInfoByMtn = user
     ? await listDriverSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn))
+    : {};
+  const generatorSignInfoByMtn = user
+    ? await listGeneratorSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn))
     : {};
   const onboardingProgress = user ? await getOnboardingProgress(supabase, user.id) : null;
 
@@ -93,6 +97,7 @@ export default async function DashboardPage() {
             );
             const ldrNotice = ldrNoticesByMtn[m.epa_mtn];
             const driverInfo = driverSignInfoByMtn[m.epa_mtn];
+            const generatorInfo = generatorSignInfoByMtn[m.epa_mtn];
             const mmin = decryptMmin(m.mmin_encrypted);
 
             return (
@@ -113,6 +118,11 @@ export default async function DashboardPage() {
                     )}
                     {mmin && (
                       <p className="truncate text-xs font-semibold text-gray-500">🔑 MMIN: {mmin}</p>
+                    )}
+                    {generatorInfo && (
+                      <p className="truncate text-xs text-gray-400">
+                        📝 {generatorInfo.signerName} · {new Date(generatorInfo.signedAt).toLocaleDateString()}
+                      </p>
                     )}
                     {driverInfo && (
                       <p className="truncate text-xs text-gray-400">

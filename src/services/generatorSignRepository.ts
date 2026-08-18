@@ -185,3 +185,50 @@ export async function createGeneratorSignToken(
   if (!token) throw new Error("Failed to create generator sign link.");
   return token;
 }
+
+export interface GeneratorSignInfo {
+  signerName: string;
+  signedAt: string;
+}
+
+/**
+ * Batched (one query, not one per manifest) lookup of the most recent
+ * successful Generator-role signature per manifest, for the dashboard —
+ * mirrors listDriverSignInfoByMtn in driverSignRepository.ts. Deliberately
+ * NOT filtered to generator_sign_token_id is not null — a direct owner
+ * sign (signManifestAction, no delegate token at all) is just as valid a
+ * "who/when" answer, and is already visible under the base "auth.uid() =
+ * user_id" RLS policy; the delegate-token path is visible under
+ * 20260808's "Owners can view generator-delegate-signed consents for
+ * their tokens" policy. Together those cover both real paths without a
+ * SECURITY DEFINER function needed here.
+ */
+export async function listGeneratorSignInfoByMtn(
+  supabase: SupabaseClient,
+  epaMtns: string[]
+): Promise<Record<string, GeneratorSignInfo>> {
+  if (epaMtns.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from("signature_consents")
+    .select("epa_mtn, printed_signature_name, acknowledged_at")
+    .in("epa_mtn", epaMtns)
+    .eq("site_type", "Generator")
+    .eq("sign_succeeded", true)
+    .order("acknowledged_at", { ascending: false });
+
+  if (error) {
+    console.error("listGeneratorSignInfoByMtn failed:", error.message);
+    return {};
+  }
+
+  const map: Record<string, GeneratorSignInfo> = {};
+  for (const row of data ?? []) {
+    if (map[row.epa_mtn]) continue;
+    map[row.epa_mtn] = {
+      signerName: row.printed_signature_name,
+      signedAt: row.acknowledged_at,
+    };
+  }
+  return map;
+}

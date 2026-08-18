@@ -235,7 +235,7 @@ function InviteGeneratorPanel({ mtn }: { mtn: string }) {
       </p>
       <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
       <FieldRow label="Email address" value={email} onChange={setEmail} placeholder="name@example.com" />
-      <SendRow sending={sending} onSend={handleSend} label="Send invite" />
+      <SendRow sending={sending} onSend={handleSend} label="Send" />
       <ResultDisplay result={result} />
     </div>
   );
@@ -281,7 +281,7 @@ function AddWasteLinesPanel({ mtn }: { mtn: string }) {
       </p>
       <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
       <FieldRow label="Email address" value={email} onChange={setEmail} placeholder="name@example.com" />
-      <SendRow sending={sending} onSend={handleSend} label="Send invite" />
+      <SendRow sending={sending} onSend={handleSend} label="Send" />
       <ResultDisplay result={result} />
     </div>
   );
@@ -371,7 +371,7 @@ function InviteTransporterPanel({ mtn }: { mtn: string }) {
         </div>
       )}
       <FieldRow label="Driver's phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
-      <SendRow sending={sending} onSend={handleSend} label="Send text" />
+      <SendRow sending={sending} onSend={handleSend} label="Send" />
       <ResultDisplay result={result} />
       {notRegistered && (
         <RegisterTransporterCta
@@ -465,7 +465,7 @@ function RegisterTransporterCta({
         <>
           <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
           <FieldRow label="Email address" value={email} onChange={setEmail} placeholder="name@example.com" />
-          <SendRow sending={sending} onSend={handleSend} label={pending ? "Resend invite" : "Send registration invite"} />
+          <SendRow sending={sending} onSend={handleSend} label={pending ? "Resend" : "Send"} />
         </>
       )}
       <ResultDisplay result={result} />

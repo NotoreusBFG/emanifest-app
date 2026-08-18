@@ -15,6 +15,12 @@ export interface TransporterManifestRow {
   transporterOrder: number;
   updatedAt: string;
   mmin: string | null;
+  generatorSignerName: string | null;
+  generatorSignerSignedAt: string | null;
+  driverName: string | null;
+  driverIdNumber: string | null;
+  truckNumber: string | null;
+  driverSignedAt: string | null;
 }
 
 /** View-only status list for a logged-in transporter company account — see list_manifests_for_transporter_owner's comment for the security-boundary reasoning. */
@@ -39,6 +45,12 @@ export async function listManifestsForTransporterOwner(supabase: SupabaseClient)
       transporter_order: number;
       updated_at: string;
       mmin_encrypted: string | null;
+      generator_signer_name: string | null;
+      generator_signer_signed_at: string | null;
+      driver_name: string | null;
+      driver_id_number: string | null;
+      truck_number: string | null;
+      driver_signed_at: string | null;
     }) => ({
       epaMtn: r.epa_mtn,
       epaStatus: r.epa_status,
@@ -53,6 +65,12 @@ export async function listManifestsForTransporterOwner(supabase: SupabaseClient)
       transporterOrder: r.transporter_order,
       updatedAt: r.updated_at,
       mmin: decryptMmin(r.mmin_encrypted),
+      generatorSignerName: r.generator_signer_name,
+      generatorSignerSignedAt: r.generator_signer_signed_at,
+      driverName: r.driver_name,
+      driverIdNumber: r.driver_id_number,
+      truckNumber: r.truck_number,
+      driverSignedAt: r.driver_signed_at,
     })
   );
 }

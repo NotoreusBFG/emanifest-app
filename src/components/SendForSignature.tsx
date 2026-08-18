@@ -245,6 +245,7 @@ function InviteGeneratorPanel({ mtn }: { mtn: string }) {
 function AddWasteLinesPanel({ mtn }: { mtn: string }) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [allowSign, setAllowSign] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; link?: string } | null>(null);
 
@@ -255,7 +256,7 @@ function AddWasteLinesPanel({ mtn }: { mtn: string }) {
     }
     setSending(true);
     setResult(null);
-    const state = await createWasteLineEditLinkAction(mtn, phone.trim() || null, email.trim() || null);
+    const state = await createWasteLineEditLinkAction(mtn, phone.trim() || null, email.trim() || null, allowSign);
     setSending(false);
     if (state.success) {
       const sentVia = [state.smsSent && "text", state.emailSent && "email"].filter(Boolean).join(" and ");
@@ -281,7 +282,37 @@ function AddWasteLinesPanel({ mtn }: { mtn: string }) {
       </p>
       <FieldRow label="Phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
       <FieldRow label="Email address" value={email} onChange={setEmail} placeholder="name@example.com" />
-      <SendRow sending={sending} onSend={handleSend} label="Send" />
+
+      <label
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "8px",
+          fontSize: "12px",
+          cursor: "pointer",
+          marginTop: "8px",
+          padding: "8px",
+          background: allowSign ? "#fff4e5" : "transparent",
+          borderRadius: "4px",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={allowSign}
+          onChange={(e) => setAllowSign(e.target.checked)}
+          style={{ marginTop: "2px" }}
+        />
+        <span>
+          <strong>Also let them sign as generator.</strong> If checked, whoever receives this link
+          will also have the power to sign this manifest as the generator, using{" "}
+          <strong>your</strong> RCRAInfo credentials and certifying its accuracy on your behalf.
+          Only check this for someone you&apos;d trust to sign directly.
+        </span>
+      </label>
+
+      <div style={{ marginTop: "8px" }}>
+        <SendRow sending={sending} onSend={handleSend} label="Send" />
+      </div>
       <ResultDisplay result={result} />
     </div>
   );

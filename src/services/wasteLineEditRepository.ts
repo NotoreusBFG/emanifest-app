@@ -6,6 +6,8 @@ export interface WasteLineEditSession {
   generatorName: string | null;
   designatedFacilityName: string | null;
   expiresAt: string;
+  /** Whether this link also grants Generator-role signing power — safe to expose pre-claim (a flag, not sensitive), so the delegate page can warn upfront. */
+  allowSign: boolean;
 }
 
 /** Anonymous-facing read of the display snapshot — never claims/burns the token. See get_waste_line_edit_session's comment for why. */
@@ -22,6 +24,7 @@ export async function getWasteLineEditSession(
     generatorName: row.generator_name,
     designatedFacilityName: row.designated_facility_name,
     expiresAt: row.expires_at,
+    allowSign: row.allow_sign,
   };
 }
 
@@ -31,6 +34,8 @@ export interface ClaimedWasteLineEditToken {
   epaMtn: string;
   /** Captured at invite-creation time from the logged-in owner's session — for the post-submit "manifest is ready to review" notification. */
   ownerNotifyEmail: string | null;
+  /** Whether this link also grants Generator-role signing power. */
+  allowSign: boolean;
 }
 
 /**
@@ -53,6 +58,7 @@ export async function claimWasteLineEditToken(
     ownerUserId: row.owner_user_id,
     epaMtn: row.epa_mtn,
     ownerNotifyEmail: row.owner_notify_email ?? null,
+    allowSign: row.allow_sign,
   };
 }
 
@@ -99,6 +105,7 @@ export async function createWasteLineEditToken(
     generatorName: string | null;
     designatedFacilityName: string | null;
     ownerNotifyEmail: string | null;
+    allowSign: boolean;
   }
 ): Promise<string> {
   const { data, error } = await supabase.rpc("create_waste_line_edit_token", {
@@ -108,6 +115,7 @@ export async function createWasteLineEditToken(
     p_generator_name: params.generatorName,
     p_designated_facility_name: params.designatedFacilityName,
     p_owner_notify_email: params.ownerNotifyEmail,
+    p_allow_sign: params.allowSign,
   });
   if (error) throw new Error(error.message);
   const token = data?.[0]?.token;
@@ -142,4 +150,50 @@ export async function recordManifestEditConsent(
     p_user_agent: params.userAgent,
   });
   if (error) console.error("recordManifestEditConsent FAILED — audit trail gap:", error.message);
+}
+
+export interface RecordGeneratorSignViaWasteLineTokenParams {
+  tokenId: string;
+  epaMtn: string;
+  siteId: string;
+  signerName: string;
+  certificationHeading: string;
+  certificationText: string;
+  certificationIsVerbatim: boolean;
+  ipAddress: string | null;
+  userAgent: string | null;
+  signSucceeded: boolean;
+  epaReportId?: string;
+  epaError?: string;
+  mminVerified: boolean;
+}
+
+/**
+ * Records the OPTIONAL Generator-role sign that can happen through this
+ * same token when allow_sign is true — a genuine signature_consents row
+ * (not manifest_edit_consents, which deliberately has no certification
+ * text/printed name), so listGeneratorSignInfoByMtn shows "who signed"
+ * accurately for this path too. Mirrors recordGeneratorSignResult exactly,
+ * just keyed on waste_line_edit_token_id.
+ */
+export async function recordGeneratorSignViaWasteLineToken(
+  supabase: SupabaseClient,
+  params: RecordGeneratorSignViaWasteLineTokenParams
+): Promise<void> {
+  const { error } = await supabase.rpc("record_generator_sign_via_waste_line_token", {
+    p_token_id: params.tokenId,
+    p_epa_mtn: params.epaMtn,
+    p_site_id: params.siteId,
+    p_signer_name: params.signerName,
+    p_certification_heading: params.certificationHeading,
+    p_certification_text: params.certificationText,
+    p_certification_is_verbatim: params.certificationIsVerbatim,
+    p_ip_address: params.ipAddress,
+    p_user_agent: params.userAgent,
+    p_sign_succeeded: params.signSucceeded,
+    p_epa_report_id: params.epaReportId ?? null,
+    p_epa_error: params.epaError ?? null,
+    p_mmin_verified: params.mminVerified,
+  });
+  if (error) console.error("recordGeneratorSignViaWasteLineToken FAILED — audit trail gap:", error.message);
 }

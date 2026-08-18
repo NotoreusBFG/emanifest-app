@@ -10,6 +10,8 @@ import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
 import { sendEmail, EmailNotConfiguredError } from "@/lib/email/resendClient";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
 import { recordManifestLocally } from "@/services/manifestRepository";
+import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
+import { updateManifestGeneratorSignedAt } from "@/services/generatorSignRepository";
 import { currentOrigin } from "./driverSignActions";
 import type { FederalWasteCode } from "@/lib/rcrainfo/types";
 import {
@@ -20,6 +22,7 @@ import {
   getManifestMminForWasteLineToken,
   getOwnerCredentialsForWasteLineToken,
   recordManifestEditConsent,
+  recordGeneratorSignViaWasteLineToken,
   type WasteLineEditSession,
 } from "@/services/wasteLineEditRepository";
 
@@ -45,7 +48,8 @@ export type CreateWasteLineEditLinkState =
 export async function createWasteLineEditLinkAction(
   mtn: string,
   recipientPhone: string | null,
-  recipientEmail: string | null
+  recipientEmail: string | null,
+  allowSign: boolean
 ): Promise<CreateWasteLineEditLinkState> {
   if (!recipientPhone && !recipientEmail) {
     return { success: false, error: "Enter a phone number and/or an email address." };
@@ -68,11 +72,14 @@ export async function createWasteLineEditLinkAction(
       generatorName: manifest.generator.name || manifest.generator.epaSiteId,
       designatedFacilityName: manifest.designatedFacility.name || manifest.designatedFacility.epaSiteId,
       ownerNotifyEmail: user.email ?? null,
+      allowSign,
     });
 
     const origin = await currentOrigin();
     const link = `${origin}/edit-waste-lines/${token}`;
-    const message = `ManifestMate: you've been asked to add waste line details to manifest ${manifest.manifestTrackingNumber} — ${link}`;
+    const message = allowSign
+      ? `ManifestMate: you've been asked to add waste line details AND sign manifest ${manifest.manifestTrackingNumber} as the generator — ${link}`
+      : `ManifestMate: you've been asked to add waste line details to manifest ${manifest.manifestTrackingNumber} — ${link}`;
 
     let smsSent = false;
     let emailSent = false;
@@ -173,7 +180,7 @@ export async function getFederalWasteCodesForWasteLineTokenAction(): Promise<Was
 }
 
 export type SubmitWasteLineEditState =
-  | { success: true; wasteLineCount: number }
+  | { success: true; wasteLineCount: number; signed: boolean; signError?: string }
   | { success: false; error: string }
   | null;
 
@@ -205,6 +212,8 @@ export async function submitWasteLineEditAction(
   formData: FormData
 ): Promise<SubmitWasteLineEditState> {
   const mmin = (formData.get("mmin") as string) ?? "";
+  const signerName = ((formData.get("signerName") as string) ?? "").trim();
+  const signAcknowledged = formData.get("signAcknowledged") === "on";
   const supabase = await createClient();
   const headersList = await headers();
   const ipAddress =
@@ -269,6 +278,20 @@ export async function submitWasteLineEditAction(
       return { success: false, error: wasteResult.error };
     }
 
+    // Checked BEFORE updateManifest() runs — if this link also grants
+    // signing power, the name + acknowledgment are required up front so a
+    // missing one fails cleanly rather than leaving the waste lines saved
+    // with no way to also complete the sign in the same request. The
+    // delegate-facing form always renders these fields together when
+    // allow_sign is true (EditWasteLinesForm.tsx), so hitting this means
+    // client-side validation was bypassed somehow.
+    if (claimed.allowSign && (!signerName || !signAcknowledged)) {
+      await releaseWasteLineEditToken(supabase, claimed.tokenId);
+      const error = "Your name and acknowledgment are required to sign this manifest.";
+      await recordResult({ editSucceeded: false, epaError: error }, true);
+      return { success: false, error };
+    }
+
     const client = clientFor(credentials);
 
     // Live re-fetch — the ONLY source of truth for generator/transporter/
@@ -296,24 +319,86 @@ export async function submitWasteLineEditAction(
     // every other manifest-changing action (create, sign) already makes.
     await recordManifestLocally(supabase, claimed.ownerUserId, manifest);
 
+    // Waste lines are now GENUINELY saved regardless of anything below —
+    // this outer function must not throw/release the token past this
+    // point in a way that suggests otherwise. The optional sign attempt
+    // is a fully separate EPA call (signManifest, not updateManifest) with
+    // its own independent success/failure — a real "not authorized" style
+    // rejection here (already seen once live this session for a different
+    // manifest) must not be reported as if the waste lines were lost too.
+    let signed = false;
+    let signError: string | undefined;
+
+    if (claimed.allowSign) {
+      try {
+        const certification = certificationTextFor("Generator");
+        const signResult = await client.signManifest({
+          siteId: manifest.generator.epaSiteId,
+          siteType: "Generator",
+          printedSignatureName: signerName,
+          printedSignatureDate: new Date().toISOString(),
+          manifestTrackingNumbers: [claimed.epaMtn],
+        });
+        const report = signResult.manifestReports[0];
+        if (report?.manifestError) {
+          signError = report.manifestError.message;
+          await recordGeneratorSignViaWasteLineToken(supabase, {
+            tokenId: claimed.tokenId,
+            epaMtn: claimed.epaMtn,
+            siteId: manifest.generator.epaSiteId,
+            signerName,
+            certificationHeading: certification.heading,
+            certificationText: certification.paragraphs.join("\n\n"),
+            certificationIsVerbatim: certification.isVerbatim,
+            ipAddress,
+            userAgent,
+            signSucceeded: false,
+            epaError: signError,
+            mminVerified: true,
+          });
+        } else {
+          signed = true;
+          await recordGeneratorSignViaWasteLineToken(supabase, {
+            tokenId: claimed.tokenId,
+            epaMtn: claimed.epaMtn,
+            siteId: manifest.generator.epaSiteId,
+            signerName,
+            certificationHeading: certification.heading,
+            certificationText: certification.paragraphs.join("\n\n"),
+            certificationIsVerbatim: certification.isVerbatim,
+            ipAddress,
+            userAgent,
+            signSucceeded: true,
+            epaReportId: signResult.reportId,
+            mminVerified: true,
+          });
+          await updateManifestGeneratorSignedAt(supabase, claimed.ownerUserId, claimed.epaMtn, new Date().toISOString());
+        }
+      } catch (signErr) {
+        signError = formatRcrainfoError(signErr);
+        console.error("Waste-line-edit combined sign attempt failed (non-fatal — waste lines already saved):", signErr);
+      }
+    }
+
     // Best-effort — the update already succeeded regardless of whether
     // this send works. Only channel available here is email (no
     // recipientPhone captured for the OWNER, unlike the delegate's own
     // contact info) — matches the "notify the inviting party" pattern
     // already used for transporter-registration completion.
     if (claimed.ownerNotifyEmail) {
+      const notifyMessage = signed
+        ? `ManifestMate: manifest ${claimed.epaMtn} had waste line details added AND was signed as Generator by ${signerName}.`
+        : claimed.allowSign && signError
+          ? `ManifestMate: waste line details were added to manifest ${claimed.epaMtn}, but the accompanying sign attempt failed (${signError}) — it still needs your signature.`
+          : `ManifestMate: waste line details were just added to manifest ${claimed.epaMtn} — it may be ready to review and sign.`;
       try {
-        await sendEmail(
-          claimed.ownerNotifyEmail,
-          `Manifest ${claimed.epaMtn} has new waste line details`,
-          `ManifestMate: waste line details were just added to manifest ${claimed.epaMtn} — it may be ready to review and sign.`
-        );
+        await sendEmail(claimed.ownerNotifyEmail, `Manifest ${claimed.epaMtn} has new waste line details`, notifyMessage);
       } catch (err) {
         console.error("Waste-line-edit owner notification failed (non-fatal):", err);
       }
     }
 
-    return { success: true, wasteLineCount: wasteResult.wastes.length };
+    return { success: true, wasteLineCount: wasteResult.wastes.length, signed, signError };
   } catch (err) {
     // Released, not left burned — mirrors submitDriverSignAction/
     // submitGeneratorSignAction's catch blocks. An EPA validation error

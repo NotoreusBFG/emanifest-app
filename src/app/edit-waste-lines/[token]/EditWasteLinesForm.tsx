@@ -35,12 +35,9 @@ export function EditWasteLinesForm({ token, session }: { token: string; session:
   );
   const [state, formAction, isPending] = useActionState<SubmitWasteLineEditState, FormData>(boundAction, null);
 
-  // FederalWasteCodeField's effect fetches once per mount and expects a
-  // caller-stable function. tokenId isn't known until after claim, so in
-  // practice this only succeeds once a correct MMIN has already been
-  // submitted once (returns "link no longer valid" before that) —
-  // acceptable, matches the plan's "blank editor pre-code" v1 scope.
-  const federalWasteCodesFn = useCallback(() => getFederalWasteCodesForWasteLineTokenAction(token), [token]);
+  // Not token-scoped — see getFederalWasteCodesForWasteLineTokenAction's
+  // own comment for why this must work before the token is ever claimed.
+  const federalWasteCodesFn = useCallback(() => getFederalWasteCodesForWasteLineTokenAction(), []);
 
   if (state?.success) {
     return (

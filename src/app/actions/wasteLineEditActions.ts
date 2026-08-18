@@ -130,27 +130,38 @@ export type WasteLineFederalWasteCodeState =
   | { success: false; error: string };
 
 /**
- * Anonymous-facing, token-gated version of getFederalWasteCodesAction.
- * This is static regulatory reference data (567 codes, rarely changes),
- * not sensitive — but resolving owner credentials to fetch it still
- * requires a CLAIMED token (see getOwnerCredentialsForWasteLineToken), so
- * this only works once the delegate has already entered a correct MMIN —
- * the delegate's waste-line editor only ever renders post-claim (see
- * EditWasteLinesForm.tsx), so that's always true by the time this is
- * called.
+ * Anonymous-facing version of getFederalWasteCodesAction, for the
+ * pre-claim delegate waste-line editor. This is static regulatory
+ * reference data (567 codes, rarely changes, identical no matter whose
+ * credentials fetch it) — originally gated behind resolving the manifest
+ * OWNER's credentials via a CLAIMED token, but that's a real bug, not
+ * just a v1 limitation: claiming only happens inside
+ * submitWasteLineEditAction, i.e. on the SAME submit that includes the
+ * waste lines themselves — there is no earlier point where the token is
+ * ever claimed while the delegate is still filling in the form. That
+ * meant this always failed on first (and every) load, so the federal
+ * waste code field silently never had real options and every hazardous
+ * line was submitted with none — confirmed live: two real delegate
+ * attempts both failed with RCRAInfo's "Mandatory Field is not Provided.
+ * At least one Federal Waste code must be provided."
+ *
+ * Fixed by using this app's own baseline RCRAINFO_API_ID/RCRAINFO_API_KEY
+ * (already configured in Vercel, see .env.local's README) instead of the
+ * manifest owner's — since the codes returned are identical regardless of
+ * whose credentials ask for them, there's no reason this needs to be
+ * owner-specific or gated on a claim at all. Same "no login needed for
+ * non-sensitive shared reference data" reasoning already established for
+ * searchHazmatAction.
  */
 let cachedFederalWasteCodesForWasteLineEdit: FederalWasteCode[] | null = null;
 
-export async function getFederalWasteCodesForWasteLineTokenAction(tokenId: string): Promise<WasteLineFederalWasteCodeState> {
+export async function getFederalWasteCodesForWasteLineTokenAction(): Promise<WasteLineFederalWasteCodeState> {
   if (cachedFederalWasteCodesForWasteLineEdit) {
     return { success: true, codes: cachedFederalWasteCodesForWasteLineEdit };
   }
 
-  const supabase = await createClient();
   try {
-    const credentials = await getOwnerCredentialsForWasteLineToken(supabase, tokenId);
-    if (!credentials) return { success: false, error: "This link is no longer valid." };
-    const client = clientFor(credentials);
+    const client = clientFor({ apiId: process.env.RCRAINFO_API_ID!, apiKey: process.env.RCRAINFO_API_KEY! });
     const codes = await client.getFederalWasteCodes();
     cachedFederalWasteCodesForWasteLineEdit = codes;
     return { success: true, codes };
@@ -240,12 +251,18 @@ export async function submitWasteLineEditAction(
   try {
     const credentials = await getOwnerCredentialsForWasteLineToken(supabase, claimed.tokenId);
     if (!credentials) {
+      await releaseWasteLineEditToken(supabase, claimed.tokenId);
       await recordResult({ editSucceeded: false, epaError: "Owner credentials unavailable." }, true);
       return { success: false, error: "This link is no longer valid." };
     }
 
     const wasteResult = buildWasteLinesFromFormData(formData);
     if (wasteResult.error) {
+      // Released, not left burned — a data-entry validation error is
+      // exactly the kind of thing the delegate should be able to fix and
+      // resubmit, same as submitDriverSignAction/submitGeneratorSignAction
+      // release on any post-MMIN failure, not just a wrong code.
+      await releaseWasteLineEditToken(supabase, claimed.tokenId);
       await recordResult({ editSucceeded: false, epaError: wasteResult.error }, true);
       return { success: false, error: wasteResult.error };
     }
@@ -273,6 +290,12 @@ export async function submitWasteLineEditAction(
     await recordResult({ editSucceeded: true, epaReportId: result.reportId }, true);
     return { success: true, wasteLineCount: wasteResult.wastes.length };
   } catch (err) {
+    // Released, not left burned — mirrors submitDriverSignAction/
+    // submitGeneratorSignAction's catch blocks. An EPA validation error
+    // (missing waste code, bad container type, etc.) is exactly the kind
+    // of thing the delegate needs to fix and resubmit with the SAME link,
+    // not a reason to force the owner to send a brand new invite.
+    await releaseWasteLineEditToken(supabase, claimed.tokenId);
     const errorMessage = formatRcrainfoError(err);
     await recordResult({ editSucceeded: false, epaError: errorMessage }, true);
     return { success: false, error: errorMessage };

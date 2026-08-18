@@ -29,6 +29,8 @@ export interface ClaimedWasteLineEditToken {
   tokenId: string;
   ownerUserId: string;
   epaMtn: string;
+  /** Captured at invite-creation time from the logged-in owner's session — for the post-submit "manifest is ready to review" notification. */
+  ownerNotifyEmail: string | null;
 }
 
 /**
@@ -50,6 +52,7 @@ export async function claimWasteLineEditToken(
     tokenId: row.token_id,
     ownerUserId: row.owner_user_id,
     epaMtn: row.epa_mtn,
+    ownerNotifyEmail: row.owner_notify_email ?? null,
   };
 }
 
@@ -95,6 +98,7 @@ export async function createWasteLineEditToken(
     recipientEmail: string | null;
     generatorName: string | null;
     designatedFacilityName: string | null;
+    ownerNotifyEmail: string | null;
   }
 ): Promise<string> {
   const { data, error } = await supabase.rpc("create_waste_line_edit_token", {
@@ -103,6 +107,7 @@ export async function createWasteLineEditToken(
     p_recipient_email: params.recipientEmail,
     p_generator_name: params.generatorName,
     p_designated_facility_name: params.designatedFacilityName,
+    p_owner_notify_email: params.ownerNotifyEmail,
   });
   if (error) throw new Error(error.message);
   const token = data?.[0]?.token;

@@ -9,6 +9,7 @@ import { timingSafeCompareCode } from "@/lib/verificationCode";
 import { sendSms, SmsNotConfiguredError } from "@/lib/sms/twilioClient";
 import { sendEmail, EmailNotConfiguredError } from "@/lib/email/resendClient";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
+import { recordManifestLocally } from "@/services/manifestRepository";
 import { currentOrigin } from "./driverSignActions";
 import type { FederalWasteCode } from "@/lib/rcrainfo/types";
 import {
@@ -66,6 +67,7 @@ export async function createWasteLineEditLinkAction(
       recipientEmail,
       generatorName: manifest.generator.name || manifest.generator.epaSiteId,
       designatedFacilityName: manifest.designatedFacility.name || manifest.designatedFacility.epaSiteId,
+      ownerNotifyEmail: user.email ?? null,
     });
 
     const origin = await currentOrigin();
@@ -288,6 +290,29 @@ export async function submitWasteLineEditAction(
     const result = await client.updateManifest(manifest);
 
     await recordResult({ editSucceeded: true, epaReportId: result.reportId }, true);
+
+    // Refreshes the local manifests mirror so the owner's dashboard
+    // reflects this without needing a separate manual lookup — same call
+    // every other manifest-changing action (create, sign) already makes.
+    await recordManifestLocally(supabase, claimed.ownerUserId, manifest);
+
+    // Best-effort — the update already succeeded regardless of whether
+    // this send works. Only channel available here is email (no
+    // recipientPhone captured for the OWNER, unlike the delegate's own
+    // contact info) — matches the "notify the inviting party" pattern
+    // already used for transporter-registration completion.
+    if (claimed.ownerNotifyEmail) {
+      try {
+        await sendEmail(
+          claimed.ownerNotifyEmail,
+          `Manifest ${claimed.epaMtn} has new waste line details`,
+          `ManifestMate: waste line details were just added to manifest ${claimed.epaMtn} — it may be ready to review and sign.`
+        );
+      } catch (err) {
+        console.error("Waste-line-edit owner notification failed (non-fatal):", err);
+      }
+    }
+
     return { success: true, wasteLineCount: wasteResult.wastes.length };
   } catch (err) {
     // Released, not left burned — mirrors submitDriverSignAction/

@@ -26,7 +26,15 @@ import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
  * separate owner-review step (confirmed with user).
  */
 export function EditWasteLinesForm({ token, session }: { token: string; session: WasteLineEditSession }) {
-  const [wasteLines, setWasteLines] = useState<WasteLineFormState[]>([emptyWasteLine(0, false)]);
+  // Matches /manifests/new's own seeding — the real EPA paper form's main
+  // page has 4 line-item slots before a continuation sheet is needed (see
+  // MAIN_PAGE_LINE_COUNT in ManifestFieldsForm.tsx).
+  const [wasteLines, setWasteLines] = useState<WasteLineFormState[]>([
+    emptyWasteLine(0, false),
+    emptyWasteLine(1, false),
+    emptyWasteLine(2, false),
+    emptyWasteLine(3, false),
+  ]);
   const [mmin, setMmin] = useState("");
 
   const boundAction = useCallback(

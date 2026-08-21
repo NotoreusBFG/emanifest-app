@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
-import { listLeads, listDistinctCategories, listDistinctCounties } from "@/services/leadsRepository";
+import { listLeads, listDistinctCategories, listDistinctCounties, type Lead, type LeadStatus } from "@/services/leadsRepository";
 import { LEAD_STATUS_LABELS as STATUS_LABELS, LEAD_STATUS_VARIANTS as STATUS_VARIANTS } from "@/lib/leadStatus";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -23,16 +23,25 @@ export default async function LeadsPage({
     redirect("/");
   }
 
-  const [leads, categories, counties] = await Promise.all([
+  const [leadsInScope, categories, counties] = await Promise.all([
     listLeads(supabase, {
       category: params.category,
       county: params.county,
-      status: params.status,
       eManifestExperience: params.experience,
     }),
     listDistinctCategories(supabase),
     listDistinctCounties(supabase),
   ]);
+
+  const statusCounts = leadsInScope.reduce(
+    (acc, lead) => {
+      acc[lead.status] = (acc[lead.status] ?? 0) + 1;
+      return acc;
+    },
+    {} as Record<LeadStatus, number>
+  );
+
+  const leads: Lead[] = params.status ? leadsInScope.filter((lead) => lead.status === params.status) : leadsInScope;
 
   const filterQuery = (overrides: Record<string, string | undefined>) => {
     const next = { ...params, ...overrides, imported: undefined, skipped: undefined };
@@ -84,13 +93,6 @@ export default async function LeadsPage({
           buildHref={(v) => filterQuery({ county: v })}
         />
         <SelectNav
-          label="Status"
-          current={params.status}
-          options={Object.keys(STATUS_LABELS)}
-          optionLabels={STATUS_LABELS}
-          buildHref={(v) => filterQuery({ status: v })}
-        />
-        <SelectNav
           label="E-Manifest experience"
           current={params.experience}
           options={["novice", "experienced"]}
@@ -103,35 +105,83 @@ export default async function LeadsPage({
         )}
       </div>
 
-      <div className="mt-6 flex flex-col gap-2">
-        {leads.length === 0 && (
-          <Card className="p-8 text-center text-gray-500">
-            No leads match these filters yet. Import a CSV to get started.
-          </Card>
-        )}
-        {leads.map((lead) => (
-          <Link key={lead.id} href={`/admin/leads/${lead.id}`}>
-            <Card className="p-4 hover:shadow-[0_2px_14px_rgba(10,34,70,0.12)] transition">
-              <div className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="font-bold text-brand-navy truncate">{lead.companyName}</p>
-                  <p className="mt-0.5 text-sm text-gray-600 truncate">
-                    {[lead.category, lead.city, lead.county].filter(Boolean).join(" · ") || "—"}
-                    {lead.contactName ? ` · ${lead.contactName}${lead.contactTitle ? ` (${lead.contactTitle})` : ""}` : ""}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {lead.eManifestExperience && (
-                    <span className="text-xs text-gray-400 uppercase">{lead.eManifestExperience}</span>
-                  )}
-                  <Badge variant={STATUS_VARIANTS[lead.status]}>{STATUS_LABELS[lead.status]}</Badge>
-                </div>
-              </div>
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[200px_1fr]">
+        <StatusSidebar current={params.status} counts={statusCounts} buildHref={(v) => filterQuery({ status: v })} />
+
+        <div className="flex flex-col gap-2">
+          {leads.length === 0 && (
+            <Card className="p-8 text-center text-gray-500">
+              No leads match these filters yet. Import a CSV to get started.
             </Card>
-          </Link>
-        ))}
+          )}
+          {leads.map((lead) => (
+            <Link key={lead.id} href={`/admin/leads/${lead.id}`}>
+              <Card className="p-4 hover:shadow-[0_2px_14px_rgba(10,34,70,0.12)] transition">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="font-bold text-brand-navy truncate">{lead.companyName}</p>
+                    <p className="mt-0.5 text-sm text-gray-600 truncate">
+                      {[lead.category, lead.city, lead.county].filter(Boolean).join(" · ") || "—"}
+                      {lead.contactName ? ` · ${lead.contactName}${lead.contactTitle ? ` (${lead.contactTitle})` : ""}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {lead.eManifestExperience && (
+                      <span className="text-xs text-gray-400 uppercase">{lead.eManifestExperience}</span>
+                    )}
+                    <Badge variant={STATUS_VARIANTS[lead.status]}>{STATUS_LABELS[lead.status]}</Badge>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
+  );
+}
+
+function StatusSidebar({
+  current,
+  counts,
+  buildHref,
+}: {
+  current?: string;
+  counts: Record<LeadStatus, number>;
+  buildHref: (value: string | undefined) => string;
+}) {
+  const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+  const statuses = Object.keys(STATUS_LABELS) as LeadStatus[];
+
+  return (
+    <aside className="lg:sticky lg:top-6 lg:self-start">
+      <Card className="p-4">
+        <h3 className="px-1 text-xs font-semibold uppercase text-gray-500">Status</h3>
+        <nav className="mt-2 flex flex-col gap-0.5">
+          <Link
+            href={buildHref(undefined)}
+            className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium ${
+              !current ? "bg-brand-navy text-white" : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <span>All</span>
+            <span className={current ? "" : "text-white/80"}>{total}</span>
+          </Link>
+          {statuses.map((status) => (
+            <Link
+              key={status}
+              href={buildHref(status)}
+              className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium ${
+                current === status ? "bg-brand-navy text-white" : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              <span>{STATUS_LABELS[status]}</span>
+              <span className={current === status ? "text-white/80" : "text-gray-400"}>{counts[status] ?? 0}</span>
+            </Link>
+          ))}
+        </nav>
+      </Card>
+    </aside>
   );
 }
 

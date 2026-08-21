@@ -4,6 +4,7 @@ import { isAdminEmail } from "@/lib/admin";
 import { listFeatureFlags } from "@/services/featureFlagRepository";
 import { toggleFeatureFlagAction } from "@/app/actions/featureFlagActions";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 
 const FLAG_LABELS: Record<string, { label: string; description: string }> = {
   mm2_ui: {
@@ -32,10 +33,17 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-10">
-      <h1 className="text-2xl font-bold text-brand-navy">Feature flags</h1>
-      <p className="mt-1 text-gray-600">
-        Toggle risky/in-progress features on or off in production, instantly — no redeploy needed.
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-navy">Feature flags</h1>
+          <p className="mt-1 text-gray-600">
+            Toggle risky/in-progress features on or off in production, instantly — no redeploy needed.
+          </p>
+        </div>
+        <Button href="/admin/leads" variant="secondary">
+          Lead tracker
+        </Button>
+      </div>
 
       <div className="mt-8 flex flex-col gap-3">
         {flags.map((flag) => {

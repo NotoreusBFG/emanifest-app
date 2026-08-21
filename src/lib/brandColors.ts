@@ -26,4 +26,11 @@ export const badgeColors = {
   overdue: { bg: "#fdecea", text: "#c0392b" },
   received: { bg: "#e6f8f1", text: "#178a63" },
   rejected: { bg: "#f4e3fb", text: "#8a2fa1" },
+  lead_new: { bg: "#e9eef4", text: "#0a2246" },
+  lead_contacted: { bg: "#e6f0fb", text: "#0058b8" },
+  lead_callback: { bg: "#fdf3e3", text: "#a15c00" },
+  lead_interested: { bg: "#e6f8f1", text: "#178a63" },
+  lead_converted: { bg: "#dff5ea", text: "#0f7a55" },
+  lead_not_interested: { bg: "#f0f0f0", text: "#666666" },
+  lead_do_not_contact: { bg: "#fdecea", text: "#c0392b" },
 } as const;

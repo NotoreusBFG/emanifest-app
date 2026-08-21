@@ -1,4 +1,5 @@
 import type { ImportedManifestPayload, ImportedTransporter, ImportedWasteLine, ManifestImportResult } from "./types";
+import { splitCsvLine } from "@/lib/csv";
 
 /** The CSV column headers this importer expects -- one row per waste
  * line, with generator/transporter/facility fields repeated on every row
@@ -35,42 +36,6 @@ const REQUIRED_COLUMNS: (typeof CSV_COLUMNS)[number][] = [
   "containerNumber",
   "containerTypeCode",
 ];
-
-/** Minimal RFC-4180-ish CSV line splitter -- handles double-quoted fields
- * that contain commas or escaped ("") quotes, since waste descriptions
- * routinely contain commas (e.g. "Waste flammable liquids, n.o.s."). Not a
- * full CSV spec implementation (no multi-line quoted fields), which is
- * fine for a flat one-row-per-waste-line export. */
-function splitCsvLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (inQuotes) {
-      if (char === '"') {
-        if (line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        current += char;
-      }
-    } else if (char === '"') {
-      inQuotes = true;
-    } else if (char === ",") {
-      fields.push(current);
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  fields.push(current);
-  return fields.map((f) => f.trim());
-}
 
 function parseBoolean(value: string | undefined): boolean {
   if (!value) return false;

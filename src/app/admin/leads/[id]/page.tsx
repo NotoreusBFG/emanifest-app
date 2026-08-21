@@ -4,29 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { getLead, listActivitiesForLead, type LeadStatus } from "@/services/leadsRepository";
 import { updateLeadStatusAction, addLeadActivityAction } from "@/app/actions/leadsActions";
+import { LEAD_STATUS_LABELS as STATUS_LABELS, LEAD_STATUS_VARIANTS as STATUS_VARIANTS } from "@/lib/leadStatus";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import type { BadgeVariant } from "@/components/ui/Badge";
-
-const STATUS_LABELS: Record<LeadStatus, string> = {
-  new: "New",
-  contacted: "Contacted",
-  callback: "Callback",
-  interested: "Interested",
-  converted: "Converted",
-  not_interested: "Not interested",
-  do_not_contact: "Do not contact",
-};
-
-const STATUS_VARIANTS: Record<LeadStatus, BadgeVariant> = {
-  new: "lead_new",
-  contacted: "lead_contacted",
-  callback: "lead_callback",
-  interested: "lead_interested",
-  converted: "lead_converted",
-  not_interested: "lead_not_interested",
-  do_not_contact: "lead_do_not_contact",
-};
 
 const ACTIVITY_LABELS: Record<string, string> = {
   call: "Call",

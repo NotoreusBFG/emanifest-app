@@ -2,31 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
-import { listLeads, listDistinctCategories, listDistinctCounties, type LeadStatus } from "@/services/leadsRepository";
+import { listLeads, listDistinctCategories, listDistinctCounties } from "@/services/leadsRepository";
+import { LEAD_STATUS_LABELS as STATUS_LABELS, LEAD_STATUS_VARIANTS as STATUS_VARIANTS } from "@/lib/leadStatus";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import type { BadgeVariant } from "@/components/ui/Badge";
-
-const STATUS_LABELS: Record<LeadStatus, string> = {
-  new: "New",
-  contacted: "Contacted",
-  callback: "Callback",
-  interested: "Interested",
-  converted: "Converted",
-  not_interested: "Not interested",
-  do_not_contact: "Do not contact",
-};
-
-const STATUS_VARIANTS: Record<LeadStatus, BadgeVariant> = {
-  new: "lead_new",
-  contacted: "lead_contacted",
-  callback: "lead_callback",
-  interested: "lead_interested",
-  converted: "lead_converted",
-  not_interested: "lead_not_interested",
-  do_not_contact: "lead_do_not_contact",
-};
 
 export default async function LeadsPage({
   searchParams,
@@ -73,9 +53,14 @@ export default async function LeadsPage({
             {leads.length} lead{leads.length === 1 ? "" : "s"} matching current filters.
           </p>
         </div>
-        <Button href="/admin/leads/import" variant="secondary">
-          Import CSV
-        </Button>
+        <div className="flex shrink-0 gap-3">
+          <Button href="/admin/leads/call-sheet" variant="secondary">
+            Call sheet
+          </Button>
+          <Button href="/admin/leads/import" variant="secondary">
+            Import CSV
+          </Button>
+        </div>
       </div>
 
       {params.imported && (

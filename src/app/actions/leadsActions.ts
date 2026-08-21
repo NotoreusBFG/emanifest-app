@@ -2,8 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { requireAdmin } from "@/lib/requireAdmin";
 import { splitCsvLine } from "@/lib/csv";
 import {
   addLeadActivity,
@@ -12,21 +11,6 @@ import {
   type LeadImportRow,
   type LeadStatus,
 } from "@/services/leadsRepository";
-
-async function requireAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Belt-and-suspenders with the RLS policy on leads/lead_activities: even
-  // if this check were ever bypassed, the tables themselves are also
-  // admin-only at the database level.
-  if (!isAdminEmail(user?.email)) {
-    throw new Error("Not authorized");
-  }
-  return { supabase, user };
-}
 
 export async function updateLeadStatusAction(formData: FormData) {
   const { supabase } = await requireAdmin();

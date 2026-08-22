@@ -95,18 +95,37 @@ function mapActivity(row: Record<string, unknown>): LeadActivity {
   };
 }
 
+// Supabase/PostgREST caps a single response at 1000 rows by default --
+// silently, with no error, just a truncated result. Invisible while the
+// tracker stayed under 1000 leads; surfaced for real once Hampton Roads
+// pushed the total to 2,072 (call sheet showed "1000 of 1000" instead of
+// the real total). Page through with .range() until a page comes back
+// short of a full page.
+const LIST_PAGE_SIZE = 1000;
+
 export async function listLeads(supabase: SupabaseClient, filters: LeadFilters = {}): Promise<Lead[]> {
-  let query = supabase.from("leads").select("*").order("company_name");
+  const all: Lead[] = [];
+  let page = 0;
 
-  if (filters.category) query = query.eq("category", filters.category);
-  if (filters.county) query = query.eq("county", filters.county);
-  if (filters.status) query = query.eq("status", filters.status);
-  if (filters.eManifestExperience) query = query.eq("e_manifest_experience", filters.eManifestExperience);
-  query = filters.removedOnly ? query.not("removed_at", "is", null) : query.is("removed_at", null);
+  while (true) {
+    let query = supabase.from("leads").select("*").order("company_name");
 
-  const { data, error } = await query;
-  if (error) throw new Error(`Failed to list leads: ${error.message}`);
-  return (data ?? []).map(mapLead);
+    if (filters.category) query = query.eq("category", filters.category);
+    if (filters.county) query = query.eq("county", filters.county);
+    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.eManifestExperience) query = query.eq("e_manifest_experience", filters.eManifestExperience);
+    query = filters.removedOnly ? query.not("removed_at", "is", null) : query.is("removed_at", null);
+    query = query.range(page * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE + LIST_PAGE_SIZE - 1);
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to list leads: ${error.message}`);
+
+    all.push(...(data ?? []).map(mapLead));
+    if (!data || data.length < LIST_PAGE_SIZE) break;
+    page += 1;
+  }
+
+  return all;
 }
 
 // Splits an `.in(...)` filter across multiple requests -- a single
@@ -161,16 +180,32 @@ export async function unsubscribeLeadEmail(supabase: SupabaseClient, leadId: str
   if (error) throw new Error(`Failed to unsubscribe: ${error.message}`);
 }
 
+async function listDistinctColumn(supabase: SupabaseClient, column: "category" | "county"): Promise<string[]> {
+  const values = new Set<string>();
+  let page = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("leads")
+      .select(column)
+      .not(column, "is", null)
+      .range(page * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE + LIST_PAGE_SIZE - 1);
+    if (error) throw new Error(`Failed to list distinct ${column}: ${error.message}`);
+
+    for (const row of data ?? []) values.add((row as Record<string, unknown>)[column] as string);
+    if (!data || data.length < LIST_PAGE_SIZE) break;
+    page += 1;
+  }
+
+  return Array.from(values).sort();
+}
+
 export async function listDistinctCategories(supabase: SupabaseClient): Promise<string[]> {
-  const { data, error } = await supabase.from("leads").select("category").not("category", "is", null);
-  if (error) throw new Error(`Failed to list categories: ${error.message}`);
-  return Array.from(new Set((data ?? []).map((row) => row.category as string))).sort();
+  return listDistinctColumn(supabase, "category");
 }
 
 export async function listDistinctCounties(supabase: SupabaseClient): Promise<string[]> {
-  const { data, error } = await supabase.from("leads").select("county").not("county", "is", null);
-  if (error) throw new Error(`Failed to list counties: ${error.message}`);
-  return Array.from(new Set((data ?? []).map((row) => row.county as string))).sort();
+  return listDistinctColumn(supabase, "county");
 }
 
 export async function updateLeadStatus(supabase: SupabaseClient, id: string, status: LeadStatus): Promise<void> {

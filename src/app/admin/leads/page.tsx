@@ -94,6 +94,9 @@ export default async function LeadsPage({
             </Button>
           ) : (
             <>
+              <Button href="/admin/leads/campaign" variant="secondary">
+                Email campaign
+              </Button>
               <Button href="/admin/leads?removed=1" variant="secondary">
                 Removed
               </Button>

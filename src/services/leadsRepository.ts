@@ -30,6 +30,7 @@ export type Lead = {
   createdAt: string;
   updatedAt: string;
   removedAt: string | null;
+  emailUnsubscribedAt: string | null;
 };
 
 export type LeadActivity = {
@@ -75,6 +76,7 @@ function mapLead(row: Record<string, unknown>): Lead {
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
     removedAt: row.removed_at as string | null,
+    emailUnsubscribedAt: row.email_unsubscribed_at as string | null,
   };
 }
 
@@ -120,6 +122,24 @@ export async function getLead(supabase: SupabaseClient, id: string): Promise<Lea
   const { data, error } = await supabase.from("leads").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(`Failed to load lead ${id}: ${error.message}`);
   return data ? mapLead(data) : null;
+}
+
+// Re-fetches fresh rows for a set of ids and filters to leads actually
+// eligible for a marketing send (has an email, not removed, hasn't
+// unsubscribed) -- a safety net so a send never trusts stale client-side
+// selection state alone.
+export async function listCampaignRecipients(supabase: SupabaseClient, ids: string[]): Promise<Lead[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.from("leads").select("*").in("id", ids);
+  if (error) throw new Error(`Failed to load campaign recipients: ${error.message}`);
+  return (data ?? [])
+    .map(mapLead)
+    .filter((lead) => lead.email && !lead.removedAt && !lead.emailUnsubscribedAt);
+}
+
+export async function unsubscribeLeadEmail(supabase: SupabaseClient, leadId: string): Promise<void> {
+  const { error } = await supabase.rpc("unsubscribe_lead_email", { p_lead_id: leadId });
+  if (error) throw new Error(`Failed to unsubscribe: ${error.message}`);
 }
 
 export async function listDistinctCategories(supabase: SupabaseClient): Promise<string[]> {

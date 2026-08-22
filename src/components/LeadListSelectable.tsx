@@ -121,6 +121,13 @@ export function LeadListSelectable({
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  <span
+                    aria-hidden
+                    title={lead.email ? `Has email on file: ${lead.email}` : "No email on file"}
+                    className={lead.email ? "text-brand-blue" : "text-gray-300"}
+                  >
+                    ✉
+                  </span>
                   <LeadActivityBadge lead={lead} latestActivity={latestActivities[lead.id]} />
                   {lead.eManifestExperience && (
                     <span className="text-xs text-gray-400 uppercase">{lead.eManifestExperience}</span>

@@ -2,11 +2,19 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
-import { listLeads, listDistinctCategories, listDistinctCounties, type Lead, type LeadStatus } from "@/services/leadsRepository";
+import {
+  listLeads,
+  listDistinctCategories,
+  listDistinctCounties,
+  listLatestActivitiesForLeads,
+  type Lead,
+  type LeadStatus,
+} from "@/services/leadsRepository";
 import { LEAD_STATUS_LABELS as STATUS_LABELS, LEAD_STATUS_VARIANTS as STATUS_VARIANTS } from "@/lib/leadStatus";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { LeadActivityBadge } from "@/components/LeadActivityBadge";
 
 export default async function LeadsPage({
   searchParams,
@@ -42,6 +50,11 @@ export default async function LeadsPage({
   );
 
   const leads: Lead[] = params.status ? leadsInScope.filter((lead) => lead.status === params.status) : leadsInScope;
+
+  const latestActivities = await listLatestActivitiesForLeads(
+    supabase,
+    leads.map((lead) => lead.id)
+  );
 
   const filterQuery = (overrides: Record<string, string | undefined>) => {
     const next = { ...params, ...overrides, imported: undefined, skipped: undefined };
@@ -126,6 +139,7 @@ export default async function LeadsPage({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
+                    <LeadActivityBadge lead={lead} latestActivity={latestActivities.get(lead.id)} />
                     {lead.eManifestExperience && (
                       <span className="text-xs text-gray-400 uppercase">{lead.eManifestExperience}</span>
                     )}

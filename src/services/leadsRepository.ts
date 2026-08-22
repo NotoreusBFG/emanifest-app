@@ -34,7 +34,7 @@ export type Lead = {
 export type LeadActivity = {
   id: string;
   leadId: string;
-  type: "call" | "email" | "visit" | "note";
+  type: "call" | "email" | "visit" | "note" | "meeting";
   status: "open" | "closed";
   subject: string | null;
   notes: string | null;
@@ -137,6 +137,28 @@ export async function listActivitiesForLead(supabase: SupabaseClient, leadId: st
     .order("created_at", { ascending: false });
   if (error) throw new Error(`Failed to list activities for lead ${leadId}: ${error.message}`);
   return (data ?? []).map(mapActivity);
+}
+
+export async function listLatestActivitiesForLeads(
+  supabase: SupabaseClient,
+  leadIds: string[]
+): Promise<Map<string, LeadActivity>> {
+  if (leadIds.length === 0) return new Map();
+
+  const { data, error } = await supabase.from("lead_activities").select("*").in("lead_id", leadIds);
+  if (error) throw new Error(`Failed to list latest activities: ${error.message}`);
+
+  const latest = new Map<string, LeadActivity>();
+  for (const row of data ?? []) {
+    const activity = mapActivity(row);
+    const effectiveDate = activity.completedAt ?? activity.createdAt;
+    const current = latest.get(activity.leadId);
+    const currentDate = current ? (current.completedAt ?? current.createdAt) : null;
+    if (!current || effectiveDate > currentDate!) {
+      latest.set(activity.leadId, activity);
+    }
+  }
+  return latest;
 }
 
 export async function addLeadActivity(

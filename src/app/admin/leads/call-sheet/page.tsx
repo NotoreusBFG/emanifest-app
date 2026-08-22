@@ -2,13 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
-import { listLeads, type Lead } from "@/services/leadsRepository";
+import { listLeads, listLatestActivitiesForLeads, type Lead, type LeadActivity } from "@/services/leadsRepository";
 import { listCallScripts } from "@/services/callScriptsRepository";
 import { saveCallScriptAction } from "@/app/actions/callScriptsActions";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_VARIANTS } from "@/lib/leadStatus";
 import { contactPriorityRank, categoryRank } from "@/lib/leadCallPriority";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { LeadActivityBadge } from "@/components/LeadActivityBadge";
 
 const NOT_CALLABLE = new Set(["converted", "not_interested", "do_not_contact"]);
 
@@ -29,6 +30,10 @@ export default async function CallSheetPage({
 
   const [allLeads, scripts] = await Promise.all([listLeads(supabase), listCallScripts(supabase)]);
   const callable = allLeads.filter((lead) => !NOT_CALLABLE.has(lead.status));
+  const latestActivities = await listLatestActivitiesForLeads(
+    supabase,
+    callable.map((lead) => lead.id)
+  );
 
   const byCategory = new Map<string, Lead[]>();
   for (const lead of callable) {
@@ -93,7 +98,7 @@ export default async function CallSheetPage({
             <h2 className="text-lg font-bold text-brand-navy">
               {focused} <span className="font-normal text-gray-400">({byCategory.get(focused)!.length})</span>
             </h2>
-            <LeadList leads={byCategory.get(focused)!} />
+            <LeadList leads={byCategory.get(focused)!} latestActivities={latestActivities} />
           </section>
           <ScriptPanel category={focused} script={scripts[focused] ?? ""} />
         </div>
@@ -104,7 +109,7 @@ export default async function CallSheetPage({
               <h2 className="text-lg font-bold text-brand-navy">
                 {category} <span className="font-normal text-gray-400">({byCategory.get(category)!.length})</span>
               </h2>
-              <LeadList leads={byCategory.get(category)!} />
+              <LeadList leads={byCategory.get(category)!} latestActivities={latestActivities} />
             </section>
           ))}
         </div>
@@ -113,7 +118,7 @@ export default async function CallSheetPage({
   );
 }
 
-function LeadList({ leads }: { leads: Lead[] }) {
+function LeadList({ leads, latestActivities }: { leads: Lead[]; latestActivities: Map<string, LeadActivity> }) {
   return (
     <div className="mt-3 flex flex-col gap-2">
       {leads.map((lead) => (
@@ -130,6 +135,7 @@ function LeadList({ leads }: { leads: Lead[] }) {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                <LeadActivityBadge lead={lead} latestActivity={latestActivities.get(lead.id)} />
                 {lead.eManifestExperience && (
                   <span className="text-xs text-gray-400 uppercase">{lead.eManifestExperience}</span>
                 )}

@@ -36,13 +36,13 @@ export async function addLeadActivityAction(formData: FormData) {
   const markCompleted = formData.get("markCompleted") === "true";
 
   if (typeof leadId !== "string" || !leadId) throw new Error("Missing lead id");
-  if (typeof type !== "string" || !["call", "email", "visit", "note"].includes(type)) {
+  if (typeof type !== "string" || !["call", "email", "visit", "note", "meeting"].includes(type)) {
     throw new Error("Invalid activity type");
   }
 
   await addLeadActivity(supabase, {
     leadId,
-    type: type as "call" | "email" | "visit" | "note",
+    type: type as "call" | "email" | "visit" | "note" | "meeting",
     subject: typeof subject === "string" ? subject : undefined,
     notes: typeof notes === "string" ? notes : undefined,
     scheduledAt: typeof scheduledAt === "string" && scheduledAt ? new Date(scheduledAt).toISOString() : null,

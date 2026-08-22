@@ -12,6 +12,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   call: "Call",
   email: "Email",
   visit: "Visit",
+  meeting: "Meeting",
   note: "Note",
 };
 
@@ -99,6 +100,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <option value="call">Call</option>
                 <option value="email">Email</option>
                 <option value="visit">Visit</option>
+                <option value="meeting">Meeting</option>
                 <option value="note">Note</option>
               </select>
             </label>

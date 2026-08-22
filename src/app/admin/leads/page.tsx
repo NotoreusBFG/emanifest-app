@@ -10,16 +10,23 @@ import {
   type Lead,
   type LeadStatus,
 } from "@/services/leadsRepository";
-import { LEAD_STATUS_LABELS as STATUS_LABELS, LEAD_STATUS_VARIANTS as STATUS_VARIANTS } from "@/lib/leadStatus";
+import { LEAD_STATUS_LABELS as STATUS_LABELS } from "@/lib/leadStatus";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { LeadActivityBadge } from "@/components/LeadActivityBadge";
+import { LeadListSelectable } from "@/components/LeadListSelectable";
 
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; county?: string; status?: string; experience?: string; imported?: string; skipped?: string }>;
+  searchParams: Promise<{
+    category?: string;
+    county?: string;
+    status?: string;
+    experience?: string;
+    imported?: string;
+    skipped?: string;
+    removed?: string;
+  }>;
 }) {
   const params = await searchParams;
   const supabase = await createClient();
@@ -31,11 +38,14 @@ export default async function LeadsPage({
     redirect("/");
   }
 
+  const removedView = params.removed === "1";
+
   const [leadsInScope, categories, counties] = await Promise.all([
     listLeads(supabase, {
       category: params.category,
       county: params.county,
       eManifestExperience: params.experience,
+      removedOnly: removedView,
     }),
     listDistinctCategories(supabase),
     listDistinctCounties(supabase),
@@ -55,6 +65,7 @@ export default async function LeadsPage({
     supabase,
     leads.map((lead) => lead.id)
   );
+  const latestActivitiesObj = Object.fromEntries(latestActivities);
 
   const filterQuery = (overrides: Record<string, string | undefined>) => {
     const next = { ...params, ...overrides, imported: undefined, skipped: undefined };
@@ -70,18 +81,30 @@ export default async function LeadsPage({
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-navy">Lead tracker</h1>
+          <h1 className="text-2xl font-bold text-brand-navy">{removedView ? "Removed leads" : "Lead tracker"}</h1>
           <p className="mt-1 text-gray-600">
-            {leads.length} lead{leads.length === 1 ? "" : "s"} matching current filters.
+            {leads.length} lead{leads.length === 1 ? "" : "s"}
+            {removedView ? " removed." : " matching current filters."}
           </p>
         </div>
         <div className="flex shrink-0 gap-3">
-          <Button href="/admin/leads/call-sheet" variant="secondary">
-            Call sheet
-          </Button>
-          <Button href="/admin/leads/import" variant="secondary">
-            Import CSV
-          </Button>
+          {removedView ? (
+            <Button href="/admin/leads" variant="secondary">
+              ← Back to active leads
+            </Button>
+          ) : (
+            <>
+              <Button href="/admin/leads?removed=1" variant="secondary">
+                Removed
+              </Button>
+              <Button href="/admin/leads/call-sheet" variant="secondary">
+                Call sheet
+              </Button>
+              <Button href="/admin/leads/import" variant="secondary">
+                Import CSV
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -121,35 +144,17 @@ export default async function LeadsPage({
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[200px_1fr]">
         <StatusSidebar current={params.status} counts={statusCounts} buildHref={(v) => filterQuery({ status: v })} />
 
-        <div className="flex flex-col gap-2">
-          {leads.length === 0 && (
-            <Card className="p-8 text-center text-gray-500">
-              No leads match these filters yet. Import a CSV to get started.
-            </Card>
-          )}
-          {leads.map((lead) => (
-            <Link key={lead.id} href={`/admin/leads/${lead.id}`}>
-              <Card className="p-4 hover:shadow-[0_2px_14px_rgba(10,34,70,0.12)] transition">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="font-bold text-brand-navy truncate">{lead.companyName}</p>
-                    <p className="mt-0.5 text-sm text-gray-600 truncate">
-                      {[lead.category, lead.city, lead.county].filter(Boolean).join(" · ") || "—"}
-                      {lead.contactName ? ` · ${lead.contactName}${lead.contactTitle ? ` (${lead.contactTitle})` : ""}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <LeadActivityBadge lead={lead} latestActivity={latestActivities.get(lead.id)} />
-                    {lead.eManifestExperience && (
-                      <span className="text-xs text-gray-400 uppercase">{lead.eManifestExperience}</span>
-                    )}
-                    <Badge variant={STATUS_VARIANTS[lead.status]}>{STATUS_LABELS[lead.status]}</Badge>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        {leads.length === 0 ? (
+          <Card className="p-8 text-center text-gray-500">
+            {removedView ? "No removed leads." : "No leads match these filters yet. Import a CSV to get started."}
+          </Card>
+        ) : (
+          <LeadListSelectable
+            leads={leads}
+            latestActivities={latestActivitiesObj}
+            mode={removedView ? "removed" : "active"}
+          />
+        )}
       </div>
     </div>
   );

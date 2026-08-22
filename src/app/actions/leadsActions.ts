@@ -7,10 +7,23 @@ import { splitCsvLine } from "@/lib/csv";
 import {
   addLeadActivity,
   bulkImportLeads,
+  bulkSetLeadsRemoved,
   updateLeadStatus,
   type LeadImportRow,
   type LeadStatus,
 } from "@/services/leadsRepository";
+
+export async function bulkRemoveLeadsAction(ids: string[]) {
+  const { supabase } = await requireAdmin();
+  await bulkSetLeadsRemoved(supabase, ids, true);
+  revalidatePath("/admin/leads");
+}
+
+export async function bulkRestoreLeadsAction(ids: string[]) {
+  const { supabase } = await requireAdmin();
+  await bulkSetLeadsRemoved(supabase, ids, false);
+  revalidatePath("/admin/leads");
+}
 
 export async function updateLeadStatusAction(formData: FormData) {
   const { supabase } = await requireAdmin();

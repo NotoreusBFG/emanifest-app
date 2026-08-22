@@ -29,6 +29,7 @@ export type Lead = {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  removedAt: string | null;
 };
 
 export type LeadActivity = {
@@ -49,6 +50,7 @@ export type LeadFilters = {
   county?: string;
   status?: string;
   eManifestExperience?: string;
+  removedOnly?: boolean;
 };
 
 function mapLead(row: Record<string, unknown>): Lead {
@@ -72,6 +74,7 @@ function mapLead(row: Record<string, unknown>): Lead {
     notes: row.notes as string | null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
+    removedAt: row.removed_at as string | null,
   };
 }
 
@@ -97,10 +100,20 @@ export async function listLeads(supabase: SupabaseClient, filters: LeadFilters =
   if (filters.county) query = query.eq("county", filters.county);
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.eManifestExperience) query = query.eq("e_manifest_experience", filters.eManifestExperience);
+  query = filters.removedOnly ? query.not("removed_at", "is", null) : query.is("removed_at", null);
 
   const { data, error } = await query;
   if (error) throw new Error(`Failed to list leads: ${error.message}`);
   return (data ?? []).map(mapLead);
+}
+
+export async function bulkSetLeadsRemoved(supabase: SupabaseClient, ids: string[], removed: boolean): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase
+    .from("leads")
+    .update({ removed_at: removed ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
+    .in("id", ids);
+  if (error) throw new Error(`Failed to ${removed ? "remove" : "restore"} leads: ${error.message}`);
 }
 
 export async function getLead(supabase: SupabaseClient, id: string): Promise<Lead | null> {

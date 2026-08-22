@@ -109,13 +109,30 @@ export async function listLeads(supabase: SupabaseClient, filters: LeadFilters =
   return (data ?? []).map(mapLead);
 }
 
+// Splits an `.in(...)` filter across multiple requests -- a single
+// request's URL-encoded id list stops working outright ("fetch failed")
+// somewhere north of ~500 UUIDs, which "Select all" on a large,
+// unfiltered lead list can now reach (600+ leads as of Chesterfield +
+// Hanover, 2026-08-22).
+const ID_BATCH_SIZE = 150;
+
+function batchIds(ids: string[]): string[][] {
+  const batches: string[][] = [];
+  for (let i = 0; i < ids.length; i += ID_BATCH_SIZE) {
+    batches.push(ids.slice(i, i + ID_BATCH_SIZE));
+  }
+  return batches;
+}
+
 export async function bulkSetLeadsRemoved(supabase: SupabaseClient, ids: string[], removed: boolean): Promise<void> {
   if (ids.length === 0) return;
-  const { error } = await supabase
-    .from("leads")
-    .update({ removed_at: removed ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
-    .in("id", ids);
-  if (error) throw new Error(`Failed to ${removed ? "remove" : "restore"} leads: ${error.message}`);
+  for (const batch of batchIds(ids)) {
+    const { error } = await supabase
+      .from("leads")
+      .update({ removed_at: removed ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
+      .in("id", batch);
+    if (error) throw new Error(`Failed to ${removed ? "remove" : "restore"} leads: ${error.message}`);
+  }
 }
 
 export async function getLead(supabase: SupabaseClient, id: string): Promise<Lead | null> {
@@ -130,11 +147,13 @@ export async function getLead(supabase: SupabaseClient, id: string): Promise<Lea
 // selection state alone.
 export async function listCampaignRecipients(supabase: SupabaseClient, ids: string[]): Promise<Lead[]> {
   if (ids.length === 0) return [];
-  const { data, error } = await supabase.from("leads").select("*").in("id", ids);
-  if (error) throw new Error(`Failed to load campaign recipients: ${error.message}`);
-  return (data ?? [])
-    .map(mapLead)
-    .filter((lead) => lead.email && !lead.removedAt && !lead.emailUnsubscribedAt);
+  const results: Lead[] = [];
+  for (const batch of batchIds(ids)) {
+    const { data, error } = await supabase.from("leads").select("*").in("id", batch);
+    if (error) throw new Error(`Failed to load campaign recipients: ${error.message}`);
+    results.push(...(data ?? []).map(mapLead));
+  }
+  return results.filter((lead) => lead.email && !lead.removedAt && !lead.emailUnsubscribedAt);
 }
 
 export async function unsubscribeLeadEmail(supabase: SupabaseClient, leadId: string): Promise<void> {
@@ -178,17 +197,19 @@ export async function listLatestActivitiesForLeads(
 ): Promise<Map<string, LeadActivity>> {
   if (leadIds.length === 0) return new Map();
 
-  const { data, error } = await supabase.from("lead_activities").select("*").in("lead_id", leadIds);
-  if (error) throw new Error(`Failed to list latest activities: ${error.message}`);
-
   const latest = new Map<string, LeadActivity>();
-  for (const row of data ?? []) {
-    const activity = mapActivity(row);
-    const effectiveDate = activity.completedAt ?? activity.createdAt;
-    const current = latest.get(activity.leadId);
-    const currentDate = current ? (current.completedAt ?? current.createdAt) : null;
-    if (!current || effectiveDate > currentDate!) {
-      latest.set(activity.leadId, activity);
+  for (const batch of batchIds(leadIds)) {
+    const { data, error } = await supabase.from("lead_activities").select("*").in("lead_id", batch);
+    if (error) throw new Error(`Failed to list latest activities: ${error.message}`);
+
+    for (const row of data ?? []) {
+      const activity = mapActivity(row);
+      const effectiveDate = activity.completedAt ?? activity.createdAt;
+      const current = latest.get(activity.leadId);
+      const currentDate = current ? (current.completedAt ?? current.createdAt) : null;
+      if (!current || effectiveDate > currentDate!) {
+        latest.set(activity.leadId, activity);
+      }
     }
   }
   return latest;

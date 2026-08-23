@@ -6,6 +6,59 @@ for what this checks and how the schedule/reset mechanism works.
 
 ---
 
+## 2026-08-23
+
+Scheduled weekly check. Nothing new and actionable since the 2026-08-15 run —
+the Paper Manifest Sunset Rule is still proposed/unfinished, and the
+reference client repo has had no commits since July 13, 2026 (predates last
+week's check window).
+
+### Actionable
+
+None this week.
+
+- **Paper Manifest Sunset Rule** — unchanged since 2026-08-15: still
+  proposed, comment period (closed May 4, 2026) is over, no final rule or
+  effective date published. Confirmed still absent from eCFR. See
+  [Federal Register notice](https://www.federalregister.gov/documents/2026/03/05/2026-04366/paper-manifest-sunset-rule-modification-of-the-hazardous-waste-manifest-regulations).
+  Continue watching for a final-rule publication — it would touch
+  `src/lib/rcrainfo/client.ts` and the Quick-Sign delegation model's premise.
+- **`github.com/USEPA/e-manifest` reference client** — still at v5.0.0
+  (Nov 2025). Checked commit history directly: most recent commit is
+  "Update emanifest.json" (July 13, 2026, predates the 2026-08-15 check),
+  nothing since. No PATCH/endpoint removals or schema changes to cross-check
+  against `src/lib/rcrainfo/client.ts` this week.
+
+### Content opportunity
+
+- **EPA OIG "Evaluation of the EPA's e-Manifest System" (Report 26-E-0047,
+  Aug 11, 2026)** — same report already flagged as a content opportunity in
+  the 2026-08-15 entry, not new, but picked up more press coverage this week
+  worth folding into a future article: [FedScoop
+  coverage](https://fedscoop.com/abundance-of-paper-transcriptions-leads-to-rampant-errors-in-epas-e-manifest-watchdog-says/)
+  adds a concrete stat not in last week's entry — about 40% of generator ID
+  numbers and about half of TSDF ID numbers in e-Manifest were invalid from
+  2022–2024, per the OIG's own data. Strengthens the "why adoption is stuck
+  at <0.5% and what breaks when it stays paper" angle already noted last
+  week; still no code/data implications for this app specifically.
+- No new e-Manifest Advisory Board meeting has been announced for
+  September 2026 yet (last was Sept 23–25, 2025); nothing to flag until one
+  is scheduled.
+
+### FYI only
+
+- **RCRAInfo/CDX system status** — direct fetch of
+  [RCRAInfo Status](https://rcrainfostatus.statuspage.io/) blocked by this
+  environment's network egress proxy again (same as the last two runs);
+  WebSearch-indexed snapshots show 100% uptime with no reported incidents.
+  Still worth a manual spot-check when a human has unrestricted access.
+- Direct fetches of `epa.gov`, `oversight.gov`, and `wastedive.com` were
+  blocked by the network egress proxy this run; findings above rely on
+  WebSearch summaries citing those primary sources, not a direct document
+  fetch.
+
+---
+
 ## 2026-08-15
 
 Scheduled weekly check. No new actionable items since the 2026-08-07 run —

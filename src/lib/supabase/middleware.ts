@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getProfileGate } from "@/services/profileRepository";
 
 /**
  * Refreshes the Supabase session cookie on every request (required by
@@ -54,6 +55,21 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/login";
     url.search = `?next=${encodeURIComponent(originalPath)}`;
     return NextResponse.redirect(url);
+  }
+
+  // Approval gate (generator accounts only — see
+  // 2026090601_add_approval_gate_to_profiles.sql): a pending generator who
+  // already has a session (e.g. just clicked their email confirmation
+  // link) gets bounced to /pending-approval instead of reaching any
+  // protected page.
+  if (user && isProtected) {
+    const { approved } = await getProfileGate(supabase, user.id);
+    if (!approved) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/pending-approval";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

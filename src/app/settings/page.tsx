@@ -7,7 +7,7 @@ import {
   saveDefaultEmergencyPhoneAction,
   getDefaultEmergencyPhoneAction,
 } from '@/app/actions/epaActions';
-import { signOutAction } from '@/app/actions/authActions';
+import { signOutAction, changePasswordAction } from '@/app/actions/authActions';
 import {
   inviteDelegateAction,
   listMyDelegatesAction,
@@ -107,6 +107,10 @@ export default function EpaSettingsPage() {
         </Card>
 
         <Card className="p-6">
+          <PasswordChangeSection />
+        </Card>
+
+        <Card className="p-6">
           <DelegatesSection />
         </Card>
       </div>
@@ -129,6 +133,54 @@ const SITE_TYPE_OPTIONS: { value: DelegateSiteType; label: string; warn?: boolea
   { value: 'Transporter', label: 'Transporter (e.g. a driver)' },
   { value: 'Tsdf', label: 'Designated facility' },
 ];
+
+function PasswordChangeSection() {
+  const [state, formAction, isPending] = useActionState(changePasswordAction, null);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  useEffect(() => {
+    if (state?.success) {
+      setPassword('');
+      setConfirmPassword('');
+    }
+  }, [state]);
+
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-brand-navy">Change password</h2>
+      <p className="mt-1 text-sm text-gray-600">Update the password for this account.</p>
+
+      <form action={formAction} className="mt-4 flex flex-col gap-4 max-w-sm">
+        <Input
+          id="new-password"
+          name="password"
+          type="password"
+          label="New password"
+          required
+          minLength={6}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <Input
+          id="confirm-password"
+          name="confirmPassword"
+          type="password"
+          label="Confirm new password"
+          required
+          minLength={6}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
+        <Button type="submit" disabled={isPending} className="self-start">
+          {isPending ? 'Updating...' : 'Update password'}
+        </Button>
+        {state?.success && <p className="text-sm text-green-700">✅ {state.message}</p>}
+        {state?.success === false && <p className="text-sm text-red-600">❌ {state.error}</p>}
+      </form>
+    </div>
+  );
+}
 
 /**
  * Quick-Sign delegation ("sign on my behalf without their own EPA

@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { getAccountType } from "@/services/profileRepository";
 import { getAdminEmails } from "@/lib/admin";
 import { sendEmail, EmailNotConfiguredError } from "@/lib/email/resendClient";
+import { CURRENT_BETA_NDA_VERSION } from "@/lib/legal";
 
 /** Only ever follows a same-origin relative path (must start with a single
  * "/", never "//" which browsers treat as protocol-relative to another
@@ -40,6 +41,21 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
   const rawAccountType = formData.get("account_type");
   const accountType = rawAccountType === "transporter" ? "transporter" : "generator";
 
+  // Every self-serve registration is a beta-program participant and must
+  // affirmatively accept the Confidentiality Agreement (see
+  // /beta-agreement) before an account exists -- checked here, not just
+  // via the form's `required` checkbox attribute, since that's a UX nicety
+  // a client could bypass, not a real gate. Blocking before the
+  // auth.signUp() call (rather than gating access afterward, like the
+  // generator approval gate does) is deliberate: consent has to precede
+  // the act it's consenting to, not follow it.
+  if (formData.get("nda_accepted") !== "true") {
+    return {
+      success: false,
+      error: "You must agree to the Beta Program Terms & Confidentiality Agreement to create an account.",
+    };
+  }
+
   // Supabase's own confirmation email is the thing that actually lands the
   // new user back on the site (no active session exists until they click
   // it) -- emailRedirectTo is what controls where that click sends them.
@@ -56,7 +72,14 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo, data: { account_type: accountType } },
+    options: {
+      emailRedirectTo,
+      data: {
+        account_type: accountType,
+        nda_accepted: "true",
+        nda_version: CURRENT_BETA_NDA_VERSION,
+      },
+    },
   });
 
   if (error) return { success: false, error: error.message };

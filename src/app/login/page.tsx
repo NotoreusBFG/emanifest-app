@@ -3,6 +3,7 @@
 import { Suspense, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { signInAction, signUpAction } from "@/app/actions/authActions";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -112,6 +113,26 @@ function LoginPageInner() {
                 required
                 minLength={6}
               />
+              <label className="flex items-start gap-2 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  name="nda_accepted"
+                  value="true"
+                  required
+                  className="mt-0.5"
+                />
+                <span>
+                  I agree to the{" "}
+                  <Link
+                    href="/beta-agreement"
+                    target="_blank"
+                    className="font-medium text-brand-blue hover:underline"
+                  >
+                    Beta Program Terms &amp; Confidentiality Agreement
+                  </Link>
+                  .
+                </span>
+              </label>
               <Button type="submit" disabled={signUpPending} className="mt-2">
                 {signUpPending ? "Creating account..." : "Create account"}
               </Button>

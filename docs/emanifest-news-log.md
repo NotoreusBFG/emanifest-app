@@ -6,6 +6,62 @@ for what this checks and how the schedule/reset mechanism works.
 
 ---
 
+## 2026-08-31
+
+Scheduled weekly check (delayed from the usual 8-day cadence by a gap in
+scheduled runs; ~192 hours since the 2026-08-23 run). Nothing new and
+actionable — the Paper Manifest Sunset Rule is still proposed/unfinished,
+and the reference client repo has had no commits since July 13, 2026.
+
+### Actionable
+
+None this week.
+
+- **Paper Manifest Sunset Rule** — unchanged since 2026-08-23: still
+  proposed, comment period (closed May 4, 2026) is over, no final rule or
+  effective date published. eCFR (40 CFR 262.24 and Part 262 Subpart B)
+  still reflects the pre-sunset text — confirmed via WebSearch-indexed
+  eCFR pages, direct fetch blocked (see FYI below). See [Federal Register
+  notice](https://www.federalregister.gov/documents/2026/03/05/2026-04366/paper-manifest-sunset-rule-modification-of-the-hazardous-waste-manifest-regulations).
+  Continue watching for a final-rule publication — it would touch
+  `src/lib/rcrainfo/client.ts` and the Quick-Sign delegation model's premise.
+- **`github.com/USEPA/e-manifest` reference client** — still at v5.0.0
+  (Nov 2025). Checked commit history directly: most recent commit is
+  "Update emanifest.json" (July 13, 2026, predates the 2026-08-23 check),
+  nothing since. No PATCH/endpoint removals or schema changes to cross-check
+  against `src/lib/rcrainfo/client.ts` this week.
+
+### Content opportunity
+
+- No new e-Manifest Advisory Board meeting has been announced for
+  September 2026 yet (last was Sept 23–25, 2025); nothing to flag until one
+  is scheduled.
+- No new developments on the EPA OIG "Evaluation of the EPA's e-Manifest
+  System" report (26-E-0047) beyond what's already logged in the
+  2026-08-15/2026-08-23 entries — still a live candidate topic for a future
+  Haz Waste University article, not restating it as new.
+
+### FYI only
+
+- **RCRAInfo/CDX system status** — direct fetch of
+  [RCRAInfo Status](https://rcrainfostatus.statuspage.io/) blocked by this
+  environment's network egress proxy again (same as the last several runs);
+  WebSearch turned up nothing beyond a completed June 20-21, 2026 Pay.gov
+  maintenance window for e-Manifest invoice payments, already past. No
+  current incidents or maintenance windows found. Still worth a manual
+  spot-check when a human has unrestricted access.
+- Direct fetches of `epa.gov`, `federalregister.gov`, `rcrainfostatus.statuspage.io`
+  were all blocked by the network egress proxy this run; findings above rely
+  on WebSearch summaries citing those primary sources, not a direct document
+  fetch.
+- Unrelated Federal Register items seen in this run's searches, confirmed
+  not applicable: an Aug 27, 2026 information-collection renewal notice for
+  the RCRA Hazardous Waste Management Facilities *permit* (not manifest)
+  program, and an Aug 26, 2026 Significant New Use Rule on certain chemical
+  substances (TSCA, not RCRA manifests).
+
+---
+
 ## 2026-08-23
 
 Scheduled weekly check. Nothing new and actionable since the 2026-08-15 run —

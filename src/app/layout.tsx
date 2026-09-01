@@ -36,6 +36,7 @@ const GENERATOR_NAV_LINKS: NavLink[] = [
   { href: "/ldr", label: "LDR notices" },
   { href: "/transporters", label: "Transporters" },
   { href: "/settings", label: "Settings" },
+  { href: "/training", label: "Training" },
   { href: "/university", label: "Haz Waste University" },
   { href: "/faq", label: "FAQ" },
 ];
@@ -43,6 +44,7 @@ const GENERATOR_NAV_LINKS: NavLink[] = [
 const TRANSPORTER_NAV_LINKS: NavLink[] = [
   { href: "/", label: "Home" },
   { href: "/transporter-dashboard", label: "Dashboard" },
+  { href: "/training", label: "Training" },
   { href: "/university", label: "Haz Waste University" },
   { href: "/faq", label: "FAQ" },
 ];

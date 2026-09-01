@@ -5,13 +5,30 @@ description: Use when writing a new Supabase migration for emanifest-app, when c
 
 # Supabase migrations in emanifest-app
 
+## Two projects now — check which one is linked
+
+As of 2026-08-31 there are two Supabase projects (see
+`private-notes/admin-notes/site-administration.md` for the full split):
+production (`kbevffgffynemttuqcfh`, backs `hazwastemanifestmate.com`) and
+sandbox (`fjyqhbnmfhlryehmeiyb`, backs `dev.hazwastemanifestmate.com`).
+The Supabase CLI link is per-machine, not per-migration — **local dev is
+now linked to sandbox by default**, not production. Before running
+`db push`, check which project is actually linked:
+
+```
+cat supabase/.temp/project-ref   # or: npx supabase projects list (look for "linked":true)
+```
+
+To push a migration to production specifically, re-link first
+(`npx supabase link --project-ref kbevffgffynemttuqcfh`), push, then
+re-link back to sandbox (`npx supabase link --project-ref fjyqhbnmfhlryehmeiyb`)
+so local dev doesn't stay pointed at production afterward.
+
 ## CLI is linked — use `supabase db push`
 
 `supabase/migrations/` holds timestamp-prefixed raw SQL files. As of
 2026-08-17, the Supabase CLI is installed as a local devDependency and
-linked to this project (`npx supabase link --project-ref kbevffgffynemttuqcfh`,
-login is user-level via `~/.supabase/`, no re-auth needed). To apply new
-migrations:
+linked (see above for which project). To apply new migrations:
 
 ```
 npx supabase db push --dry-run   # preview what would run, always do this first
@@ -34,6 +51,29 @@ pre-existing files hit this and were renamed with a 2-digit suffix
 migrations are written on the same day, give the second one a 2-digit
 suffix from the start** (e.g. `2026082601_x.sql`, `2026082602_y.sql`)
 rather than two bare `20260826_*.sql` files.
+
+**Ordering gotcha, hit 2026-08-31 standing up the sandbox project from
+scratch:** `2026081101_add_generator_manifest_search_flag.sql` (2026-08-11)
+inserts a row into `feature_flags`, but that table isn't created until
+`20260823_create_feature_flags.sql` (2026-08-23) — a full 12 days later.
+This only ever worked on the production project because the table
+happened to get created out of order at some point (manually, or via an
+earlier ad hoc run) before the flag-insert migration ran there for real.
+A genuinely fresh `db push` (new environment, or disaster recovery) fails
+on it every time with `relation "feature_flags" does not exist`. Worked
+around for the sandbox push by manually creating the bare table via SQL
+before resuming `db push`, but **the underlying migration file itself
+still needs a permanent fix**: prepend the same `create table if not
+exists feature_flags (...)` block (copied from `20260823`'s definition)
+to the top of `2026081101_add_generator_manifest_search_flag.sql`. That's
+safe to do even though `2026081101` is already applied to production —
+`if not exists` is a no-op there since the table already exists, and
+`20260823`'s own `create table if not exists` later in the sequence stays
+a no-op too. Don't rename either file's timestamp prefix to "fix" the
+ordering — that would create the same kind of local/remote version
+mismatch already seen once with the 2026-09-06 collision (see
+`db push`/`migration list` output showing local/remote version pairs
+that don't line up if this is ever attempted).
 
 ## Don't trust "I ran it" — verify
 
@@ -69,10 +109,14 @@ fully isolated dry run first:
 
 ## Backup posture
 
-This project's Supabase project is on the free tier with **no automatic
-point-in-time recovery / backups**, and there is no second project to
-fail over to (the user's other org project is already used by a different
-app). This is a known, explicitly-accepted risk, not an oversight — worth
-surfacing again if a migration carries real risk (e.g. touching `auth.users`,
-dropping/altering an existing column with live data), but don't relitigate
-the general free-tier decision each time.
+Updated 2026-08-31: the Supabase org is now on **Pro** (upgraded to allow
+the sandbox project past the free tier's 2-project cap), but that alone
+doesn't mean backups are on — Pro makes point-in-time recovery *available*,
+it isn't automatically configured just from the plan upgrade. Verify PITR
+is actually turned on for the production project (`kbevffgffynemttuqcfh`)
+before treating this as resolved; don't assume it from the plan tier alone.
+The sandbox project (`fjyqhbnmfhlryehmeiyb`) is a separate environment
+with its own (currently empty-of-real-data) database, **not** a
+production failover/backup target — still worth surfacing this distinction
+if a migration carries real risk (e.g. touching `auth.users`,
+dropping/altering an existing column with live data).

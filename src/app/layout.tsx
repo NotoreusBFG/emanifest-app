@@ -33,6 +33,7 @@ const GENERATOR_NAV_LINKS: NavLink[] = [
   { href: "/onboarding", label: "Get set up with EPA" },
   { href: "/manifests/new", label: "Create manifest" },
   { href: "/manifests", label: "Look up manifest" },
+  { href: "/profiles", label: "Waste profiles" },
   { href: "/ldr", label: "LDR notices" },
   { href: "/transporters", label: "Transporters" },
   { href: "/settings", label: "Settings" },

@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { brand } from "@/lib/brandColors";
 import { inputStyle } from "@/lib/formStyles";
@@ -9,6 +9,7 @@ import { StateWasteCodeNote } from "@/components/StateWasteCodeNote";
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { SiteSearchResultItem, FederalWasteCode } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
+import type { WasteProfile } from "@/services/wasteProfileRepository";
 
 const row = { display: "flex", gap: "10px" };
 const field = { flex: 1, marginBottom: "12px" };
@@ -217,6 +218,11 @@ export interface ManifestFieldsFormProps {
    * comment. Omit for the logged-in owner create form, which uses the
    * default logged-in action. */
   federalWasteCodesFn?: FederalWasteCodesFn;
+  /** The current user's saved waste profiles, for the per-line "load from
+   * profile" picker below. Omit (or pass an empty array) to hide that
+   * picker entirely, e.g. in a context with no logged-in owner to fetch
+   * profiles for. */
+  wasteProfiles?: WasteProfile[];
   /**
    * `"edit"` (default): every fieldset is editable, the owner's
    * `/manifests/new` behavior, unchanged.
@@ -272,9 +278,16 @@ export function ManifestFieldsForm({
   setHandlingInstructions,
   defaultEmergencyPhone,
   federalWasteCodesFn,
+  wasteProfiles = [],
   mode = "edit",
 }: ManifestFieldsFormProps) {
   const wasteLinesOnly = mode === "wasteLinesOnly";
+  // Keyed by line id -- set when a profile's disposal facility EPA ID
+  // doesn't match the manifest's current designated facility, cleared on a
+  // successful load. Deliberately blocks applying the profile's fields
+  // rather than just warning, per the "no chance of using the wrong
+  // facility's profile" requirement.
+  const [profileMismatchError, setProfileMismatchError] = useState<Record<number, string | null>>({});
   const updateTransporter = (id: number, patch: Partial<TransporterFormState>) =>
     setTransporters((list) => list.map((t) => (t.id === id ? { ...t, ...patch } : t)));
 
@@ -313,6 +326,52 @@ export function ManifestFieldsForm({
       packingGroup: entry.packingGroup,
       idNumberCode: entry.idNumbers,
       ...(nameAlreadyIncludesWaste ? { isRcraWaste: false } : {}),
+    });
+  };
+
+  /** Applies a saved waste profile to one waste line -- refuses to apply
+   * anything if the profile's disposal facility EPA ID doesn't exactly
+   * match the manifest's current designated facility, so a profile
+   * approved for one TSDF can never end up on a shipment to another. */
+  const applyWasteProfile = (lineId: number, profile: WasteProfile) => {
+    const facilityEpaId = facility.epaSiteId.trim().toUpperCase();
+    const profileEpaId = profile.disposalFacilityEpaId.trim().toUpperCase();
+
+    if (!facilityEpaId || facilityEpaId !== profileEpaId) {
+      setProfileMismatchError((m) => ({
+        ...m,
+        [lineId]: `This profile is approved for ${profile.disposalFacilityName || "an unnamed facility"} (${profile.disposalFacilityEpaId}), not the designated facility on this manifest${facility.epaSiteId ? ` (${facility.epaSiteId})` : ""}. Set the matching designated facility first, or choose a different profile.`,
+      }));
+      return;
+    }
+    setProfileMismatchError((m) => ({ ...m, [lineId]: null }));
+
+    const line = wasteLines.find((l) => l.id === lineId);
+    const approvalNote = profile.disposalFacilityProfileNumber
+      ? `TSDF Approval #: ${profile.disposalFacilityProfileNumber}`
+      : "";
+    const existingNote = line?.specialInstructions.trim() ?? "";
+    const specialInstructions = approvalNote
+      ? existingNote
+        ? `${existingNote}; ${approvalNote}`
+        : approvalNote
+      : existingNote;
+
+    updateWasteLine(lineId, {
+      dotHazardous: profile.dotHazardous,
+      isRcraWaste: profile.isRcraWaste,
+      properShippingName: profile.properShippingName,
+      rqIndicator: profile.rqIndicator,
+      hazardClass: profile.hazardClass,
+      packingGroup: profile.packingGroup,
+      idNumberCode: profile.idNumberCode,
+      federalWasteCode: profile.federalWasteCode,
+      wastewaterCategory: profile.wastewaterCategory,
+      isLabPack: profile.isLabPack,
+      wasteDescription: profile.wasteDescription,
+      ...(profile.defaultUnitCode ? { unitCode: profile.defaultUnitCode } : {}),
+      ...(profile.defaultContainerTypeCode ? { containerTypeCode: profile.defaultContainerTypeCode } : {}),
+      specialInstructions,
     });
   };
 
@@ -703,6 +762,37 @@ export function ManifestFieldsForm({
           <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>
             Waste line {index + 1} ({continuationLabel(index)})
           </legend>
+
+          {wasteProfiles.length > 0 && (
+            <div style={field}>
+              <label style={label}>
+                Load from saved waste profile (optional) —{" "}
+                <Link href="/profiles" target="_blank" style={{ color: brand.blue, fontWeight: 400 }}>
+                  manage profiles
+                </Link>
+              </label>
+              <select
+                value=""
+                onChange={(e) => {
+                  const profile = wasteProfiles.find((p) => p.id === e.target.value);
+                  if (profile) applyWasteProfile(line.id, profile);
+                }}
+                style={inputStyle}
+              >
+                <option value="">— Select a profile —</option>
+                {wasteProfiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.profileName} ({p.mmProfileNumber})
+                  </option>
+                ))}
+              </select>
+              {profileMismatchError[line.id] && (
+                <p style={{ color: "#c00", fontSize: "13px", margin: "4px 0 0" }}>
+                  {profileMismatchError[line.id]}
+                </p>
+              )}
+            </div>
+          )}
 
           <div style={row}>
             <div style={{ ...field, flex: 0.6 }}>

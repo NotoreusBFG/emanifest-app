@@ -25,9 +25,11 @@ import { SignManifestPanel } from "../SignManifestPanel";
 import { SendForSignature } from "@/components/SendForSignature";
 import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
 import { getOnboardingProgressAction } from "@/app/actions/onboardingActions";
+import { listWasteProfilesForUserAction } from "@/app/actions/wasteProfileActions";
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { Manifest } from "@/lib/rcrainfo/types";
 import type { ImportedManifestPayload } from "@/lib/import/types";
+import type { WasteProfile } from "@/services/wasteProfileRepository";
 
 /**
  * Every field here is controlled by React state (not `defaultValue`),
@@ -52,6 +54,11 @@ export default function NewManifestPage() {
   // in fillHandlerFromSite below, for sites EPA has no emergency phone on
   // file for.
   const [defaultEmergencyPhone, setDefaultEmergencyPhone] = useState(SYSTEM_DEFAULT_EMERGENCY_PHONE);
+
+  const [wasteProfiles, setWasteProfiles] = useState<WasteProfile[]>([]);
+  useEffect(() => {
+    listWasteProfilesForUserAction().then(setWasteProfiles);
+  }, []);
 
   useEffect(() => {
     getDefaultEmergencyPhoneAction().then((phone) => {
@@ -188,8 +195,9 @@ export default function NewManifestPage() {
 
   return (
     <div style={{ maxWidth: "700px", margin: "40px auto", fontFamily: "sans-serif" }}>
-      <p>
+      <p style={{ display: "flex", justifyContent: "space-between" }}>
         <Link href="/manifests" style={{ color: brand.blue }}>← Look up a manifest</Link>
+        <Link href="/profiles" style={{ color: brand.blue }}>Manage waste profiles →</Link>
       </p>
       <h1 style={{ color: brand.navy }}>Create a new manifest</h1>
       <p style={{ color: "#666" }}>
@@ -316,6 +324,7 @@ export default function NewManifestPage() {
           handlingInstructions={handlingInstructions}
           setHandlingInstructions={setHandlingInstructions}
           defaultEmergencyPhone={defaultEmergencyPhone}
+          wasteProfiles={wasteProfiles}
         />
 
         <div style={{ display: "flex", gap: "10px" }}>

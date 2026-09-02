@@ -115,9 +115,12 @@ export default function EpaSettingsPage() {
         </Card>
       </div>
 
-      <p className="mt-6">
+      <p className="mt-6 flex flex-col gap-1">
         <Link href="/manifests" className="text-brand-blue hover:underline">
           Look up a manifest →
+        </Link>
+        <Link href="/profiles" className="text-brand-blue hover:underline">
+          Manage waste profiles →
         </Link>
       </p>
     </div>

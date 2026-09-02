@@ -13,6 +13,10 @@ import type { WasteProfile } from "@/services/wasteProfileRepository";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
+import { HazmatSearchField } from "@/app/manifests/new/HazmatSearchField";
+import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
+import type { HazmatEntry } from "@/lib/hazmat/types";
 
 const textareaStyle =
   "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue resize-vertical";
@@ -143,7 +147,36 @@ function WasteProfileForm({
   const [state, formAction, isPending] = useActionState<WasteProfileActionState, FormData>(action, null);
 
   const [dotHazardous, setDotHazardous] = useState(profile?.dotHazardous ?? true);
+  const [isRcraWaste, setIsRcraWaste] = useState(profile?.isRcraWaste ?? true);
   const [federalWasteCode, setFederalWasteCode] = useState(profile?.federalWasteCode ?? "");
+
+  // Controlled (rather than defaultValue) specifically so the RCRAInfo
+  // facility search and the DOT hazmat table search below can populate
+  // them programmatically -- every other field on this form stays
+  // uncontrolled since nothing else needs to write into it from code.
+  const [disposalFacilityName, setDisposalFacilityName] = useState(profile?.disposalFacilityName ?? "");
+  const [disposalFacilityEpaId, setDisposalFacilityEpaId] = useState(profile?.disposalFacilityEpaId ?? "");
+  const [properShippingName, setProperShippingName] = useState(profile?.properShippingName ?? "");
+  const [hazardClass, setHazardClass] = useState(profile?.hazardClass ?? "");
+  const [packingGroup, setPackingGroup] = useState(profile?.packingGroup ?? "");
+  const [idNumberCode, setIdNumberCode] = useState(profile?.idNumberCode ?? "");
+
+  const fillFacilityFromSite = (site: SiteSearchResultItem) => {
+    setDisposalFacilityName(site.name);
+    setDisposalFacilityEpaId(site.epaSiteId);
+  };
+
+  const fillWasteFromHazmat = (entry: HazmatEntry) => {
+    // Same "waste" double-up guard as ManifestFieldsForm's
+    // fillWasteLineFromHazmat -- a few §172.101 entries already have
+    // "waste" baked into the shipping name.
+    const nameAlreadyIncludesWaste = /\bwaste\b/i.test(entry.properShippingName);
+    setProperShippingName(entry.properShippingName);
+    setHazardClass(entry.hazardClass);
+    setPackingGroup(entry.packingGroup);
+    setIdNumberCode(entry.idNumbers);
+    if (nameAlreadyIncludesWaste) setIsRcraWaste(false);
+  };
 
   useEffect(() => {
     if (state?.success) onDone();
@@ -164,19 +197,27 @@ function WasteProfileForm({
         placeholder="e.g. Used Oil — Building A"
       />
 
+      <div>
+        <label className="mb-1 block text-sm font-medium text-brand-navy">
+          Search registered disposal facilities (RCRAInfo)
+        </label>
+        <SiteSearchField siteType="Tsdf" placeholder="Search by facility name…" onSelect={fillFacilityFromSite} />
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
           id="disposalFacilityName"
           name="disposalFacilityName"
           label="Disposal facility name"
-          defaultValue={profile?.disposalFacilityName}
+          value={disposalFacilityName}
+          onChange={(e) => setDisposalFacilityName(e.target.value)}
         />
         <Input
           id="disposalFacilityEpaId"
           name="disposalFacilityEpaId"
           label="Disposal facility EPA ID"
           required
-          defaultValue={profile?.disposalFacilityEpaId}
+          value={disposalFacilityEpaId}
+          onChange={(e) => setDisposalFacilityEpaId(e.target.value)}
           hint="Must match the manifest's designated facility exactly, or the profile can't be loaded."
         />
       </div>
@@ -201,9 +242,20 @@ function WasteProfileForm({
       {dotHazardous ? (
         <>
           <label className="flex items-center gap-2 text-sm text-brand-navy">
-            <input type="checkbox" name="isRcraWaste" defaultChecked={profile?.isRcraWaste ?? true} />
+            <input
+              type="checkbox"
+              name="isRcraWaste"
+              checked={isRcraWaste}
+              onChange={(e) => setIsRcraWaste(e.target.checked)}
+            />
             RCRA waste (prints &quot;Waste&quot;)
           </label>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-navy">
+              Search DOT hazardous materials table (49 CFR §172.101)
+            </label>
+            <HazmatSearchField placeholder="Search by shipping name or ID number…" onSelect={fillWasteFromHazmat} />
+          </div>
           <div>
             <label htmlFor="properShippingName" className="mb-1 block text-sm font-medium text-brand-navy">
               Proper shipping name
@@ -212,7 +264,8 @@ function WasteProfileForm({
               id="properShippingName"
               name="properShippingName"
               rows={2}
-              defaultValue={profile?.properShippingName}
+              value={properShippingName}
+              onChange={(e) => setProperShippingName(e.target.value)}
               className={textareaStyle}
             />
           </div>
@@ -221,15 +274,28 @@ function WasteProfileForm({
               <input type="checkbox" name="rqIndicator" defaultChecked={profile?.rqIndicator} />
               RQ (reportable quantity)
             </label>
-            <Input id="hazardClass" name="hazardClass" label="Hazard class" defaultValue={profile?.hazardClass} />
-            <Input id="packingGroup" name="packingGroup" label="Packing group" defaultValue={profile?.packingGroup} />
+            <Input
+              id="hazardClass"
+              name="hazardClass"
+              label="Hazard class"
+              value={hazardClass}
+              onChange={(e) => setHazardClass(e.target.value)}
+            />
+            <Input
+              id="packingGroup"
+              name="packingGroup"
+              label="Packing group"
+              value={packingGroup}
+              onChange={(e) => setPackingGroup(e.target.value)}
+            />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
               id="idNumberCode"
               name="idNumberCode"
               label="DOT ID number (e.g. UN1993)"
-              defaultValue={profile?.idNumberCode}
+              value={idNumberCode}
+              onChange={(e) => setIdNumberCode(e.target.value)}
             />
             <Input
               id="federalWasteCode"

@@ -23,6 +23,7 @@ import type { LdrNotice, LdrWasteLineEntry } from "@/lib/ldr/types";
 import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR } from "@/lib/transporterTiming";
 import { GeneratorSearchPanel, type ResolvedGenerator } from "./GeneratorSearchPanel";
 import { GeneratorManifestResults } from "./GeneratorManifestResults";
+import { PrintLabelsFromManifestPanel } from "./PrintLabelsFromManifestPanel";
 
 interface ManifestLookupPageClientProps {
   /** From the `generator_manifest_search` admin feature flag, resolved
@@ -304,6 +305,8 @@ function ManifestSummary({
           </li>
         ))}
       </ul>
+
+      <PrintLabelsFromManifestPanel manifest={manifest} />
 
       <LdrStatus manifest={manifest} />
 

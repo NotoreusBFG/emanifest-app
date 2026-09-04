@@ -158,7 +158,17 @@ export async function createLabelPrintsForManifestLine(
   userId: string,
   input: ManifestLineLabelInput
 ): Promise<{ success: true; labelPrints: LabelPrint[] } | { success: false; error: string }> {
-  const description = (input.dotHazardous ? input.properShippingName : input.wasteDescription) || "—";
+  // Prefer whichever field the caller actually populated: the creation
+  // form (still-editable state) puts a hazardous line's text in
+  // properShippingName and a non-hazardous line's in wasteDescription, but
+  // a line reprinted from an already-saved manifest only has ONE
+  // description either way (RCRAInfo doesn't return the separate parts
+  // post-save) and may put it in either field depending on dotHazardous.
+  // Branching strictly on dotHazardous would silently blank line 1 for
+  // that second caller, so fall back to the other field instead.
+  const description =
+    (input.dotHazardous ? input.properShippingName || input.wasteDescription : input.wasteDescription || input.properShippingName) ||
+    "—";
   const copies = Math.max(1, Math.floor(input.copies));
 
   const rows = Array.from({ length: copies }, (_, i) => ({

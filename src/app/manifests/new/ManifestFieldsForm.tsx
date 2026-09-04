@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { Fragment, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { brand } from "@/lib/brandColors";
 import { inputStyle } from "@/lib/formStyles";
@@ -758,7 +758,9 @@ export function ManifestFieldsForm({
       )}
 
       {wasteLines.map((line, index) => (
-        <fieldset key={line.id} style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
+        <Fragment key={line.id}>
+        {index > 0 && <hr style={{ border: "none", borderTop: "4px solid #000", margin: "0 0 20px" }} />}
+        <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
           <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>
             Waste line {index + 1} ({continuationLabel(index)})
           </legend>
@@ -1017,6 +1019,7 @@ export function ManifestFieldsForm({
             </button>
           )}
         </fieldset>
+        </Fragment>
       ))}
 
       <button

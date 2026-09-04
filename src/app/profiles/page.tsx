@@ -369,25 +369,65 @@ function WasteProfileForm({
           Shipment estimate <span className="font-normal text-gray-400">(optional — for LQG biennial report prep)</span>
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input
-            id="estimatedContainerCount"
-            name="estimatedContainerCount"
-            type="number"
-            min="0"
-            step="1"
-            label="Estimated containers per shipment"
-            defaultValue={profile?.estimatedContainerCount ?? undefined}
-          />
-          <Input
-            id="estimatedQuantity"
-            name="estimatedQuantity"
-            type="number"
-            min="0"
-            step="any"
-            label="Estimated quantity per shipment"
-            defaultValue={profile?.estimatedQuantity ?? undefined}
-            hint="In whatever unit is picked below."
-          />
+          <div className="flex flex-col gap-3">
+            <Input
+              id="estimatedContainerCount"
+              name="estimatedContainerCount"
+              type="number"
+              min="0"
+              step="1"
+              label="Estimated containers per shipment"
+              defaultValue={profile?.estimatedContainerCount ?? undefined}
+            />
+            <div>
+              <label htmlFor="defaultContainerTypeCode" className="mb-1 block text-sm font-medium text-brand-navy">
+                Default container type code (optional)
+              </label>
+              <select
+                id="defaultContainerTypeCode"
+                name="defaultContainerTypeCode"
+                defaultValue={profile?.defaultContainerTypeCode ?? ""}
+                className={selectStyle}
+              >
+                <option value="">— None —</option>
+                {CONTAINER_TYPE_CODES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3">
+            <Input
+              id="estimatedQuantity"
+              name="estimatedQuantity"
+              type="number"
+              min="0"
+              step="any"
+              label="Estimated quantity per shipment"
+              defaultValue={profile?.estimatedQuantity ?? undefined}
+              hint="In whatever unit is picked below."
+            />
+            <div>
+              <label htmlFor="defaultUnitCode" className="mb-1 block text-sm font-medium text-brand-navy">
+                Default unit code (optional)
+              </label>
+              <select
+                id="defaultUnitCode"
+                name="defaultUnitCode"
+                defaultValue={profile?.defaultUnitCode ?? ""}
+                className={selectStyle}
+              >
+                <option value="">— None —</option>
+                {UNIT_CODES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -424,54 +464,24 @@ function WasteProfileForm({
         )}
       </div>
 
-      <Input
-        id="specificGravity"
-        name="specificGravity"
-        type="number"
-        min="0"
-        step="any"
-        label="Specific gravity (optional)"
-        defaultValue={profile?.specificGravity ?? undefined}
-        hint="For converting a volume estimate to weight, e.g. for biennial reporting."
-      />
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label htmlFor="defaultUnitCode" className="mb-1 block text-sm font-medium text-brand-navy">
-            Default unit code (optional)
-          </label>
-          <select
-            id="defaultUnitCode"
-            name="defaultUnitCode"
-            defaultValue={profile?.defaultUnitCode ?? ""}
-            className={selectStyle}
-          >
-            <option value="">— None —</option>
-            {UNIT_CODES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+      <div>
+        <label htmlFor="specificGravity" className="mb-1 block text-sm font-medium text-brand-navy">
+          Specific gravity (optional)
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            id="specificGravity"
+            name="specificGravity"
+            type="number"
+            min="0"
+            step="any"
+            placeholder="10.231"
+            defaultValue={profile?.specificGravity ?? undefined}
+            className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+          />
+          <span className="text-sm text-gray-500">Water = 1.0</span>
         </div>
-        <div>
-          <label htmlFor="defaultContainerTypeCode" className="mb-1 block text-sm font-medium text-brand-navy">
-            Default container type code (optional)
-          </label>
-          <select
-            id="defaultContainerTypeCode"
-            name="defaultContainerTypeCode"
-            defaultValue={profile?.defaultContainerTypeCode ?? ""}
-            className={selectStyle}
-          >
-            <option value="">— None —</option>
-            {CONTAINER_TYPE_CODES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <p className="mt-1 text-xs text-gray-500">For converting a volume estimate to weight, e.g. for biennial reporting.</p>
       </div>
 
       <div className="flex items-center gap-4">

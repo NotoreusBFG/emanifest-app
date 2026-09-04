@@ -164,7 +164,10 @@ export function LabelCard({ labelPrint, qrSvg }: { labelPrint: LabelPrint; qrSvg
           <div className={`${v} text-[11px]`}>{labelPrint.disposalFacilityProfileNumber || "—"}</div>
         </div>
         <div className="flex flex-none flex-col items-center gap-0.5">
-          <div className="h-[52px] w-[52px]" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+          <div
+            className="h-[52px] w-[52px] overflow-hidden [&>svg]:block [&>svg]:h-full [&>svg]:w-full"
+            dangerouslySetInnerHTML={{ __html: qrSvg }}
+          />
           <div className="font-mono text-[8px] text-gray-700">{labelPrint.mmProfileNumber ?? labelPrint.manifestTrackingNumber}</div>
         </div>
       </div>

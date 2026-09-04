@@ -191,7 +191,7 @@ export async function createLabelPrintsForManifestLine(
     generator_address: input.generatorAddress,
     generator_epa_id: input.generatorEpaId,
     manifest_tracking_number: input.manifestTrackingNumber,
-    line_reference: copies > 1 ? `${i + 1} of ${copies}` : "",
+    line_reference: `${i + 1} of ${copies}`,
     accumulation_start_date: input.accumulationStartDate,
   }));
 

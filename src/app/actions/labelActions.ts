@@ -2,7 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getWasteProfile } from "@/services/wasteProfileRepository";
-import { createLabelPrint, getLabelPrint, type LabelPrint } from "@/services/labelPrintRepository";
+import {
+  createLabelPrint,
+  createLabelPrintsForManifestLine,
+  getLabelPrint,
+  type LabelPrint,
+  type ManifestLineLabelInput,
+} from "@/services/labelPrintRepository";
 
 export type CreateLabelPrintState =
   | { success: true; id: string }
@@ -47,4 +53,58 @@ export async function createLabelPrintAction(formData: FormData): Promise<Create
 export async function getLabelPrintAction(id: string): Promise<LabelPrint | null> {
   const supabase = await createClient();
   return getLabelPrint(supabase, id);
+}
+
+export type GenerateManifestLabelsState = { success: true; ids: string[] } | { success: false; error: string };
+
+/** Called from the manifest creation form right after Save/Save & Sign
+ * succeeds -- generates labels straight from the waste lines already
+ * sitting in the form's state, profiled or not (see labelPrintRepository's
+ * createLabelPrintsForManifestLine for how a freeform line fills in). One
+ * accumulation date and label count per line, per the 2026-09-04 decision
+ * to keep the print screen at line granularity rather than per copy. */
+export async function generateManifestLabelsAction(input: {
+  manifestTrackingNumber: string;
+  generatorName: string;
+  generatorAddress: string;
+  generatorEpaId: string;
+  disposalFacilityName: string;
+  disposalFacilityEpaId: string;
+  lines: Array<
+    Pick<
+      ManifestLineLabelInput,
+      | "properShippingName"
+      | "wasteDescription"
+      | "dotHazardous"
+      | "isRcraWaste"
+      | "hazardClass"
+      | "packingGroup"
+      | "idNumberCode"
+      | "federalWasteCode"
+      | "accumulationStartDate"
+      | "copies"
+    >
+  >;
+}): Promise<GenerateManifestLabelsState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  const ids: string[] = [];
+  for (const line of input.lines) {
+    const result = await createLabelPrintsForManifestLine(supabase, user.id, {
+      manifestTrackingNumber: input.manifestTrackingNumber,
+      generatorName: input.generatorName,
+      generatorAddress: input.generatorAddress,
+      generatorEpaId: input.generatorEpaId,
+      disposalFacilityName: input.disposalFacilityName,
+      disposalFacilityEpaId: input.disposalFacilityEpaId,
+      ...line,
+    });
+    if (!result.success) return { success: false, error: result.error };
+    ids.push(...result.labelPrints.map((l) => l.id));
+  }
+  return { success: true, ids };
 }

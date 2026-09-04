@@ -21,6 +21,7 @@ import {
   type WasteLineFormState,
 } from "./ManifestFieldsForm";
 import { ImportManifestData } from "./ImportManifestData";
+import { PrintLabelsPanel } from "./PrintLabelsPanel";
 import { SignManifestPanel } from "../SignManifestPanel";
 import { SendForSignature } from "@/components/SendForSignature";
 import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
@@ -222,6 +223,12 @@ export default function NewManifestPage() {
           <div style={{ marginTop: "10px" }}>
             <SendForSignature mtn={state.manifestTrackingNumber} />
           </div>
+          <PrintLabelsPanel
+            wasteLines={wasteLines}
+            generator={generator}
+            facility={facility}
+            manifestTrackingNumber={state.manifestTrackingNumber}
+          />
           {wasteLines.some((l) => l.federalWasteCode.trim().length > 0) &&
             (ldrDecision?.mtn !== state.manifestTrackingNumber ? (
               <div

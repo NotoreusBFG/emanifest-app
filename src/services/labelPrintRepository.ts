@@ -5,7 +5,7 @@ import type { WasteProfile, PhysicalState } from "@/services/wasteProfileReposit
 export interface LabelPrint {
   id: string;
   wasteProfileId: string | null;
-  mmProfileNumber: string;
+  mmProfileNumber: string | null;
   profileName: string;
   properShippingName: string;
   wasteDescription: string;
@@ -45,7 +45,7 @@ function mapRow(row: Record<string, unknown>): LabelPrint {
   return {
     id: row.id as string,
     wasteProfileId: (row.waste_profile_id as string) ?? null,
-    mmProfileNumber: row.mm_profile_number as string,
+    mmProfileNumber: (row.mm_profile_number as string) ?? null,
     profileName: row.profile_name as string,
     properShippingName: (row.proper_shipping_name as string) ?? "",
     wasteDescription: (row.waste_description as string) ?? "",
@@ -121,6 +121,77 @@ export async function createLabelPrint(
     return { success: false, error: error.message };
   }
   return { success: true, labelPrint: mapRow(data) };
+}
+
+export interface ManifestLineLabelInput {
+  manifestTrackingNumber: string;
+  generatorName: string;
+  generatorAddress: string;
+  generatorEpaId: string;
+  disposalFacilityName: string;
+  disposalFacilityEpaId: string;
+  properShippingName: string;
+  wasteDescription: string;
+  dotHazardous: boolean;
+  isRcraWaste: boolean;
+  hazardClass: string;
+  packingGroup: string;
+  idNumberCode: string;
+  federalWasteCode: string;
+  accumulationStartDate: string;
+  /** How many labels to generate for this line (e.g. one drum each). */
+  copies: number;
+}
+
+/** Generates labels straight from a manifest waste line at shipment time --
+ * no saved waste profile required. Line 1 on the label ("Waste
+ * Description") has no profile name to draw on here, so it's filled with
+ * the line's own description instead (proper shipping name if
+ * DOT-hazardous, otherwise the plain waste description) -- same slot, same
+ * meaning: "what's actually in the drum." Fields that only exist on a
+ * saved profile (physical state, hazard-property checkboxes, TSDF
+ * approval #) are left null/blank, per the 2026-09-04 design decision to
+ * fill in everything available and leave the rest blank rather than block
+ * printing on having a profile. */
+export async function createLabelPrintsForManifestLine(
+  supabase: SupabaseClient,
+  userId: string,
+  input: ManifestLineLabelInput
+): Promise<{ success: true; labelPrints: LabelPrint[] } | { success: false; error: string }> {
+  const description = (input.dotHazardous ? input.properShippingName : input.wasteDescription) || "—";
+  const copies = Math.max(1, Math.floor(input.copies));
+
+  const rows = Array.from({ length: copies }, (_, i) => ({
+    user_id: userId,
+    waste_profile_id: null,
+    mm_profile_number: null,
+    profile_name: description,
+    proper_shipping_name: input.properShippingName,
+    waste_description: input.wasteDescription,
+    dot_hazardous: input.dotHazardous,
+    is_rcra_waste: input.isRcraWaste,
+    hazard_class: input.hazardClass,
+    packing_group: input.packingGroup,
+    id_number_code: input.idNumberCode,
+    federal_waste_code: input.federalWasteCode,
+    disposal_facility_name: input.disposalFacilityName,
+    disposal_facility_epa_id: input.disposalFacilityEpaId,
+    disposal_facility_profile_number: "",
+    generator_name: input.generatorName,
+    generator_address: input.generatorAddress,
+    generator_epa_id: input.generatorEpaId,
+    manifest_tracking_number: input.manifestTrackingNumber,
+    line_reference: copies > 1 ? `${i + 1} of ${copies}` : "",
+    accumulation_start_date: input.accumulationStartDate,
+  }));
+
+  const { data, error } = await supabase.from("label_prints").insert(rows).select("*");
+
+  if (error) {
+    console.error("createLabelPrintsForManifestLine failed:", describePostgrestError(error));
+    return { success: false, error: error.message };
+  }
+  return { success: true, labelPrints: (data ?? []).map(mapRow) };
 }
 
 /** Public lookup by id -- no user_id filter, since this backs the

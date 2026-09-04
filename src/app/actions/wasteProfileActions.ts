@@ -11,6 +11,7 @@ import {
   type WasteProfileInput,
   type WastewaterCategory,
   type ShipmentFrequency,
+  type PhysicalState,
 } from "@/services/wasteProfileRepository";
 
 /** Parses an optional numeric form field: blank/missing -> null (not 0 or
@@ -76,6 +77,11 @@ function parseWasteProfileFormData(formData: FormData): WasteProfileInput | { er
     shipmentFrequency: ((formData.get("shipmentFrequency") as string) || null) as ShipmentFrequency | null,
     shipmentFrequencyOther: ((formData.get("shipmentFrequencyOther") as string) ?? "").trim(),
     specificGravity: parseOptionalNumber(formData, "specificGravity"),
+    physicalState: ((formData.get("physicalState") as string) || null) as PhysicalState | null,
+    isIgnitable: formData.get("isIgnitable") === "on",
+    isCorrosive: formData.get("isCorrosive") === "on",
+    isReactive: formData.get("isReactive") === "on",
+    isToxic: formData.get("isToxic") === "on",
   };
 }
 

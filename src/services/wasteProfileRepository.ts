@@ -3,6 +3,7 @@ import { describePostgrestError } from "@/services/manifestRepository";
 
 export type WastewaterCategory = "wastewater" | "nonwastewater";
 export type ShipmentFrequency = "one_time" | "monthly" | "quarterly" | "biannual" | "annual" | "other";
+export type PhysicalState = "solid" | "liquid" | "sludge" | "gas";
 
 export interface WasteProfile {
   id: string;
@@ -31,6 +32,14 @@ export interface WasteProfile {
   shipmentFrequency: ShipmentFrequency | null;
   shipmentFrequencyOther: string;
   specificGravity: number | null;
+  // Waste-stream characteristics used on a printed hazardous waste label
+  // (40 CFR 262.17(a)(5)'s "composition and hazardous properties") -- these
+  // describe the stream itself, so they live on the reusable profile.
+  physicalState: PhysicalState | null;
+  isIgnitable: boolean;
+  isCorrosive: boolean;
+  isReactive: boolean;
+  isToxic: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -58,6 +67,11 @@ export interface WasteProfileInput {
   shipmentFrequency: ShipmentFrequency | null;
   shipmentFrequencyOther: string;
   specificGravity: number | null;
+  physicalState: PhysicalState | null;
+  isIgnitable: boolean;
+  isCorrosive: boolean;
+  isReactive: boolean;
+  isToxic: boolean;
 }
 
 function mapRow(row: Record<string, unknown>): WasteProfile {
@@ -86,6 +100,11 @@ function mapRow(row: Record<string, unknown>): WasteProfile {
     shipmentFrequency: (row.shipment_frequency as ShipmentFrequency | null) ?? null,
     shipmentFrequencyOther: (row.shipment_frequency_other as string) ?? "",
     specificGravity: (row.specific_gravity as number | null) ?? null,
+    physicalState: (row.physical_state as PhysicalState | null) ?? null,
+    isIgnitable: !!row.is_ignitable,
+    isCorrosive: !!row.is_corrosive,
+    isReactive: !!row.is_reactive,
+    isToxic: !!row.is_toxic,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -115,6 +134,11 @@ function toRow(input: WasteProfileInput) {
     shipment_frequency: input.shipmentFrequency,
     shipment_frequency_other: input.shipmentFrequencyOther,
     specific_gravity: input.specificGravity,
+    physical_state: input.physicalState,
+    is_ignitable: input.isIgnitable,
+    is_corrosive: input.isCorrosive,
+    is_reactive: input.isReactive,
+    is_toxic: input.isToxic,
   };
 }
 
@@ -134,6 +158,25 @@ export async function createWasteProfile(
     return { success: false, error: error.message };
   }
   return { success: true, profile: mapRow(data) };
+}
+
+export async function getWasteProfile(
+  supabase: SupabaseClient,
+  userId: string,
+  id: string
+): Promise<WasteProfile | null> {
+  const { data, error } = await supabase
+    .from("waste_profiles")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("getWasteProfile failed:", describePostgrestError(error));
+    return null;
+  }
+  return data ? mapRow(data) : null;
 }
 
 export async function listWasteProfilesForUser(

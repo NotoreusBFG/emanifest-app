@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
 import { HazmatSearchField } from "@/app/manifests/new/HazmatSearchField";
 import { UNIT_CODES, CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
+import { PrintLabelForm } from "./PrintLabelForm";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 
@@ -37,6 +38,7 @@ export default function WasteProfilesPage() {
   const [profiles, setProfiles] = useState<WasteProfile[] | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [printingId, setPrintingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const refresh = () => {
@@ -104,6 +106,10 @@ export default function WasteProfilesPage() {
                 onCancel={() => setEditingId(null)}
               />
             </Card>
+          ) : printingId === p.id ? (
+            <Card key={p.id} className="p-6">
+              <PrintLabelForm profile={p} onCancel={() => setPrintingId(null)} />
+            </Card>
           ) : (
             <Card key={p.id} className="p-4">
               <div className="flex items-start justify-between gap-4">
@@ -123,6 +129,9 @@ export default function WasteProfilesPage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-3 text-sm">
+                  <button type="button" onClick={() => setPrintingId(p.id)} className="font-medium text-brand-blue">
+                    Print label
+                  </button>
                   <button type="button" onClick={() => setEditingId(p.id)} className="font-medium text-brand-blue">
                     Edit
                   </button>
@@ -363,6 +372,55 @@ function WasteProfileForm({
           defaultValue={profile?.wasteDescription}
         />
       )}
+
+      <div className="border-t border-gray-100 pt-3">
+        <p className="mb-1 text-sm font-semibold text-brand-navy">
+          Waste characterization <span className="font-normal text-gray-400">(optional — printed on a container label)</span>
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="mb-1 text-sm font-medium text-brand-navy">Physical state</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {(
+                [
+                  ["solid", "Solid"],
+                  ["liquid", "Liquid"],
+                  ["sludge", "Sludge"],
+                  ["gas", "Gas"],
+                ] as const
+              ).map(([value, label]) => (
+                <label key={value} className="flex items-center gap-1.5 text-sm text-gray-700">
+                  <input
+                    type="radio"
+                    name="physicalState"
+                    value={value}
+                    defaultChecked={profile?.physicalState === value}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1 text-sm font-medium text-brand-navy">Hazardous properties</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {(
+                [
+                  ["isIgnitable", "Ignitable", profile?.isIgnitable],
+                  ["isCorrosive", "Corrosive", profile?.isCorrosive],
+                  ["isReactive", "Reactive", profile?.isReactive],
+                  ["isToxic", "Toxic", profile?.isToxic],
+                ] as const
+              ).map(([name, label, checked]) => (
+                <label key={name} className="flex items-center gap-1.5 text-sm text-gray-700">
+                  <input type="checkbox" name={name} defaultChecked={checked} />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="border-t border-gray-100 pt-3">
         <p className="mb-1 text-sm font-semibold text-brand-navy">

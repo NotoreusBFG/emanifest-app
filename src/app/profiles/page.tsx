@@ -9,17 +9,29 @@ import {
   listWasteProfilesForUserAction,
   type WasteProfileActionState,
 } from "@/app/actions/wasteProfileActions";
-import type { WasteProfile } from "@/services/wasteProfileRepository";
+import type { WasteProfile, ShipmentFrequency } from "@/services/wasteProfileRepository";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
 import { HazmatSearchField } from "@/app/manifests/new/HazmatSearchField";
+import { UNIT_CODES, CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 
 const textareaStyle =
   "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue resize-vertical";
+const selectStyle =
+  "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue bg-white";
+
+const FREQUENCY_OPTIONS: { value: ShipmentFrequency; label: string }[] = [
+  { value: "one_time", label: "One time" },
+  { value: "monthly", label: "Monthly" },
+  { value: "quarterly", label: "Quarterly" },
+  { value: "biannual", label: "Biannual" },
+  { value: "annual", label: "Annual" },
+  { value: "other", label: "Other" },
+];
 
 export default function WasteProfilesPage() {
   const [profiles, setProfiles] = useState<WasteProfile[] | null>(null);
@@ -160,6 +172,12 @@ function WasteProfileForm({
   const [hazardClass, setHazardClass] = useState(profile?.hazardClass ?? "");
   const [packingGroup, setPackingGroup] = useState(profile?.packingGroup ?? "");
   const [idNumberCode, setIdNumberCode] = useState(profile?.idNumberCode ?? "");
+
+  // Button-group UI, not native radios, so selection needs its own state
+  // plus a hidden input to actually carry the value into FormData.
+  const [shipmentFrequency, setShipmentFrequency] = useState<ShipmentFrequency | "">(
+    profile?.shipmentFrequency ?? ""
+  );
 
   const fillFacilityFromSite = (site: SiteSearchResultItem) => {
     setDisposalFacilityName(site.name);
@@ -346,19 +364,114 @@ function WasteProfileForm({
         />
       )}
 
+      <div className="border-t border-gray-100 pt-3">
+        <p className="mb-1 text-sm font-semibold text-brand-navy">
+          Shipment estimate <span className="font-normal text-gray-400">(optional — for LQG biennial report prep)</span>
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input
+            id="estimatedContainerCount"
+            name="estimatedContainerCount"
+            type="number"
+            min="0"
+            step="1"
+            label="Estimated containers per shipment"
+            defaultValue={profile?.estimatedContainerCount ?? undefined}
+          />
+          <Input
+            id="estimatedQuantity"
+            name="estimatedQuantity"
+            type="number"
+            min="0"
+            step="any"
+            label="Estimated quantity per shipment"
+            defaultValue={profile?.estimatedQuantity ?? undefined}
+            hint="In whatever unit is picked below."
+          />
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-1 text-sm font-medium text-brand-navy">Shipment frequency (optional)</p>
+        <div className="flex flex-wrap gap-2">
+          {FREQUENCY_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              aria-pressed={shipmentFrequency === opt.value}
+              onClick={() => setShipmentFrequency((f) => (f === opt.value ? "" : opt.value))}
+              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                shipmentFrequency === opt.value
+                  ? "border-brand-blue bg-brand-blue text-white"
+                  : "border-gray-300 text-brand-navy hover:border-brand-blue"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <input type="hidden" name="shipmentFrequency" value={shipmentFrequency} />
+        {shipmentFrequency === "other" && (
+          <div className="mt-2">
+            <Input
+              id="shipmentFrequencyOther"
+              name="shipmentFrequencyOther"
+              label="Describe the range"
+              placeholder="e.g. every 6–8 weeks"
+              defaultValue={profile?.shipmentFrequencyOther}
+            />
+          </div>
+        )}
+      </div>
+
+      <Input
+        id="specificGravity"
+        name="specificGravity"
+        type="number"
+        min="0"
+        step="any"
+        label="Specific gravity (optional)"
+        defaultValue={profile?.specificGravity ?? undefined}
+        hint="For converting a volume estimate to weight, e.g. for biennial reporting."
+      />
+
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input
-          id="defaultUnitCode"
-          name="defaultUnitCode"
-          label="Default unit code (optional)"
-          defaultValue={profile?.defaultUnitCode}
-        />
-        <Input
-          id="defaultContainerTypeCode"
-          name="defaultContainerTypeCode"
-          label="Default container type code (optional)"
-          defaultValue={profile?.defaultContainerTypeCode}
-        />
+        <div>
+          <label htmlFor="defaultUnitCode" className="mb-1 block text-sm font-medium text-brand-navy">
+            Default unit code (optional)
+          </label>
+          <select
+            id="defaultUnitCode"
+            name="defaultUnitCode"
+            defaultValue={profile?.defaultUnitCode ?? ""}
+            className={selectStyle}
+          >
+            <option value="">— None —</option>
+            {UNIT_CODES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="defaultContainerTypeCode" className="mb-1 block text-sm font-medium text-brand-navy">
+            Default container type code (optional)
+          </label>
+          <select
+            id="defaultContainerTypeCode"
+            name="defaultContainerTypeCode"
+            defaultValue={profile?.defaultContainerTypeCode ?? ""}
+            className={selectStyle}
+          >
+            <option value="">— None —</option>
+            {CONTAINER_TYPE_CODES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

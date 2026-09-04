@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { describePostgrestError } from "@/services/manifestRepository";
 
 export type WastewaterCategory = "wastewater" | "nonwastewater";
+export type ShipmentFrequency = "one_time" | "monthly" | "quarterly" | "biannual" | "annual" | "other";
 
 export interface WasteProfile {
   id: string;
@@ -23,6 +24,13 @@ export interface WasteProfile {
   disposalFacilityName: string;
   disposalFacilityEpaId: string;
   disposalFacilityProfileNumber: string;
+  // LQG biennial-report-prep fields -- an expected shipment size/cadence,
+  // not anything submitted to EPA on the manifest itself.
+  estimatedContainerCount: number | null;
+  estimatedQuantity: number | null;
+  shipmentFrequency: ShipmentFrequency | null;
+  shipmentFrequencyOther: string;
+  specificGravity: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +53,11 @@ export interface WasteProfileInput {
   disposalFacilityName: string;
   disposalFacilityEpaId: string;
   disposalFacilityProfileNumber: string;
+  estimatedContainerCount: number | null;
+  estimatedQuantity: number | null;
+  shipmentFrequency: ShipmentFrequency | null;
+  shipmentFrequencyOther: string;
+  specificGravity: number | null;
 }
 
 function mapRow(row: Record<string, unknown>): WasteProfile {
@@ -68,6 +81,11 @@ function mapRow(row: Record<string, unknown>): WasteProfile {
     disposalFacilityName: (row.disposal_facility_name as string) ?? "",
     disposalFacilityEpaId: (row.disposal_facility_epa_id as string) ?? "",
     disposalFacilityProfileNumber: (row.disposal_facility_profile_number as string) ?? "",
+    estimatedContainerCount: (row.estimated_container_count as number | null) ?? null,
+    estimatedQuantity: (row.estimated_quantity as number | null) ?? null,
+    shipmentFrequency: (row.shipment_frequency as ShipmentFrequency | null) ?? null,
+    shipmentFrequencyOther: (row.shipment_frequency_other as string) ?? "",
+    specificGravity: (row.specific_gravity as number | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -92,6 +110,11 @@ function toRow(input: WasteProfileInput) {
     disposal_facility_name: input.disposalFacilityName,
     disposal_facility_epa_id: input.disposalFacilityEpaId,
     disposal_facility_profile_number: input.disposalFacilityProfileNumber,
+    estimated_container_count: input.estimatedContainerCount,
+    estimated_quantity: input.estimatedQuantity,
+    shipment_frequency: input.shipmentFrequency,
+    shipment_frequency_other: input.shipmentFrequencyOther,
+    specific_gravity: input.specificGravity,
   };
 }
 

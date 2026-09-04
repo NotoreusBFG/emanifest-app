@@ -10,7 +10,18 @@ import {
   type WasteProfile,
   type WasteProfileInput,
   type WastewaterCategory,
+  type ShipmentFrequency,
 } from "@/services/wasteProfileRepository";
+
+/** Parses an optional numeric form field: blank/missing -> null (not 0 or
+ * NaN), so an unset estimate stays genuinely unset rather than looking
+ * like a real zero value. */
+function parseOptionalNumber(formData: FormData, key: string): number | null {
+  const raw = (formData.get(key) as string)?.trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
 
 export type WasteProfileActionState =
   | { success: true; message: string }
@@ -60,6 +71,11 @@ function parseWasteProfileFormData(formData: FormData): WasteProfileInput | { er
     disposalFacilityName: ((formData.get("disposalFacilityName") as string) ?? "").trim(),
     disposalFacilityEpaId,
     disposalFacilityProfileNumber: ((formData.get("disposalFacilityProfileNumber") as string) ?? "").trim(),
+    estimatedContainerCount: parseOptionalNumber(formData, "estimatedContainerCount"),
+    estimatedQuantity: parseOptionalNumber(formData, "estimatedQuantity"),
+    shipmentFrequency: ((formData.get("shipmentFrequency") as string) || null) as ShipmentFrequency | null,
+    shipmentFrequencyOther: ((formData.get("shipmentFrequencyOther") as string) ?? "").trim(),
+    specificGravity: parseOptionalNumber(formData, "specificGravity"),
   };
 }
 

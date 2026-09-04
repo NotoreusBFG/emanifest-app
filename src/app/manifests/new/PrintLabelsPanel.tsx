@@ -65,6 +65,7 @@ export function PrintLabelsPanel({
         packingGroup: line.packingGroup,
         idNumberCode: line.idNumberCode,
         federalWasteCode: line.federalWasteCode,
+        additionalInfo: line.specialInstructions,
         accumulationStartDate: drafts[line.id]?.accumulationStartDate || todayIso(),
         copies: drafts[line.id]?.copies ?? 1,
       })),

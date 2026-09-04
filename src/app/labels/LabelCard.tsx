@@ -45,27 +45,31 @@ const v = "border-b border-dotted border-gray-400 pb-0.5 font-mono text-[12px] f
  * waste lines and a saved profile's print both render through the exact
  * same markup. */
 export function LabelCard({ labelPrint, qrSvg }: { labelPrint: LabelPrint; qrSvg: string }) {
-  // Non-DOT-hazardous: a saved profile has a distinct wasteDescription
-  // worth showing here, but a manifest-sourced label (no profile) has
-  // profileName === wasteDescription already shown on line 1 -- skip the
-  // duplicate rather than repeat the same text on both lines.
   const dotShippingLine = labelPrint.dotHazardous
     ? [labelPrint.properShippingName, labelPrint.hazardClass, labelPrint.idNumberCode, labelPrint.packingGroup]
         .filter(Boolean)
         .join(", ")
-    : labelPrint.wasteDescription !== labelPrint.profileName
-      ? labelPrint.wasteDescription
-      : "";
+    : labelPrint.wasteDescription || labelPrint.properShippingName || "";
+
+  // An EPA hazardous waste number is what actually makes a waste stream
+  // RCRA-regulated (40 CFR 261) -- more reliable than dotHazardous (a DOT
+  // transport classification, not a RCRA one) and available on every
+  // label regardless of which flow generated it (profile, manifest line,
+  // or a reprint). Drives the title, the federal RCRA citation, and the
+  // footer warning -- none of that applies to a non-hazardous stream.
+  const isHazardousWaste = labelPrint.federalWasteCode.trim().length > 0;
 
   return (
     <div className="flex w-[400px] flex-col border border-gray-300 bg-white text-black shadow-lg print:w-[4in] print:border-0 print:shadow-none">
-      <div className="bg-black px-3 py-2.5 text-center text-[25px] font-black uppercase tracking-wide text-white">
-        Hazardous Waste
+      <div className="border-b-2 border-black bg-white px-3 py-2.5 text-center text-[25px] font-black uppercase tracking-wide text-black">
+        {isHazardousWaste ? "Hazardous Waste" : "Non-Hazardous Waste"}
       </div>
-      <div className="border-b-2 border-black px-4 py-1.5 text-center text-[9.5px] leading-tight">
-        Federal Law Prohibits Improper Disposal. If found, contact the nearest police or public safety
-        authority, or the U.S. Environmental Protection Agency.
-      </div>
+      {isHazardousWaste && (
+        <div className="border-b-2 border-black px-4 py-1.5 text-center text-[9.5px] leading-tight">
+          Federal Law Prohibits Improper Disposal. If found, contact the nearest police or public safety
+          authority, or the U.S. Environmental Protection Agency.
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col gap-1.5 px-4 pt-2">
         <div className={field}>
@@ -173,7 +177,9 @@ export function LabelCard({ labelPrint, qrSvg }: { labelPrint: LabelPrint; qrSvg
       </div>
 
       <div className="border-t-2 border-black px-4 py-2.5">
-        <div className="text-center text-[10px] font-extrabold">Handle With Care! Contains Hazardous Or Toxic Waste.</div>
+        <div className="text-center text-[10px] font-extrabold">
+          {isHazardousWaste ? "Handle With Care! Contains Hazardous Or Toxic Waste." : "Handle With Care!"}
+        </div>
       </div>
     </div>
   );

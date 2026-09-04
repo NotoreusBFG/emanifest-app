@@ -15,14 +15,29 @@ function handlerAddress(handler: Handler): string {
   return [a.address1, a.city, a.state?.code, a.zip].filter(Boolean).join(", ");
 }
 
-/** Best available line-1 description for a line already saved to RCRAInfo.
- * Unlike the creation form, a fetched line only ever has ONE description
- * string -- for a hazardous line RCRAInfo keeps just the combined
+/** Best available shipping description for a line already saved to
+ * RCRAInfo -- feeds line 2 ("DOT Shipping Name") on the label. Unlike the
+ * creation form, a fetched line only ever has ONE description string --
+ * for a hazardous line RCRAInfo keeps just the combined
  * `printedDotInformation` (the separate proper shipping name/hazard
  * class/packing group aren't returned after save, only baked into that
  * string), for a non-hazardous line it's `wasteDescription`. */
 function lineDescription(line: WasteLine): string {
   return (line.dotHazardous ? line.dotInformation?.printedDotInformation : line.wasteDescription) || "(no description)";
+}
+
+/** This waste line's own Box 14 special/handling instructions -- feeds
+ * line 1 ("Waste Description") on the label. buildManifestInput.ts
+ * combines every line's instructions into ONE manifest-level
+ * `additionalInfo.handlingInstructions` string tagged `Line N: ...` and
+ * joined with " | " (RCRAInfo's schema has no per-line field for this),
+ * so pull this line's own segment back out rather than showing the whole
+ * manifest's combined text on every label. */
+function lineAdditionalInfo(manifest: Manifest, lineNumber: number): string {
+  const combined = manifest.additionalInfo?.handlingInstructions ?? "";
+  const prefix = `Line ${lineNumber}: `;
+  const segment = combined.split(" | ").find((s) => s.startsWith(prefix));
+  return segment ? segment.slice(prefix.length) : "";
 }
 
 interface LineDraft {
@@ -74,6 +89,7 @@ export function PrintLabelsFromManifestPanel({ manifest }: { manifest: Manifest 
         packingGroup: "",
         idNumberCode: line.dotInformation?.idNumber?.code ?? "",
         federalWasteCode: (line.hazardousWaste?.federalWasteCodes ?? []).map((c) => c.code).join(", "),
+        additionalInfo: lineAdditionalInfo(manifest, line.lineNumber),
         accumulationStartDate: drafts[line.lineNumber]?.accumulationStartDate || todayIso(),
         copies: drafts[line.lineNumber]?.copies ?? 1,
       })),

@@ -138,44 +138,34 @@ export interface ManifestLineLabelInput {
   packingGroup: string;
   idNumberCode: string;
   federalWasteCode: string;
+  /** Box 14 special/handling instructions for this specific waste line --
+   * prints on line 1 ("Waste Description") per the 2026-09-04 design
+   * decision. Not the shipping description (that's line 2, "DOT Shipping
+   * Name", from properShippingName/wasteDescription below). */
+  additionalInfo: string;
   accumulationStartDate: string;
   /** How many labels to generate for this line (e.g. one drum each). */
   copies: number;
 }
 
 /** Generates labels straight from a manifest waste line at shipment time --
- * no saved waste profile required. Line 1 on the label ("Waste
- * Description") has no profile name to draw on here, so it's filled with
- * the line's own description instead (proper shipping name if
- * DOT-hazardous, otherwise the plain waste description) -- same slot, same
- * meaning: "what's actually in the drum." Fields that only exist on a
- * saved profile (physical state, hazard-property checkboxes, TSDF
- * approval #) are left null/blank, per the 2026-09-04 design decision to
- * fill in everything available and leave the rest blank rather than block
+ * no saved waste profile required. Fields that only exist on a saved
+ * profile (physical state, hazard-property checkboxes, TSDF approval #)
+ * are left null/blank, per the 2026-09-04 design decision to fill in
+ * everything available and leave the rest blank rather than block
  * printing on having a profile. */
 export async function createLabelPrintsForManifestLine(
   supabase: SupabaseClient,
   userId: string,
   input: ManifestLineLabelInput
 ): Promise<{ success: true; labelPrints: LabelPrint[] } | { success: false; error: string }> {
-  // Prefer whichever field the caller actually populated: the creation
-  // form (still-editable state) puts a hazardous line's text in
-  // properShippingName and a non-hazardous line's in wasteDescription, but
-  // a line reprinted from an already-saved manifest only has ONE
-  // description either way (RCRAInfo doesn't return the separate parts
-  // post-save) and may put it in either field depending on dotHazardous.
-  // Branching strictly on dotHazardous would silently blank line 1 for
-  // that second caller, so fall back to the other field instead.
-  const description =
-    (input.dotHazardous ? input.properShippingName || input.wasteDescription : input.wasteDescription || input.properShippingName) ||
-    "—";
   const copies = Math.max(1, Math.floor(input.copies));
 
   const rows = Array.from({ length: copies }, (_, i) => ({
     user_id: userId,
     waste_profile_id: null,
     mm_profile_number: null,
-    profile_name: description,
+    profile_name: input.additionalInfo,
     proper_shipping_name: input.properShippingName,
     waste_description: input.wasteDescription,
     dot_hazardous: input.dotHazardous,

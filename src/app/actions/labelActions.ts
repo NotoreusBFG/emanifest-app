@@ -81,6 +81,7 @@ export async function generateManifestLabelsAction(input: {
       | "packingGroup"
       | "idNumberCode"
       | "federalWasteCode"
+      | "additionalInfo"
       | "accumulationStartDate"
       | "copies"
     >

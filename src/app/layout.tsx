@@ -34,6 +34,7 @@ const GENERATOR_NAV_LINKS: NavLink[] = [
   { href: "/manifests/new", label: "Create manifest" },
   { href: "/manifests", label: "Look up manifest" },
   { href: "/profiles", label: "Waste profiles" },
+  { href: "/bol", label: "Bill of Lading" },
   { href: "/ldr", label: "LDR notices" },
   { href: "/transporters", label: "Transporters" },
   { href: "/settings", label: "Settings" },

@@ -46,9 +46,9 @@ export function BolPrintLabelsPanel({ billOfLading }: { billOfLading: BillOfLadi
       generatorAddress: [billOfLading.shipperAddress, billOfLading.shipperCity, billOfLading.shipperState, billOfLading.shipperZip]
         .filter(Boolean)
         .join(", "),
-      generatorEpaId: "",
+      generatorEpaId: billOfLading.shipperEpaId,
       disposalFacilityName: billOfLading.consigneeName,
-      disposalFacilityEpaId: "",
+      disposalFacilityEpaId: billOfLading.consigneeEpaId,
       lines: billOfLading.lines.map((line) => ({
         properShippingName: "",
         wasteDescription: line.description,

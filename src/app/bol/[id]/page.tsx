@@ -45,20 +45,22 @@ export default async function BillOfLadingDetailPage({ params }: { params: Promi
 
       <h3 style={{ color: "#0a2246" }}>Shipper</h3>
       <p>
-        {bol.shipperName || "—"}
+        {bol.shipperName || "—"} {bol.shipperEpaId && `(${bol.shipperEpaId})`}
         <br />
         {[bol.shipperAddress, bol.shipperCity, bol.shipperState, bol.shipperZip].filter(Boolean).join(", ")}
       </p>
 
       <h3 style={{ color: "#0a2246" }}>Consignee</h3>
       <p>
-        {bol.consigneeName || "—"}
+        {bol.consigneeName || "—"} {bol.consigneeEpaId && `(${bol.consigneeEpaId})`}
         <br />
         {[bol.consigneeAddress, bol.consigneeCity, bol.consigneeState, bol.consigneeZip].filter(Boolean).join(", ")}
       </p>
 
       <h3 style={{ color: "#0a2246" }}>Carrier</h3>
-      <p>{bol.carrierName || "—"}</p>
+      <p>
+        {bol.carrierName || "—"} {bol.carrierEpaId && `(${bol.carrierEpaId})`}
+      </p>
 
       <h3 style={{ color: "#0a2246" }}>Line items</h3>
       <ul>

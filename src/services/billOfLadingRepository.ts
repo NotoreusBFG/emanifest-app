@@ -18,6 +18,7 @@ export interface BillOfLading {
   bolNumber: string;
   shipDate: string;
   shipperName: string;
+  shipperEpaId: string;
   shipperAddress: string;
   shipperCity: string;
   shipperState: string;
@@ -25,6 +26,7 @@ export interface BillOfLading {
   shipperContactName: string;
   shipperContactPhone: string;
   consigneeName: string;
+  consigneeEpaId: string;
   consigneeAddress: string;
   consigneeCity: string;
   consigneeState: string;
@@ -32,6 +34,7 @@ export interface BillOfLading {
   consigneeContactName: string;
   consigneeContactPhone: string;
   carrierName: string;
+  carrierEpaId: string;
   carrierContactName: string;
   carrierContactPhone: string;
   specialInstructions: string;
@@ -53,6 +56,7 @@ export interface BillOfLadingLineInput {
 export interface BillOfLadingInput {
   shipDate: string;
   shipperName: string;
+  shipperEpaId: string;
   shipperAddress: string;
   shipperCity: string;
   shipperState: string;
@@ -60,6 +64,7 @@ export interface BillOfLadingInput {
   shipperContactName: string;
   shipperContactPhone: string;
   consigneeName: string;
+  consigneeEpaId: string;
   consigneeAddress: string;
   consigneeCity: string;
   consigneeState: string;
@@ -67,6 +72,7 @@ export interface BillOfLadingInput {
   consigneeContactName: string;
   consigneeContactPhone: string;
   carrierName: string;
+  carrierEpaId: string;
   carrierContactName: string;
   carrierContactPhone: string;
   specialInstructions: string;
@@ -93,6 +99,7 @@ function mapBol(row: Record<string, unknown>, lines: BillOfLadingLine[]): BillOf
     bolNumber: row.bol_number as string,
     shipDate: row.ship_date as string,
     shipperName: (row.shipper_name as string) ?? "",
+    shipperEpaId: (row.shipper_epa_id as string) ?? "",
     shipperAddress: (row.shipper_address as string) ?? "",
     shipperCity: (row.shipper_city as string) ?? "",
     shipperState: (row.shipper_state as string) ?? "",
@@ -100,6 +107,7 @@ function mapBol(row: Record<string, unknown>, lines: BillOfLadingLine[]): BillOf
     shipperContactName: (row.shipper_contact_name as string) ?? "",
     shipperContactPhone: (row.shipper_contact_phone as string) ?? "",
     consigneeName: (row.consignee_name as string) ?? "",
+    consigneeEpaId: (row.consignee_epa_id as string) ?? "",
     consigneeAddress: (row.consignee_address as string) ?? "",
     consigneeCity: (row.consignee_city as string) ?? "",
     consigneeState: (row.consignee_state as string) ?? "",
@@ -107,6 +115,7 @@ function mapBol(row: Record<string, unknown>, lines: BillOfLadingLine[]): BillOf
     consigneeContactName: (row.consignee_contact_name as string) ?? "",
     consigneeContactPhone: (row.consignee_contact_phone as string) ?? "",
     carrierName: (row.carrier_name as string) ?? "",
+    carrierEpaId: (row.carrier_epa_id as string) ?? "",
     carrierContactName: (row.carrier_contact_name as string) ?? "",
     carrierContactPhone: (row.carrier_contact_phone as string) ?? "",
     specialInstructions: (row.special_instructions as string) ?? "",
@@ -150,6 +159,7 @@ export async function createBillOfLading(
       user_id: userId,
       ship_date: input.shipDate,
       shipper_name: input.shipperName,
+      shipper_epa_id: input.shipperEpaId,
       shipper_address: input.shipperAddress,
       shipper_city: input.shipperCity,
       shipper_state: input.shipperState,
@@ -157,6 +167,7 @@ export async function createBillOfLading(
       shipper_contact_name: input.shipperContactName,
       shipper_contact_phone: input.shipperContactPhone,
       consignee_name: input.consigneeName,
+      consignee_epa_id: input.consigneeEpaId,
       consignee_address: input.consigneeAddress,
       consignee_city: input.consigneeCity,
       consignee_state: input.consigneeState,
@@ -164,6 +175,7 @@ export async function createBillOfLading(
       consignee_contact_name: input.consigneeContactName,
       consignee_contact_phone: input.consigneeContactPhone,
       carrier_name: input.carrierName,
+      carrier_epa_id: input.carrierEpaId,
       carrier_contact_name: input.carrierContactName,
       carrier_contact_phone: input.carrierContactPhone,
       special_instructions: input.specialInstructions,

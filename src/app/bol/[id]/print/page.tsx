@@ -94,6 +94,7 @@ export default async function BillOfLadingPrintPage({ params }: { params: Promis
                 {bol.shipperContactName} {bol.shipperContactPhone}
               </div>
             )}
+            {bol.shipperEpaId && <div className="text-[11px] text-gray-600">EPA ID: {bol.shipperEpaId}</div>}
           </Box>
           <Box title="Ship To (Consignee)">
             <div className="font-semibold">{bol.consigneeName || "—"}</div>
@@ -106,6 +107,7 @@ export default async function BillOfLadingPrintPage({ params }: { params: Promis
                 {bol.consigneeContactName} {bol.consigneeContactPhone}
               </div>
             )}
+            {bol.consigneeEpaId && <div className="text-[11px] text-gray-600">EPA ID: {bol.consigneeEpaId}</div>}
           </Box>
         </div>
 
@@ -117,6 +119,7 @@ export default async function BillOfLadingPrintPage({ params }: { params: Promis
                 {bol.carrierContactName} {bol.carrierContactPhone}
               </div>
             )}
+            {bol.carrierEpaId && <div className="text-[11px] text-gray-600">EPA ID: {bol.carrierEpaId}</div>}
           </Box>
         </div>
 

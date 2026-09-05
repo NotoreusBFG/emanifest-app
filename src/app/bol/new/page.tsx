@@ -10,6 +10,8 @@ import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
 import type { BillOfLading } from "@/services/billOfLadingRepository";
 import { BolPrintLabelsPanel } from "../BolPrintLabelsPanel";
+import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
+import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 
 const row = { display: "flex", gap: "10px" };
 const field = { flex: 1, marginBottom: "12px" };
@@ -20,6 +22,7 @@ function todayIso(): string {
 }
 
 interface PartyState {
+  epaSiteId: string;
   name: string;
   address: string;
   city: string;
@@ -29,7 +32,37 @@ interface PartyState {
   contactPhone: string;
 }
 
-const BLANK_PARTY: PartyState = { name: "", address: "", city: "", state: "", zip: "", contactName: "", contactPhone: "" };
+const BLANK_PARTY: PartyState = {
+  epaSiteId: "",
+  name: "",
+  address: "",
+  city: "",
+  state: "",
+  zip: "",
+  contactName: "",
+  contactPhone: "",
+};
+
+/** Fills a party's fields from a live EPA site-search result -- same
+ * fill-from-search convention as the real manifest form's
+ * fillHandlerFromSite, adapted to this simpler shape (no separate
+ * first/last name or email, since a bill of lading only needs one
+ * contact name/phone). Falls back to "" (not the previous value) when
+ * EPA's record is missing a field, same reasoning as the manifest
+ * version -- an empty field is an honest "needs manual entry" signal. */
+function fillPartyFromSite(site: SiteSearchResultItem, current: PartyState): PartyState {
+  return {
+    ...current,
+    epaSiteId: site.epaSiteId,
+    name: site.name,
+    address: site.siteAddress?.address1 ?? "",
+    city: site.siteAddress?.city ?? "",
+    state: site.siteAddress?.state?.code ?? "",
+    zip: site.siteAddress?.zip ?? "",
+    contactName: [site.contact?.firstName, site.contact?.lastName].filter(Boolean).join(" "),
+    contactPhone: site.contact?.phoneNumber?.number ?? "",
+  };
+}
 
 interface LineState {
   id: number;
@@ -48,10 +81,12 @@ function emptyLine(id: number): LineState {
 
 function PartyFieldset({
   title,
+  siteType,
   party,
   setParty,
 }: {
   title: string;
+  siteType: "Generator" | "Transporter" | "Tsdf" | "Broker";
   party: PartyState;
   setParty: (p: PartyState) => void;
 }) {
@@ -59,10 +94,19 @@ function PartyFieldset({
   return (
     <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px", padding: "12px" }}>
       <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>{title}</legend>
+      <SiteSearchField
+        siteType={siteType}
+        placeholder={`Search registered ${title.toLowerCase()} sites by name…`}
+        onSelect={(site) => setParty(fillPartyFromSite(site, party))}
+      />
       <div style={row}>
         <div style={field}>
           <label style={label}>Company name</label>
           <input style={inputStyle} value={party.name} onChange={(e) => set({ name: e.target.value })} required />
+        </div>
+        <div style={field}>
+          <label style={label}>EPA Site ID (optional)</label>
+          <input style={inputStyle} value={party.epaSiteId} onChange={(e) => set({ epaSiteId: e.target.value })} />
         </div>
         <div style={field}>
           <label style={label}>Contact name</label>
@@ -98,6 +142,7 @@ function PartyFieldset({
 export default function NewBillOfLadingPage() {
   const [shipper, setShipper] = useState<PartyState>(BLANK_PARTY);
   const [consignee, setConsignee] = useState<PartyState>(BLANK_PARTY);
+  const [carrierEpaId, setCarrierEpaId] = useState("");
   const [carrierName, setCarrierName] = useState("");
   const [carrierContactName, setCarrierContactName] = useState("");
   const [carrierContactPhone, setCarrierContactPhone] = useState("");
@@ -144,6 +189,7 @@ export default function NewBillOfLadingPage() {
     const result = await createBillOfLadingAction({
       shipDate,
       shipperName: shipper.name,
+      shipperEpaId: shipper.epaSiteId,
       shipperAddress: shipper.address,
       shipperCity: shipper.city,
       shipperState: shipper.state,
@@ -151,6 +197,7 @@ export default function NewBillOfLadingPage() {
       shipperContactName: shipper.contactName,
       shipperContactPhone: shipper.contactPhone,
       consigneeName: consignee.name,
+      consigneeEpaId: consignee.epaSiteId,
       consigneeAddress: consignee.address,
       consigneeCity: consignee.city,
       consigneeState: consignee.state,
@@ -158,6 +205,7 @@ export default function NewBillOfLadingPage() {
       consigneeContactName: consignee.contactName,
       consigneeContactPhone: consignee.contactPhone,
       carrierName,
+      carrierEpaId,
       carrierContactName,
       carrierContactPhone,
       specialInstructions,
@@ -203,6 +251,7 @@ export default function NewBillOfLadingPage() {
             setSaved(null);
             setShipper(BLANK_PARTY);
             setConsignee(BLANK_PARTY);
+            setCarrierEpaId("");
             setCarrierName("");
             setCarrierContactName("");
             setCarrierContactPhone("");
@@ -229,15 +278,29 @@ export default function NewBillOfLadingPage() {
         below.
       </p>
 
-      <PartyFieldset title="Shipper" party={shipper} setParty={setShipper} />
-      <PartyFieldset title="Consignee" party={consignee} setParty={setConsignee} />
+      <PartyFieldset title="Shipper" siteType="Generator" party={shipper} setParty={setShipper} />
+      <PartyFieldset title="Consignee" siteType="Tsdf" party={consignee} setParty={setConsignee} />
 
       <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px", padding: "12px" }}>
         <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Carrier</legend>
+        <SiteSearchField
+          siteType="Transporter"
+          placeholder="Search registered transporter sites by name…"
+          onSelect={(site) => {
+            setCarrierEpaId(site.epaSiteId);
+            setCarrierName(site.name);
+            setCarrierContactName([site.contact?.firstName, site.contact?.lastName].filter(Boolean).join(" "));
+            setCarrierContactPhone(site.contact?.phoneNumber?.number ?? "");
+          }}
+        />
         <div style={row}>
           <div style={field}>
             <label style={label}>Carrier / trucking company</label>
             <input style={inputStyle} value={carrierName} onChange={(e) => setCarrierName(e.target.value)} />
+          </div>
+          <div style={field}>
+            <label style={label}>EPA Site ID (optional)</label>
+            <input style={inputStyle} value={carrierEpaId} onChange={(e) => setCarrierEpaId(e.target.value)} />
           </div>
           <div style={field}>
             <label style={label}>Driver / contact name</label>

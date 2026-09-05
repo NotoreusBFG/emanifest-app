@@ -5,6 +5,7 @@ import { getWasteProfile } from "@/services/wasteProfileRepository";
 import {
   createLabelPrint,
   createLabelPrintsForManifestLine,
+  createLabelPrintsForProfile,
   getLabelPrint,
   type LabelPrint,
   type ManifestLineLabelInput,
@@ -103,6 +104,46 @@ export async function generateManifestLabelsAction(input: {
       disposalFacilityName: input.disposalFacilityName,
       disposalFacilityEpaId: input.disposalFacilityEpaId,
       ...line,
+    });
+    if (!result.success) return { success: false, error: result.error };
+    ids.push(...result.labelPrints.map((l) => l.id));
+  }
+  return { success: true, ids };
+}
+
+/** Called from the "search a generator, print labels for their saved
+ * profiles" flow (/labels/generator) -- accumulation-time labeling ahead
+ * of any manifest, so manifest_tracking_number always ends up blank (see
+ * createLabelPrintsForProfile) and accumulationStartDate may be null
+ * (left for hand-entry on the physical label) rather than required like
+ * the single-profile print form's own action above. */
+export async function generateLabelsForProfilesAction(input: {
+  generatorName: string;
+  generatorAddress: string;
+  generatorEpaId: string;
+  profiles: Array<{
+    profileId: string;
+    accumulationStartDate: string | null;
+    copies: number;
+  }>;
+}): Promise<GenerateManifestLabelsState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  const ids: string[] = [];
+  for (const p of input.profiles) {
+    const profile = await getWasteProfile(supabase, user.id, p.profileId);
+    if (!profile) return { success: false, error: "One of the selected waste profiles was not found." };
+
+    const result = await createLabelPrintsForProfile(supabase, user.id, profile, {
+      generatorName: input.generatorName,
+      generatorAddress: input.generatorAddress,
+      generatorEpaId: input.generatorEpaId,
+      accumulationStartDate: p.accumulationStartDate,
+      copies: p.copies,
     });
     if (!result.success) return { success: false, error: result.error };
     ids.push(...result.labelPrints.map((l) => l.id));

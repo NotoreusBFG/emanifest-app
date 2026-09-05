@@ -116,7 +116,7 @@ export function LabelCard({ labelPrint, qrSvg }: { labelPrint: LabelPrint; qrSvg
               <span className={num}>6</span>Accum. Start Date
             </div>
             <div className={`${v} text-[16px] font-extrabold border-b-[1.5px] border-black`}>
-              {formatDate(labelPrint.accumulationStartDate)}
+              {labelPrint.accumulationStartDate ? formatDate(labelPrint.accumulationStartDate) : " "}
             </div>
           </div>
           <div className={field}>

@@ -28,7 +28,10 @@ export interface LabelPrint {
   generatorEpaId: string;
   manifestTrackingNumber: string;
   lineReference: string;
-  accumulationStartDate: string;
+  /** Null when the container hasn't started accumulating yet -- the
+   * physical label's date field is an underlined write-in box, so a
+   * blank one is meant to be filled in by hand, not an error state. */
+  accumulationStartDate: string | null;
   createdAt: string;
 }
 
@@ -68,7 +71,7 @@ function mapRow(row: Record<string, unknown>): LabelPrint {
     generatorEpaId: (row.generator_epa_id as string) ?? "",
     manifestTrackingNumber: (row.manifest_tracking_number as string) ?? "",
     lineReference: (row.line_reference as string) ?? "",
-    accumulationStartDate: row.accumulation_start_date as string,
+    accumulationStartDate: (row.accumulation_start_date as string | null) ?? null,
     createdAt: row.created_at as string,
   };
 }
@@ -121,6 +124,70 @@ export async function createLabelPrint(
     return { success: false, error: error.message };
   }
   return { success: true, labelPrint: mapRow(data) };
+}
+
+export interface ProfileBatchPrintTimeInput {
+  generatorName: string;
+  generatorAddress: string;
+  generatorEpaId: string;
+  /** Null = leave blank for hand-entry -- see accumulationStartDate's
+   * comment on LabelPrint. */
+  accumulationStartDate: string | null;
+  /** How many labels to generate for this profile (e.g. one per drum). */
+  copies: number;
+}
+
+/** Batch-prints labels straight from a saved profile ahead of any
+ * shipment -- the 2026-09-05 "search a generator, then print labels for
+ * their saved profiles" flow. Unlike createLabelPrint (one label, caller
+ * types generator info and an optional MTN by hand), this always leaves
+ * manifest_tracking_number blank (there's no manifest yet -- that's the
+ * point of accumulation-time labeling) and supports multiple copies with
+ * the same "N of M" auto-numbering as the manifest/BOL batch flows. */
+export async function createLabelPrintsForProfile(
+  supabase: SupabaseClient,
+  userId: string,
+  profile: WasteProfile,
+  input: ProfileBatchPrintTimeInput
+): Promise<{ success: true; labelPrints: LabelPrint[] } | { success: false; error: string }> {
+  const copies = Math.max(1, Math.floor(input.copies));
+
+  const rows = Array.from({ length: copies }, (_, i) => ({
+    user_id: userId,
+    waste_profile_id: profile.id,
+    mm_profile_number: profile.mmProfileNumber,
+    profile_name: profile.profileName,
+    proper_shipping_name: profile.properShippingName,
+    waste_description: profile.wasteDescription,
+    dot_hazardous: profile.dotHazardous,
+    is_rcra_waste: profile.isRcraWaste,
+    hazard_class: profile.hazardClass,
+    packing_group: profile.packingGroup,
+    id_number_code: profile.idNumberCode,
+    federal_waste_code: profile.federalWasteCode,
+    physical_state: profile.physicalState,
+    is_ignitable: profile.isIgnitable,
+    is_corrosive: profile.isCorrosive,
+    is_reactive: profile.isReactive,
+    is_toxic: profile.isToxic,
+    disposal_facility_name: profile.disposalFacilityName,
+    disposal_facility_epa_id: profile.disposalFacilityEpaId,
+    disposal_facility_profile_number: profile.disposalFacilityProfileNumber,
+    generator_name: input.generatorName,
+    generator_address: input.generatorAddress,
+    generator_epa_id: input.generatorEpaId,
+    manifest_tracking_number: "",
+    line_reference: `${i + 1} of ${copies}`,
+    accumulation_start_date: input.accumulationStartDate,
+  }));
+
+  const { data, error } = await supabase.from("label_prints").insert(rows).select("*");
+
+  if (error) {
+    console.error("createLabelPrintsForProfile failed:", describePostgrestError(error));
+    return { success: false, error: error.message };
+  }
+  return { success: true, labelPrints: (data ?? []).map(mapRow) };
 }
 
 export interface ManifestLineLabelInput {

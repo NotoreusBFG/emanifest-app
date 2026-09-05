@@ -68,9 +68,14 @@ export default function WasteProfilesPage() {
             profile onto a manifest bound for a different facility is blocked automatically.
           </p>
         </div>
-        <Link href="/manifests/new" className="whitespace-nowrap text-sm font-medium text-brand-blue hover:underline">
-          ← Create a manifest
-        </Link>
+        <div className="flex flex-col items-end gap-1">
+          <Link href="/manifests/new" className="whitespace-nowrap text-sm font-medium text-brand-blue hover:underline">
+            ← Create a manifest
+          </Link>
+          <Link href="/labels/generator" className="whitespace-nowrap text-sm font-medium text-brand-blue hover:underline">
+            Print labels for a generator →
+          </Link>
+        </div>
       </div>
 
       <Card className="p-6">

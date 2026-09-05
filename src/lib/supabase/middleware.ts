@@ -39,6 +39,7 @@ export async function updateSession(request: NextRequest) {
     "/dashboard",
     "/onboarding",
     "/ldr",
+    "/bol",
     "/transporters",
     "/transporter-dashboard",
   ];

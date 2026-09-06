@@ -33,8 +33,16 @@ function SignatureLine({ role }: { role: string }) {
   );
 }
 
-export default async function BillOfLadingPrintPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function BillOfLadingPrintPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ embed?: string }>;
+}) {
   const { id } = await params;
+  const { embed } = await searchParams;
+  const isEmbed = embed === "1";
   const result = await getBillOfLadingAction(id);
 
   if (!result.success) {
@@ -52,21 +60,37 @@ export default async function BillOfLadingPrintPage({ params }: { params: Promis
   const bol = result.billOfLading;
 
   return (
-    <div className="flex min-h-screen flex-col items-center gap-6 bg-brand-tint px-6 py-10 print:bg-white print:p-0">
+    <div
+      className={
+        isEmbed
+          ? "flex flex-col items-center bg-white p-3"
+          : "flex min-h-screen flex-col items-center gap-6 bg-brand-tint px-6 py-10 print:bg-white print:p-0"
+      }
+    >
       <style>{`
         @page { size: letter; margin: 0.5in; }
         @media print {
           .no-print { display: none !important; }
           body { background: white !important; }
         }
+        ${isEmbed ? ".no-print { display: none !important; }" : ""}
       `}</style>
 
+      {/* Embed mode (the /bol/[id] preview iframe) hides this along with the
+          nav chrome and the standalone print button, via the .no-print rule
+          above -- same class the real @media print rule already uses. */}
       <div className="no-print text-center">
         <h1 className="text-xl font-bold text-brand-navy">Bill of lading</h1>
         <p className="mt-1 text-sm text-gray-600">{bol.bolNumber} — not submitted to EPA, non-hazardous shipment only.</p>
       </div>
 
-      <div className="w-[750px] border border-gray-300 bg-white p-6 text-black shadow-lg print:w-full print:border-0 print:p-0 print:shadow-none">
+      <div
+        className={
+          isEmbed
+            ? "w-full border border-gray-300 bg-white p-6 text-black"
+            : "w-[750px] border border-gray-300 bg-white p-6 text-black shadow-lg print:w-full print:border-0 print:p-0 print:shadow-none"
+        }
+      >
         <div className="mb-4 flex items-start justify-between border-b-2 border-black pb-3">
           <div>
             <div className="text-[26px] font-black uppercase tracking-wide text-black">Bill of Lading</div>

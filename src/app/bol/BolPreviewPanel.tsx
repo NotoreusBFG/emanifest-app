@@ -38,9 +38,9 @@ export function BolPreviewPanel({ bolId }: { bolId: string }) {
       </div>
       <iframe
         ref={iframeRef}
-        src={`/bol/${bolId}/print`}
+        src={`/bol/${bolId}/print?embed=1`}
         title="Bill of lading preview"
-        style={{ width: "100%", height: "600px", border: "1px solid #ccc", borderRadius: "4px", background: "white" }}
+        style={{ width: "100%", height: "500px", border: "1px solid #ccc", borderRadius: "4px", background: "white" }}
       />
     </div>
   );

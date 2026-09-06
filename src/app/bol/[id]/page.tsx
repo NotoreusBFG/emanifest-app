@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getBillOfLadingAction } from "@/app/actions/billOfLadingActions";
 import { BolPrintLabelsPanel } from "../BolPrintLabelsPanel";
+import { BolPreviewPanel } from "../BolPreviewPanel";
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-");
@@ -73,6 +74,7 @@ export default async function BillOfLadingDetailPage({ params }: { params: Promi
       </ul>
 
       <BolPrintLabelsPanel billOfLading={bol} />
+      <BolPreviewPanel bolId={bol.id} />
     </div>
   );
 }

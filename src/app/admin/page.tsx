@@ -48,7 +48,7 @@ export default async function AdminPage() {
           Pending accounts{pendingAccounts.length > 0 ? ` (${pendingAccounts.length})` : ""}
         </h2>
         <p className="mt-1 text-gray-600">
-          New generator signups wait here until approved — they can&apos;t reach the app until then.
+          New generator and third-party signups wait here until approved — they can&apos;t reach the app until then.
         </p>
 
         {pendingAccounts.length === 0 ? (

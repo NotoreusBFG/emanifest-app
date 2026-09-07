@@ -23,10 +23,13 @@ export async function getAccountType(supabase: SupabaseClient, userId: string): 
 
 export type ProfileGate = { accountType: AccountType; approved: boolean };
 
+const APPROVAL_GATED_TYPES: AccountType[] = ["generator", "third_party"];
+
 /**
  * Combined account-type + approval-status lookup for the middleware's
- * per-request access gate (see 2026090601_add_approval_gate_to_profiles.sql).
- * Only generator accounts are actually gated — transporter accounts are
+ * per-request access gate (see 2026090601_add_approval_gate_to_profiles.sql
+ * and 20260917_extend_approval_gate_to_third_party.sql). Only generator and
+ * third_party accounts are actually gated — transporter accounts are
  * already vetted by the inviting generator, so they read as approved
  * regardless of the DB value. Fails open (approved: true) on any missing
  * row or query error, same reasoning as getAccountType above — a
@@ -41,7 +44,7 @@ export async function getProfileGate(supabase: SupabaseClient, userId: string): 
     .maybeSingle();
   if (error || !data) return { accountType: "generator", approved: true };
   const accountType = ACCOUNT_TYPES.includes(data.account_type) ? data.account_type : "generator";
-  const approved = accountType !== "generator" || data.approved_at !== null;
+  const approved = !APPROVAL_GATED_TYPES.includes(accountType) || data.approved_at !== null;
   return { accountType, approved };
 }
 

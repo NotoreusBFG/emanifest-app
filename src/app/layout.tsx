@@ -61,6 +61,20 @@ const DISPOSAL_NAV_LINKS: NavLink[] = [
   { href: "/faq", label: "FAQ" },
 ];
 
+// Third-party (broker/consultant) accounts create manifests/profiles/labels
+// for generators on their approved customer list (see
+// third_party_customers) -- no dedicated dashboard yet, "Settings" is where
+// they manage that customer list.
+const THIRD_PARTY_NAV_LINKS: NavLink[] = [
+  { href: "/", label: "Home" },
+  { href: "/manifests/new", label: "Create manifest" },
+  { href: "/manifests", label: "Look up manifest" },
+  { href: "/settings", label: "My customers (Settings)" },
+  { href: "/training", label: "Training" },
+  { href: "/university", label: "Haz Waste University" },
+  { href: "/faq", label: "FAQ" },
+];
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -79,15 +93,16 @@ export default async function RootLayout({
   const adminLink = isAdminEmail(user?.email) ? [{ href: "/admin", label: "Admin" }] : [];
   // Previously only `transporter` was special-cased here, so `disposal`
   // and `third_party` silently inherited the full generator nav (including
-  // "Create manifest") -- fixed to branch explicitly for all four types.
-  // `third_party` gets the minimal nav for now too; Phase 2/3 give it a
-  // real one ("My customers" etc.) once that account type is reachable.
+  // "Create manifest", which third parties should only reach through their
+  // own locked/approved-customer-list flow, not a shared generator one).
   const navLinks = [
     ...(accountType === "transporter"
       ? TRANSPORTER_NAV_LINKS
-      : accountType === "disposal" || accountType === "third_party"
+      : accountType === "disposal"
         ? DISPOSAL_NAV_LINKS
-        : GENERATOR_NAV_LINKS),
+        : accountType === "third_party"
+          ? THIRD_PARTY_NAV_LINKS
+          : GENERATOR_NAV_LINKS),
     ...adminLink,
   ];
 

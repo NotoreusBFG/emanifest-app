@@ -27,7 +27,8 @@ export async function signInAction(prevState: unknown, formData: FormData) {
   if (error) return { success: false, error: error.message };
 
   const accountType = data.user ? await getAccountType(supabase, data.user.id) : "generator";
-  const fallback = accountType === "transporter" ? "/transporter-dashboard" : "/dashboard";
+  const fallback =
+    accountType === "transporter" ? "/transporter-dashboard" : accountType === "third_party" ? "/settings" : "/dashboard";
   redirect(safeNextPath(formData.get("next"), fallback));
 }
 
@@ -36,10 +37,12 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
   const password = formData.get("password") as string;
   const next = formData.get("next");
 
-  // Only ever 'generator' or 'transporter' -- never trust the raw form
-  // value beyond that allowlist (same defensive pattern as safeNextPath).
+  // Only ever 'generator', 'transporter', or 'third_party' -- never trust
+  // the raw form value beyond that allowlist (same defensive pattern as
+  // safeNextPath). 'disposal' has no signup path yet.
   const rawAccountType = formData.get("account_type");
-  const accountType = rawAccountType === "transporter" ? "transporter" : "generator";
+  const accountType =
+    rawAccountType === "transporter" ? "transporter" : rawAccountType === "third_party" ? "third_party" : "generator";
 
   // Every self-serve registration is a beta-program participant and must
   // affirmatively accept the Confidentiality Agreement (see
@@ -65,7 +68,8 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
   // project's default Site URL instead of `next`.
   const headersList = await headers();
   const origin = headersList.get("origin") ?? `https://${headersList.get("host")}`;
-  const fallback = accountType === "transporter" ? "/transporter-dashboard" : "/dashboard";
+  const fallback =
+    accountType === "transporter" ? "/transporter-dashboard" : accountType === "third_party" ? "/settings" : "/dashboard";
   const emailRedirectTo = `${origin}${safeNextPath(next, fallback)}`;
 
   const supabase = await createClient();
@@ -84,19 +88,20 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
 
   if (error) return { success: false, error: error.message };
 
-  // Generator signups now require manual approval before they get app
-  // access (see 2026090601_add_approval_gate_to_profiles.sql) -- notify
-  // every admin so there's no need to remember to check /admin. Non-fatal:
-  // the account still gets created (and the profiles row still lands
-  // pending) even if this email fails to send.
-  if (accountType === "generator") {
+  // Generator and third-party signups now require manual approval before
+  // they get app access (see 2026090601_add_approval_gate_to_profiles.sql
+  // and 20260917_extend_approval_gate_to_third_party.sql) -- notify every
+  // admin so there's no need to remember to check /admin. Non-fatal: the
+  // account still gets created (and the profiles row still lands pending)
+  // even if this email fails to send.
+  if (accountType === "generator" || accountType === "third_party") {
     const adminUrl = `${origin}/admin`;
     for (const adminEmail of getAdminEmails()) {
       try {
         await sendEmail(
           adminEmail,
           "New ManifestMate signup awaiting approval",
-          `${email} just signed up for a generator account. Approve them here: ${adminUrl}`
+          `${email} just signed up for a ${accountType.replace("_", " ")} account. Approve them here: ${adminUrl}`
         );
       } catch (err) {
         if (!(err instanceof EmailNotConfiguredError)) {

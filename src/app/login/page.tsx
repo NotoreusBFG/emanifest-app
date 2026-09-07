@@ -41,7 +41,12 @@ function LoginPageInner() {
   // created through a generator-initiated invite, not open self-serve
   // signup. See project decision 2026-08-05: the relationship is between
   // the generator and the transporter, not a menu pick at signup.
-  const accountType = searchParams.get("accountType") === "transporter" ? "transporter" : "generator";
+  const isTransporterInvite = searchParams.get("accountType") === "transporter";
+  // Third-party (broker/consultant) accounts, unlike transporter, ARE a
+  // self-serve menu pick -- gated afterward by admin approval instead of a
+  // prior invite relationship (see 20260917_extend_approval_gate_to_third_party.sql).
+  const [selfServeAccountType, setSelfServeAccountType] = useState<"generator" | "third_party">("generator");
+  const accountType = isTransporterInvite ? "transporter" : selfServeAccountType;
   const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   const [signInState, signInFormAction, signInPending] = useActionState<ActionState, FormData>(
@@ -104,6 +109,35 @@ function LoginPageInner() {
             <form action={signUpFormAction} className="mt-6 flex flex-col gap-4">
               {next && <input type="hidden" name="next" value={next} />}
               <input type="hidden" name="account_type" value={accountType} />
+              {!isTransporterInvite && (
+                <div>
+                  <p className="mb-1 text-sm font-medium text-brand-navy">I&apos;m signing up as a:</p>
+                  <div className="flex gap-4 text-sm">
+                    <label className="flex items-center gap-1.5">
+                      <input
+                        type="radio"
+                        checked={selfServeAccountType === "generator"}
+                        onChange={() => setSelfServeAccountType("generator")}
+                      />
+                      Generator
+                    </label>
+                    <label className="flex items-center gap-1.5">
+                      <input
+                        type="radio"
+                        checked={selfServeAccountType === "third_party"}
+                        onChange={() => setSelfServeAccountType("third_party")}
+                      />
+                      Third party / broker
+                    </label>
+                  </div>
+                  {selfServeAccountType === "third_party" && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Third-party accounts create manifests on a generator&apos;s behalf, once that
+                      generator approves the connection. Requires admin approval before you can sign in.
+                    </p>
+                  )}
+                </div>
+              )}
               <Input id="signup-email" name="email" type="email" label="Email" required />
               <Input
                 id="signup-password"

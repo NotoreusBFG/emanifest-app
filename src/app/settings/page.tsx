@@ -142,9 +142,9 @@ export default function EpaSettingsPage() {
           <PasswordChangeSection />
         </Card>
 
-        {accountType === 'generator' && (
+        {(accountType === 'generator' || teamMembership) && (
           <Card className="p-6">
-            <GeneratorSitesSection />
+            <GeneratorSitesSection isTeamMember={!!teamMembership} />
           </Card>
         )}
 
@@ -237,7 +237,7 @@ function PasswordChangeSection() {
  * RCRAInfo as a real Generator site, but not "authorized" in any EPA
  * sense -- see generator_managed_sites' migration comment).
  */
-function GeneratorSitesSection() {
+function GeneratorSitesSection({ isTeamMember }: { isTeamMember: boolean }) {
   const [sites, setSites] = useState<ManagedSite[] | null>(null);
   const [addState, addFormAction, isAddPending] = useActionState(addManagedSiteAction, null);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -266,21 +266,27 @@ function GeneratorSitesSection() {
     <div>
       <h2 className="text-lg font-bold text-brand-navy">My generator sites</h2>
       <p className="mt-1 text-sm text-gray-600">
-        Add the EPA ID(s) for sites you manage. ManifestMate can&apos;t verify RCRAInfo permissions
-        directly, so double-check you have the right ID — these are the only sites you&apos;ll be able
-        to pick when creating a waste profile, printing a label, or creating a manifest.
+        {isTeamMember
+          ? "These are the sites your team owner manages — only they can add or remove one."
+          : <>Add the EPA ID(s) for sites you manage. ManifestMate can&apos;t verify RCRAInfo permissions
+              directly, so double-check you have the right ID — these are the only sites you&apos;ll be able
+              to pick when creating a waste profile, printing a label, or creating a manifest.</>}
       </p>
 
-      <form action={addFormAction} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="flex-1">
-          <Input id="epaSiteId" name="epaSiteId" type="text" label="EPA Site ID" required placeholder="e.g. VAD000123456" />
-        </div>
-        <Button type="submit" disabled={isAddPending} className="self-start px-4 py-2 text-sm">
-          {isAddPending ? 'Adding...' : 'Add site'}
-        </Button>
-      </form>
-      {addState?.success && <p className="mt-2 text-sm text-green-700">✅ {addState.message}</p>}
-      {addState?.success === false && <p className="mt-2 text-sm text-red-600">❌ {addState.error}</p>}
+      {!isTeamMember && (
+        <>
+          <form action={addFormAction} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <Input id="epaSiteId" name="epaSiteId" type="text" label="EPA Site ID" required placeholder="e.g. VAD000123456" />
+            </div>
+            <Button type="submit" disabled={isAddPending} className="self-start px-4 py-2 text-sm">
+              {isAddPending ? 'Adding...' : 'Add site'}
+            </Button>
+          </form>
+          {addState?.success && <p className="mt-2 text-sm text-green-700">✅ {addState.message}</p>}
+          {addState?.success === false && <p className="mt-2 text-sm text-red-600">❌ {addState.error}</p>}
+        </>
+      )}
 
       {sites && sites.length > 0 && (
         <table className="mt-4 w-full border-collapse text-sm">
@@ -300,14 +306,16 @@ function GeneratorSitesSection() {
                 </td>
                 <td className="py-1.5">{s.epaSiteId}</td>
                 <td className="py-1.5 text-right">
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(s.id)}
-                    disabled={removingId === s.id}
-                    className="text-xs font-semibold text-red-600 disabled:opacity-50"
-                  >
-                    {removingId === s.id ? 'Removing...' : 'Remove'}
-                  </button>
+                  {!isTeamMember && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(s.id)}
+                      disabled={removingId === s.id}
+                      className="text-xs font-semibold text-red-600 disabled:opacity-50"
+                    >
+                      {removingId === s.id ? 'Removing...' : 'Remove'}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

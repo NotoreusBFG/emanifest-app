@@ -5,6 +5,8 @@ import { listFeatureFlags } from "@/services/featureFlagRepository";
 import { toggleFeatureFlagAction } from "@/app/actions/featureFlagActions";
 import { listPendingAccounts } from "@/services/profileRepository";
 import { approveAccountAction } from "@/app/actions/accountApprovalActions";
+import { getMyAdminRole, listAdmins } from "@/services/adminRepository";
+import { AdminsSection } from "./AdminsSection";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -27,12 +29,19 @@ export default async function AdminPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!isAdminEmail(user?.email)) {
+  // Combines the env-var allowlist (ADMIN_EMAILS, redeploy-only) with the
+  // DB-granted role (admin_users.role, grantable at runtime by a super
+  // admin below) -- see AccountBadges' comment in layout.tsx for the same
+  // reasoning.
+  const dbAdminRole = user ? await getMyAdminRole(supabase) : null;
+  const myAdminRole = dbAdminRole ?? (isAdminEmail(user?.email) ? "admin" : null);
+  if (!myAdminRole) {
     redirect("/");
   }
 
   const flags = await listFeatureFlags(supabase);
   const pendingAccounts = await listPendingAccounts(supabase);
+  const admins = await listAdmins(supabase);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-10">
@@ -119,6 +128,10 @@ export default async function AdminPage() {
             </Card>
           );
         })}
+      </div>
+
+      <div className="mt-10">
+        <AdminsSection initialAdmins={admins} myAdminRole={myAdminRole} />
       </div>
     </div>
   );

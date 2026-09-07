@@ -5,8 +5,9 @@ import Link from "next/link";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/app/actions/authActions";
-import { getAccountType } from "@/services/profileRepository";
+import { getAccountType, type AccountType } from "@/services/profileRepository";
 import { getFeatureFlag } from "@/services/featureFlagRepository";
+import { getMyAdminRole } from "@/services/adminRepository";
 import { isAdminEmail } from "@/lib/admin";
 
 const geistSans = Geist({
@@ -26,6 +27,13 @@ export const metadata: Metadata = {
 };
 
 type NavLink = { href: string; label: string };
+
+const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  generator: "Generator",
+  transporter: "Transporter",
+  disposal: "Disposal",
+  third_party: "Third Party",
+};
 
 const GENERATOR_NAV_LINKS: NavLink[] = [
   { href: "/", label: "Home" },
@@ -75,6 +83,33 @@ const THIRD_PARTY_NAV_LINKS: NavLink[] = [
   { href: "/faq", label: "FAQ" },
 ];
 
+/** Account-type + admin-role pills shown under the user's email, above
+ * "Sign out" -- account type is set once at signup (see authActions.ts's
+ * signUpAction) and never self-changeable after; admin role is never
+ * self-declared at all, only grantable by a super admin (see
+ * grant_admin() / /admin's "Manage admins" section). */
+function AccountBadges({
+  accountType,
+  adminRole,
+}: {
+  accountType: AccountType | null;
+  adminRole: "admin" | "super_admin" | null;
+}) {
+  if (!accountType) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="rounded-full bg-brand-blue/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-blue">
+        {ACCOUNT_TYPE_LABELS[accountType]}
+      </span>
+      {adminRole && (
+        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+          {adminRole === "super_admin" ? "Super Admin" : "Admin"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -90,7 +125,17 @@ export default async function RootLayout({
   // top-nav layout regardless of their actual account_type. See /admin.
   const mm2Enabled = user ? await getFeatureFlag(supabase, "mm2_ui") : false;
   const accountType = user && mm2Enabled ? await getAccountType(supabase, user.id) : "generator";
-  const adminLink = isAdminEmail(user?.email) ? [{ href: "/admin", label: "Admin" }] : [];
+  // Real account type for the badge under the nav email, independent of
+  // mm2_ui -- that flag only gates which NAV LAYOUT shows, not whether the
+  // account-type label itself is worth telling the user.
+  const realAccountType = user ? await getAccountType(supabase, user.id) : null;
+  // Combines the env-var allowlist (ADMIN_EMAILS, redeploy-only) with the
+  // DB-granted role (admin_users.role, grantable at runtime by a super
+  // admin via /admin) -- an env-var-listed admin with no admin_users row
+  // yet still counts, so nobody loses access when this ships.
+  const dbAdminRole = user ? await getMyAdminRole(supabase) : null;
+  const myAdminRole = dbAdminRole ?? (isAdminEmail(user?.email) ? "admin" : null);
+  const adminLink = myAdminRole ? [{ href: "/admin", label: "Admin" }] : [];
   // Previously only `transporter` was special-cased here, so `disposal`
   // and `third_party` silently inherited the full generator nav (including
   // "Create manifest", which third parties should only reach through their
@@ -147,6 +192,7 @@ export default async function RootLayout({
 
               <div className="mt-auto flex flex-col gap-0.5 border-t border-brand-navy/10 pt-4">
                 <span className="text-xs text-brand-navy/70 break-all">{user.email}</span>
+                <AccountBadges accountType={realAccountType} adminRole={myAdminRole} />
                 <form action={signOutAction}>
                   <button
                     type="submit"
@@ -180,6 +226,7 @@ export default async function RootLayout({
 
                 <div className="shrink-0 flex flex-col items-end gap-0.5">
                   <span className="text-xs text-brand-navy/70">{user.email}</span>
+                  <AccountBadges accountType={realAccountType} adminRole={myAdminRole} />
                   <form action={signOutAction}>
                     <button
                       type="submit"
@@ -219,6 +266,7 @@ export default async function RootLayout({
 
               <div className="shrink-0 flex flex-col items-end gap-0.5">
                 <span className="text-xs text-brand-navy/70">{user.email}</span>
+                <AccountBadges accountType={realAccountType} adminRole={myAdminRole} />
                 <form action={signOutAction}>
                   <button
                     type="submit"

@@ -9,6 +9,9 @@ export interface WasteProfile {
   id: string;
   mmProfileNumber: string;
   profileName: string;
+  generatorEpaId: string;
+  generatorName: string;
+  generatorAddress: string;
   dotHazardous: boolean;
   isRcraWaste: boolean;
   properShippingName: string;
@@ -46,6 +49,9 @@ export interface WasteProfile {
 
 export interface WasteProfileInput {
   profileName: string;
+  generatorEpaId: string;
+  generatorName: string;
+  generatorAddress: string;
   dotHazardous: boolean;
   isRcraWaste: boolean;
   properShippingName: string;
@@ -79,6 +85,9 @@ function mapRow(row: Record<string, unknown>): WasteProfile {
     id: row.id as string,
     mmProfileNumber: row.mm_profile_number as string,
     profileName: row.profile_name as string,
+    generatorEpaId: (row.generator_epa_id as string) ?? "",
+    generatorName: (row.generator_name as string) ?? "",
+    generatorAddress: (row.generator_address as string) ?? "",
     dotHazardous: !!row.dot_hazardous,
     isRcraWaste: !!row.is_rcra_waste,
     properShippingName: (row.proper_shipping_name as string) ?? "",
@@ -113,6 +122,9 @@ function mapRow(row: Record<string, unknown>): WasteProfile {
 function toRow(input: WasteProfileInput) {
   return {
     profile_name: input.profileName,
+    generator_epa_id: input.generatorEpaId,
+    generator_name: input.generatorName,
+    generator_address: input.generatorAddress,
     dot_hazardous: input.dotHazardous,
     is_rcra_waste: input.isRcraWaste,
     proper_shipping_name: input.properShippingName,

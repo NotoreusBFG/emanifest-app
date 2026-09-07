@@ -3,6 +3,7 @@ import Link from "next/link";
 import { brand } from "@/lib/brandColors";
 import { inputStyle } from "@/lib/formStyles";
 import { SiteSearchField } from "./SiteSearchField";
+import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
 import { HazmatSearchField } from "./HazmatSearchField";
 import { FederalWasteCodeField } from "./FederalWasteCodeField";
 import { StateWasteCodeNote } from "@/components/StateWasteCodeNote";
@@ -238,6 +239,12 @@ export interface ManifestFieldsFormProps {
    * manifest for generator/transporter/facility).
    */
   mode?: "edit" | "wasteLinesOnly";
+  /** When true, the generator fieldset's site picker is restricted to the
+   * caller's own declared generator sites (LockedGeneratorSelect) instead
+   * of the open EPA site search — set for `generator`-type accounts, see
+   * src/app/manifests/new/page.tsx. Transporter/disposal-facility slots
+   * are unaffected regardless of this flag. */
+  lockGeneratorToOwnSites?: boolean;
 }
 
 /** Read-only display for a locked-out section in `mode="wasteLinesOnly"` — see that prop's comment for why this is a UI-clarity measure, not the real enforcement. */
@@ -280,6 +287,7 @@ export function ManifestFieldsForm({
   federalWasteCodesFn,
   wasteProfiles = [],
   mode = "edit",
+  lockGeneratorToOwnSites = false,
 }: ManifestFieldsFormProps) {
   const wasteLinesOnly = mode === "wasteLinesOnly";
   // Keyed by line id -- set when a profile's disposal facility EPA ID
@@ -399,11 +407,15 @@ export function ManifestFieldsForm({
       ) : (
       <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
         <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Generator</legend>
-        <SiteSearchField
-          siteType="Generator"
-          placeholder="Search registered generators by name…"
-          onSelect={fillGeneratorFromSite}
-        />
+        {lockGeneratorToOwnSites ? (
+          <LockedGeneratorSelect onSelect={fillGeneratorFromSite} />
+        ) : (
+          <SiteSearchField
+            siteType="Generator"
+            placeholder="Search registered generators by name…"
+            onSelect={fillGeneratorFromSite}
+          />
+        )}
         <div style={row}>
           <div style={field}>
             <label style={label}>EPA Site ID</label>

@@ -51,6 +51,16 @@ const TRANSPORTER_NAV_LINKS: NavLink[] = [
   { href: "/faq", label: "FAQ" },
 ];
 
+// Disposal accounts have no dedicated dashboard/create flow yet (schema-only
+// account type, see profileRepository.ts) -- minimal nav until that's built,
+// same reasoning as the transporter nav but without a create-manifest link.
+const DISPOSAL_NAV_LINKS: NavLink[] = [
+  { href: "/", label: "Home" },
+  { href: "/training", label: "Training" },
+  { href: "/university", label: "Haz Waste University" },
+  { href: "/faq", label: "FAQ" },
+];
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -67,8 +77,17 @@ export default async function RootLayout({
   const mm2Enabled = user ? await getFeatureFlag(supabase, "mm2_ui") : false;
   const accountType = user && mm2Enabled ? await getAccountType(supabase, user.id) : "generator";
   const adminLink = isAdminEmail(user?.email) ? [{ href: "/admin", label: "Admin" }] : [];
+  // Previously only `transporter` was special-cased here, so `disposal`
+  // and `third_party` silently inherited the full generator nav (including
+  // "Create manifest") -- fixed to branch explicitly for all four types.
+  // `third_party` gets the minimal nav for now too; Phase 2/3 give it a
+  // real one ("My customers" etc.) once that account type is reachable.
   const navLinks = [
-    ...(accountType === "transporter" ? TRANSPORTER_NAV_LINKS : GENERATOR_NAV_LINKS),
+    ...(accountType === "transporter"
+      ? TRANSPORTER_NAV_LINKS
+      : accountType === "disposal" || accountType === "third_party"
+        ? DISPOSAL_NAV_LINKS
+        : GENERATOR_NAV_LINKS),
     ...adminLink,
   ];
 

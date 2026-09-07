@@ -17,6 +17,7 @@ import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
 import { HazmatSearchField } from "@/app/manifests/new/HazmatSearchField";
 import { UNIT_CODES, CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { PrintLabelForm } from "./PrintLabelForm";
+import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 
@@ -129,6 +130,9 @@ export default function WasteProfilesPage() {
                     {p.federalWasteCode && ` · ${p.federalWasteCode}`}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
+                    Generator: {p.generatorEpaId ? `${p.generatorName || "—"} (${p.generatorEpaId})` : "not set (legacy profile)"}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
                     Disposal facility: {p.disposalFacilityName || "—"} ({p.disposalFacilityEpaId})
                     {p.disposalFacilityProfileNumber && ` · Facility profile # ${p.disposalFacilityProfileNumber}`}
                   </p>
@@ -182,6 +186,16 @@ function WasteProfileForm({
   // uncontrolled since nothing else needs to write into it from code.
   const [disposalFacilityName, setDisposalFacilityName] = useState(profile?.disposalFacilityName ?? "");
   const [disposalFacilityEpaId, setDisposalFacilityEpaId] = useState(profile?.disposalFacilityEpaId ?? "");
+  const [generatorEpaId, setGeneratorEpaId] = useState(profile?.generatorEpaId ?? "");
+  const [generatorName, setGeneratorName] = useState(profile?.generatorName ?? "");
+  const [generatorAddress, setGeneratorAddress] = useState(profile?.generatorAddress ?? "");
+
+  const fillGeneratorFromSite = (site: SiteSearchResultItem) => {
+    const addr = site.siteAddress;
+    setGeneratorEpaId(site.epaSiteId);
+    setGeneratorName(site.name);
+    setGeneratorAddress([addr?.address1, addr?.city, addr?.state?.code, addr?.zip].filter(Boolean).join(", "));
+  };
   const [properShippingName, setProperShippingName] = useState(profile?.properShippingName ?? "");
   const [hazardClass, setHazardClass] = useState(profile?.hazardClass ?? "");
   const [packingGroup, setPackingGroup] = useState(profile?.packingGroup ?? "");
@@ -228,6 +242,26 @@ function WasteProfileForm({
         defaultValue={profile?.profileName}
         placeholder="e.g. Used Oil — Building A"
       />
+
+      {!generatorEpaId && (
+        <div>
+          <label className="mb-1 block text-sm font-medium text-brand-navy">Select a generator</label>
+          <p className="mb-1 text-xs text-gray-500">
+            Every waste profile is now tied to a generator — this profile, and any label printed
+            from it, will always be for this site.
+          </p>
+          <LockedGeneratorSelect onSelect={fillGeneratorFromSite} />
+        </div>
+      )}
+
+      {generatorEpaId && (
+        <>
+          <input type="hidden" name="generatorEpaId" value={generatorEpaId} />
+          <input type="hidden" name="generatorName" value={generatorName} />
+          <input type="hidden" name="generatorAddress" value={generatorAddress} />
+          <div className="rounded-md bg-brand-tint px-3 py-2 text-sm text-brand-navy">
+            <span className="font-semibold">Generator:</span> {generatorName} ({generatorEpaId})
+          </div>
 
       <div>
         <label className="mb-1 block text-sm font-medium text-brand-navy">
@@ -556,6 +590,8 @@ function WasteProfileForm({
         </button>
       </div>
       {state?.success === false && <p className="text-sm text-red-600">❌ {state.error}</p>}
+        </>
+      )}
     </form>
   );
 }

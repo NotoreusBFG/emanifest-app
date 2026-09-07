@@ -26,6 +26,7 @@ import { SignManifestPanel } from "../SignManifestPanel";
 import { SendForSignature } from "@/components/SendForSignature";
 import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
 import { getOnboardingProgressAction } from "@/app/actions/onboardingActions";
+import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import { listWasteProfilesForUserAction } from "@/app/actions/wasteProfileActions";
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { Manifest } from "@/lib/rcrainfo/types";
@@ -59,6 +60,11 @@ export default function NewManifestPage() {
   const [wasteProfiles, setWasteProfiles] = useState<WasteProfile[]>([]);
   useEffect(() => {
     listWasteProfilesForUserAction().then(setWasteProfiles);
+  }, []);
+
+  const [accountType, setAccountType] = useState<string | null>(null);
+  useEffect(() => {
+    getMyAccountTypeAction().then(setAccountType);
   }, []);
 
   useEffect(() => {
@@ -180,7 +186,12 @@ export default function NewManifestPage() {
   // does nothing if the user has no EPA ID saved yet, or if the lookup
   // fails (e.g. not yet authorized for that site) -- this is a convenience
   // prefill, not something that should surface an error on page load.
+  // Superseded for `generator` accounts by LockedGeneratorSelect's own
+  // auto-select (see generator_managed_sites) -- skipped here so the two
+  // don't race, and because a generator account may have declared a
+  // different "home" site than whatever onboarding originally captured.
   useEffect(() => {
+    if (accountType === "generator") return;
     getOnboardingProgressAction().then((progress) => {
       const epaId = progress?.epaIdNumber?.trim();
       if (!epaId) return;
@@ -191,8 +202,8 @@ export default function NewManifestPage() {
         );
       });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time prefill on mount, same pattern as the emergency-phone effect
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs once accountType resolves, then this is a one-time prefill
+  }, [accountType]);
 
   return (
     <div style={{ maxWidth: "700px", margin: "40px auto", fontFamily: "sans-serif" }}>
@@ -332,6 +343,7 @@ export default function NewManifestPage() {
           setHandlingInstructions={setHandlingInstructions}
           defaultEmergencyPhone={defaultEmergencyPhone}
           wasteProfiles={wasteProfiles}
+          lockGeneratorToOwnSites={accountType === "generator"}
         />
 
         <div style={{ display: "flex", gap: "10px" }}>

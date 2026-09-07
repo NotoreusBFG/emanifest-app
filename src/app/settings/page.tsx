@@ -14,6 +14,13 @@ import {
   revokeDelegateAction,
 } from '@/app/actions/delegateActions';
 import type { DelegateRecord, DelegateSiteType } from '@/services/delegateRepository';
+import { getMyAccountTypeAction } from '@/app/actions/accountActions';
+import {
+  addManagedSiteAction,
+  listMyManagedSitesAction,
+  removeManagedSiteAction,
+} from '@/app/actions/generatorSiteActions';
+import type { ManagedSite } from '@/services/generatorSiteRepository';
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from '@/lib/constants';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -30,6 +37,11 @@ export default function EpaSettingsPage() {
     saveDefaultEmergencyPhoneAction,
     null
   );
+
+  const [accountType, setAccountType] = useState<string | null>(null);
+  useEffect(() => {
+    getMyAccountTypeAction().then(setAccountType);
+  }, []);
 
   // Pre-fills with whatever the user has already saved -- unlike the API
   // credentials (write-only, never redisplayed since they're secrets),
@@ -110,6 +122,12 @@ export default function EpaSettingsPage() {
           <PasswordChangeSection />
         </Card>
 
+        {accountType === 'generator' && (
+          <Card className="p-6">
+            <GeneratorSitesSection />
+          </Card>
+        )}
+
         <Card className="p-6">
           <DelegatesSection />
         </Card>
@@ -181,6 +199,95 @@ function PasswordChangeSection() {
         {state?.success && <p className="text-sm text-green-700">✅ {state.message}</p>}
         {state?.success === false && <p className="text-sm text-red-600">❌ {state.error}</p>}
       </form>
+    </div>
+  );
+}
+
+/**
+ * Generator sites this account manages -- locks down generator selection
+ * everywhere else (waste profiles, label printing, manifest creation) to
+ * just these, instead of the open EPA site search any account could
+ * previously use for the generator slot. Self-attested (validated against
+ * RCRAInfo as a real Generator site, but not "authorized" in any EPA
+ * sense -- see generator_managed_sites' migration comment).
+ */
+function GeneratorSitesSection() {
+  const [sites, setSites] = useState<ManagedSite[] | null>(null);
+  const [addState, addFormAction, isAddPending] = useActionState(addManagedSiteAction, null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const refreshSites = () => {
+    listMyManagedSitesAction().then(setSites);
+  };
+
+  useEffect(() => {
+    refreshSites();
+  }, []);
+
+  useEffect(() => {
+    if (addState?.success) refreshSites();
+  }, [addState]);
+
+  const handleRemove = async (id: string) => {
+    if (!confirm('Remove this generator site? Anything using it as "the generator" will need a different one selected.')) return;
+    setRemovingId(id);
+    await removeManagedSiteAction(id);
+    setRemovingId(null);
+    refreshSites();
+  };
+
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-brand-navy">My generator sites</h2>
+      <p className="mt-1 text-sm text-gray-600">
+        Add the EPA ID(s) for sites you manage. ManifestMate can&apos;t verify RCRAInfo permissions
+        directly, so double-check you have the right ID — these are the only sites you&apos;ll be able
+        to pick when creating a waste profile, printing a label, or creating a manifest.
+      </p>
+
+      <form action={addFormAction} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <Input id="epaSiteId" name="epaSiteId" type="text" label="EPA Site ID" required placeholder="e.g. VAD000123456" />
+        </div>
+        <Button type="submit" disabled={isAddPending} className="self-start px-4 py-2 text-sm">
+          {isAddPending ? 'Adding...' : 'Add site'}
+        </Button>
+      </form>
+      {addState?.success && <p className="mt-2 text-sm text-green-700">✅ {addState.message}</p>}
+      {addState?.success === false && <p className="mt-2 text-sm text-red-600">❌ {addState.error}</p>}
+
+      {sites && sites.length > 0 && (
+        <table className="mt-4 w-full border-collapse text-sm">
+          <thead>
+            <tr className="text-left text-gray-500">
+              <th className="py-1 font-medium">Site</th>
+              <th className="py-1 font-medium">EPA ID</th>
+              <th className="py-1" />
+            </tr>
+          </thead>
+          <tbody>
+            {sites.map((s) => (
+              <tr key={s.id} className="border-t border-gray-100">
+                <td className="py-1.5">
+                  {s.siteName}
+                  <div className="text-xs text-gray-500">{s.siteAddress}</div>
+                </td>
+                <td className="py-1.5">{s.epaSiteId}</td>
+                <td className="py-1.5 text-right">
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(s.id)}
+                    disabled={removingId === s.id}
+                    className="text-xs font-semibold text-red-600 disabled:opacity-50"
+                  >
+                    {removingId === s.id ? 'Removing...' : 'Remove'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

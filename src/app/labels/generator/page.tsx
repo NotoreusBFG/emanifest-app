@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { generateLabelsForProfilesAction } from "@/app/actions/labelActions";
 import { listWasteProfilesForUserAction } from "@/app/actions/wasteProfileActions";
+import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
+import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
 import { brand, brandGradient } from "@/lib/brandColors";
@@ -47,12 +49,14 @@ export default function LabelsByGeneratorPage() {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accountType, setAccountType] = useState<string | null>(null);
 
   useEffect(() => {
     listWasteProfilesForUserAction().then((list) => {
       setProfiles(list);
       setDrafts(Object.fromEntries(list.map((p) => [p.id, emptyDraft()])));
     });
+    getMyAccountTypeAction().then(setAccountType);
   }, []);
 
   const updateDraft = (id: string, patch: Partial<Draft>) =>
@@ -99,11 +103,15 @@ export default function LabelsByGeneratorPage() {
 
       <div style={{ border: "1px solid #ddd", borderRadius: "6px", padding: "12px", marginBottom: "20px" }}>
         <p style={{ margin: "0 0 8px", fontWeight: 600, color: brand.navy }}>Generator</p>
-        <SiteSearchField
-          siteType="Generator"
-          placeholder="Search registered generator sites by name…"
-          onSelect={(site) => setGenerator(fillGeneratorFromSite(site))}
-        />
+        {accountType === "generator" ? (
+          <LockedGeneratorSelect onSelect={(site) => setGenerator(fillGeneratorFromSite(site))} />
+        ) : (
+          <SiteSearchField
+            siteType="Generator"
+            placeholder="Search registered generator sites by name…"
+            onSelect={(site) => setGenerator(fillGeneratorFromSite(site))}
+          />
+        )}
         {generator && (
           <div style={{ marginTop: "8px", fontSize: "14px" }}>
             <strong>{generator.name}</strong> ({generator.epaSiteId})

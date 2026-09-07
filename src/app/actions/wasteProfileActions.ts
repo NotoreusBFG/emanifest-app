@@ -33,6 +33,13 @@ function parseWasteProfileFormData(formData: FormData): WasteProfileInput | { er
   const profileName = ((formData.get("profileName") as string) ?? "").trim();
   if (!profileName) return { error: "Give this profile a name." };
 
+  const generatorEpaId = ((formData.get("generatorEpaId") as string) ?? "").trim().toUpperCase();
+  if (!generatorEpaId) {
+    return { error: "Select a generator before creating this profile." };
+  }
+  const generatorName = ((formData.get("generatorName") as string) ?? "").trim();
+  const generatorAddress = ((formData.get("generatorAddress") as string) ?? "").trim();
+
   // Uppercased/trimmed so the load-a-profile match check in
   // ManifestFieldsForm.tsx can compare it directly against the manifest
   // facility's EPA ID without worrying about case/whitespace mismatches.
@@ -56,6 +63,9 @@ function parseWasteProfileFormData(formData: FormData): WasteProfileInput | { er
 
   return {
     profileName,
+    generatorEpaId,
+    generatorName,
+    generatorAddress,
     dotHazardous,
     isRcraWaste: formData.get("isRcraWaste") === "on",
     properShippingName,

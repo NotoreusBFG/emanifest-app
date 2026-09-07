@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createLabelPrintAction } from "@/app/actions/labelActions";
-import { getOnboardingProgressAction } from "@/app/actions/onboardingActions";
-import { getSiteDetailsAction } from "@/app/actions/manifestActions";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
@@ -13,39 +12,35 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Print-time form for one waste profile -- generator info, manifest
- * tracking number (optional, since accumulation usually starts before a
- * manifest exists), line/container reference, and accumulation start
- * date. Submitting snapshots everything into a new label_prints row and
- * navigates to its public /labels/[id] page -- the same page the printed
- * label's QR code points at. */
+/** Print-time form for one waste profile -- generator info now comes
+ * straight off the profile record (set once, at profile-creation time,
+ * see src/app/profiles/page.tsx) instead of being re-derived from
+ * onboarding and left freely editable -- manifest tracking number
+ * (optional, since accumulation usually starts before a manifest exists),
+ * line/container reference, and accumulation start date. Submitting
+ * snapshots everything into a new label_prints row and navigates to its
+ * public /labels/[id] page -- the same page the printed label's QR code
+ * points at. */
 export function PrintLabelForm({ profile, onCancel }: { profile: WasteProfile; onCancel: () => void }) {
   const router = useRouter();
-  const [generatorName, setGeneratorName] = useState("");
-  const [generatorAddress, setGeneratorAddress] = useState("");
-  const [generatorEpaId, setGeneratorEpaId] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // One-time prefill from the account's own EPA ID (same source used to
-  // prefill the generator on /manifests/new) -- editable afterward.
-  useEffect(() => {
-    getOnboardingProgressAction().then((progress) => {
-      const epaId = progress?.epaIdNumber?.trim();
-      if (!epaId) return;
-      getSiteDetailsAction(epaId).then((result) => {
-        if (!result.success) return;
-        setGeneratorName(result.site.name);
-        setGeneratorEpaId(result.site.epaSiteId);
-        const addr = result.site.siteAddress;
-        if (addr) {
-          setGeneratorAddress(
-            [addr.address1, addr.city, addr.state?.code, addr.zip].filter(Boolean).join(", ")
-          );
-        }
-      });
-    });
-  }, []);
+  if (!profile.generatorEpaId) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-amber-700">
+          ⚠️ This profile has no generator assigned (created before profiles required one). Edit the
+          profile to assign a generator before printing a label.
+        </p>
+        <div>
+          <Link href="#" onClick={onCancel} className="text-sm text-brand-blue hover:underline">
+            ← Back
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -69,32 +64,14 @@ export function PrintLabelForm({ profile, onCancel }: { profile: WasteProfile; o
         this one printed label, not saved back to the profile.
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Input
-          id="generatorName"
-          name="generatorName"
-          label="Generator name"
-          required
-          value={generatorName}
-          onChange={(e) => setGeneratorName(e.target.value)}
-        />
-        <Input
-          id="generatorEpaId"
-          name="generatorEpaId"
-          label="Generator EPA ID"
-          required
-          value={generatorEpaId}
-          onChange={(e) => setGeneratorEpaId(e.target.value)}
-        />
+      <input type="hidden" name="generatorName" value={profile.generatorName} />
+      <input type="hidden" name="generatorEpaId" value={profile.generatorEpaId} />
+      <input type="hidden" name="generatorAddress" value={profile.generatorAddress} />
+      <div className="rounded-md bg-brand-tint px-3 py-2 text-sm text-brand-navy">
+        <span className="font-semibold">Generator:</span> {profile.generatorName} ({profile.generatorEpaId})
+        <br />
+        <span className="text-gray-600">{profile.generatorAddress}</span>
       </div>
-      <Input
-        id="generatorAddress"
-        name="generatorAddress"
-        label="Generator address"
-        required
-        value={generatorAddress}
-        onChange={(e) => setGeneratorAddress(e.target.value)}
-      />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>

@@ -21,6 +21,13 @@ import {
   removeManagedSiteAction,
 } from '@/app/actions/generatorSiteActions';
 import type { ManagedSite } from '@/services/generatorSiteRepository';
+import {
+  inviteTeamMemberAction,
+  listMyTeamAction,
+  revokeTeamMemberAction,
+  getMyTeamMembershipStatusAction,
+} from '@/app/actions/teamActions';
+import type { TeamMemberRecord } from '@/services/teamRepository';
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from '@/lib/constants';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -41,6 +48,11 @@ export default function EpaSettingsPage() {
   const [accountType, setAccountType] = useState<string | null>(null);
   useEffect(() => {
     getMyAccountTypeAction().then(setAccountType);
+  }, []);
+
+  const [teamMembership, setTeamMembership] = useState<{ ownerEmail: string } | null>(null);
+  useEffect(() => {
+    getMyTeamMembershipStatusAction().then(setTeamMembership);
   }, []);
 
   // Pre-fills with whatever the user has already saved -- unlike the API
@@ -66,6 +78,14 @@ export default function EpaSettingsPage() {
           </button>
         </form>
       </div>
+
+      {teamMembership && (
+        <div className="mb-6 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
+          You&apos;re a team member of <strong>{teamMembership.ownerEmail}</strong> — your generator
+          sites, waste profiles, and dashboard above reflect their workspace, not a separate one of
+          your own.
+        </div>
+      )}
 
       <div className="flex flex-col gap-6">
         <Card className="p-6">
@@ -125,6 +145,12 @@ export default function EpaSettingsPage() {
         {accountType === 'generator' && (
           <Card className="p-6">
             <GeneratorSitesSection />
+          </Card>
+        )}
+
+        {!teamMembership && (
+          <Card className="p-6">
+            <TeamSection />
           </Card>
         )}
 
@@ -285,6 +311,123 @@ function GeneratorSitesSection() {
                 </td>
               </tr>
             ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Team / multi-seat accounts -- distinct from Quick-Sign delegation below:
+ * a team member gets full shared-workspace access (your generator sites,
+ * waste profiles, dashboard) and can create AND sign manifests using your
+ * EPA credentials, not just sign. See team_members' migration comment for
+ * why this is a separate, broader role. No transactional email is wired
+ * up (same reasoning as Quick-Sign) -- you copy/send the invite link
+ * yourself.
+ */
+function TeamSection() {
+  const [team, setTeam] = useState<TeamMemberRecord[] | null>(null);
+  const [inviteState, inviteFormAction, isInvitePending] = useActionState(inviteTeamMemberAction, null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const inviteLinkFor = (token: string) =>
+    typeof window !== 'undefined' ? `${window.location.origin}/team/accept?token=${token}` : '';
+
+  const handleCopy = (id: string, link: string) => {
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 2000);
+    });
+  };
+
+  const refreshTeam = () => {
+    listMyTeamAction().then(setTeam);
+  };
+
+  useEffect(() => {
+    refreshTeam();
+  }, []);
+
+  useEffect(() => {
+    if (inviteState?.success) refreshTeam();
+  }, [inviteState]);
+
+  const handleRemove = async (id: string) => {
+    setRemovingId(id);
+    await revokeTeamMemberAction(id);
+    setRemovingId(null);
+    refreshTeam();
+  };
+
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-brand-navy">My team</h2>
+      <p className="mt-1 text-sm text-gray-600">
+        Invite a teammate (e.g. an employee helping run this site) to a full shared workspace —
+        they&apos;ll see your generator sites and saved waste profiles, and can create and sign
+        manifests using your EPA credentials, without needing their own RCRAInfo registration.
+      </p>
+
+      <form action={inviteFormAction} className="mt-4 flex flex-col gap-3">
+        <Input id="teamInvitedEmail" name="invitedEmail" type="email" label="Email to invite" required />
+        <Button type="submit" disabled={isInvitePending} className="self-start px-4 py-2 text-sm">
+          {isInvitePending ? 'Creating invite...' : 'Create invite link'}
+        </Button>
+        {inviteState?.success && <p className="break-all text-sm text-green-700">✅ {inviteState.message}</p>}
+        {inviteState?.success === false && <p className="text-sm text-red-600">❌ {inviteState.error}</p>}
+      </form>
+
+      {team && team.length > 0 && (
+        <table className="mt-4 w-full border-collapse text-sm">
+          <thead>
+            <tr className="text-left text-gray-500">
+              <th className="py-1 font-medium">Email</th>
+              <th className="py-1 font-medium">Status</th>
+              <th className="py-1" />
+            </tr>
+          </thead>
+          <tbody>
+            {team.map((m) => {
+              const status = m.revoked_at ? 'Removed' : m.accepted_at ? 'Active' : 'Pending';
+              const link = status === 'Pending' ? inviteLinkFor(m.invite_token) : null;
+              return (
+                <tr key={m.id} className="border-t border-gray-100">
+                  <td className="py-1.5">
+                    {m.invited_email}
+                    {link && (
+                      <div className="mt-1 flex items-center gap-2">
+                        <code className="break-all rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                          {link}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(m.id, link)}
+                          className="whitespace-nowrap text-xs font-semibold text-brand-blue"
+                        >
+                          {copiedId === m.id ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-1.5">{status}</td>
+                  <td className="py-1.5 text-right">
+                    {status === 'Active' && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(m.id)}
+                        disabled={removingId === m.id}
+                        className="text-xs font-semibold text-red-600 disabled:opacity-50"
+                      >
+                        {removingId === m.id ? 'Removing...' : 'Remove'}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

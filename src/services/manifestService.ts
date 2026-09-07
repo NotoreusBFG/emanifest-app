@@ -1,6 +1,7 @@
 import { RcrainfoClient } from "@/lib/rcrainfo/client";
 import { getEpaCredentials } from "@/services/epaService";
 import { getActiveDelegationForUser, type DelegateSiteType } from "@/services/delegateRepository";
+import { getActiveTeamMembershipForUser } from "@/services/teamRepository";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export class NoCredentialsError extends Error {
@@ -40,13 +41,48 @@ export async function getRcrainfoClientForUser(supabase: SupabaseClient, userId:
 export interface ResolvedClient {
   client: RcrainfoClient;
   /** Whose account this action's local data belongs to — the caller's own
-   * account normally, or the delegation owner's when acting on their
+   * account normally, or the delegation/team owner's when acting on their
    * behalf. Callers should record manifests/documents against this id, not
    * blindly against the caller's own id, so an owner's dashboard (and their
-   * delegates' later lookups) shows everything consistently in one place. */
+   * delegates'/team's later lookups) shows everything consistently in one
+   * place. */
   effectiveUserId: string;
-  /** Set only when this action is happening through a delegation. */
+  /** Set only when this action is happening through a Quick-Sign delegation
+   * (sign-only). Mutually exclusive with `team` below. */
   delegation: { ownerUserId: string; ownerEmail: string } | null;
+  /** Set only when this action is happening through a team membership
+   * (create + sign + shared workspace, see team_members). Mutually
+   * exclusive with `delegation` above. */
+  team: { ownerUserId: string; ownerEmail: string } | null;
+}
+
+/**
+ * Manifest creation, gated by team membership only -- NOT Quick-Sign
+ * delegation, which stays sign/lookup-only by design (see
+ * docs/delegate-quick-sign-design.md). A team member operates as a full
+ * extension of the owner's workspace, so while an active membership
+ * exists it takes precedence even over the caller's own credentials (no
+ * blended view — see team_members migration's comment).
+ */
+export async function getRcrainfoClientForCreate(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<ResolvedClient> {
+  const membership = await getActiveTeamMembershipForUser(supabase, userId);
+  if (membership) {
+    const ownerCredentials = await getEpaCredentials(supabase, membership.ownerUserId);
+    if (!ownerCredentials) throw new NoCredentialsError();
+    return {
+      client: clientFor(ownerCredentials),
+      effectiveUserId: membership.ownerUserId,
+      delegation: null,
+      team: { ownerUserId: membership.ownerUserId, ownerEmail: membership.ownerEmail },
+    };
+  }
+
+  const ownCredentials = await getEpaCredentials(supabase, userId);
+  if (!ownCredentials) throw new NoCredentialsError();
+  return { client: clientFor(ownCredentials), effectiveUserId: userId, delegation: null, team: null };
 }
 
 /**
@@ -64,9 +100,24 @@ export async function getRcrainfoClientForAction(
   userId: string,
   siteType?: DelegateSiteType
 ): Promise<ResolvedClient> {
+  // Team membership takes precedence over the caller's own credentials
+  // (see getRcrainfoClientForCreate's comment) -- unscoped, no siteType
+  // restriction, since a team member is a full extension of the owner.
+  const membership = await getActiveTeamMembershipForUser(supabase, userId);
+  if (membership) {
+    const ownerCredentials = await getEpaCredentials(supabase, membership.ownerUserId);
+    if (!ownerCredentials) throw new NoCredentialsError();
+    return {
+      client: clientFor(ownerCredentials),
+      effectiveUserId: membership.ownerUserId,
+      delegation: null,
+      team: { ownerUserId: membership.ownerUserId, ownerEmail: membership.ownerEmail },
+    };
+  }
+
   const ownCredentials = await getEpaCredentials(supabase, userId);
   if (ownCredentials) {
-    return { client: clientFor(ownCredentials), effectiveUserId: userId, delegation: null };
+    return { client: clientFor(ownCredentials), effectiveUserId: userId, delegation: null, team: null };
   }
 
   const delegation = await getActiveDelegationForUser(supabase, userId);
@@ -83,5 +134,6 @@ export async function getRcrainfoClientForAction(
     client: clientFor(ownerCredentials),
     effectiveUserId: delegation.ownerUserId,
     delegation: { ownerUserId: delegation.ownerUserId, ownerEmail: delegation.ownerEmail },
+    team: null,
   };
 }

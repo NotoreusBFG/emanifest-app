@@ -2,7 +2,8 @@
 
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { getRcrainfoClientForUser, getRcrainfoClientForAction } from "@/services/manifestService";
+import { getRcrainfoClientForAction, getRcrainfoClientForCreate } from "@/services/manifestService";
+import { resolveEffectiveUserId } from "@/services/teamRepository";
 import {
   recordManifestLocally,
   fetchAndStoreManifestDocuments,
@@ -77,7 +78,8 @@ export async function listRecentManifestSearchesAction(): Promise<RecentManifest
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
-  return listRecentManifestsForUser(supabase, user.id, 10);
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  return listRecentManifestsForUser(supabase, effectiveUserId, 10);
 }
 
 export async function lookupManifestAction(
@@ -197,7 +199,7 @@ export async function signManifestAction(params: SignManifestParams): Promise<Si
     const signer = await getRcrainfoClientForAction(supabase, user.id, params.siteType);
     const client = signer.client;
     effectiveUserId = signer.effectiveUserId;
-    signedForOwnerUserId = signer.delegation?.ownerUserId ?? null;
+    signedForOwnerUserId = signer.delegation?.ownerUserId ?? signer.team?.ownerUserId ?? null;
 
     const result = await client.signManifest(signParams);
 
@@ -271,7 +273,11 @@ export async function getSiteDetailsAction(epaSiteId: string): Promise<SiteDetai
   if (!user) return { success: false, error: "Not logged in." };
 
   try {
-    const client = await getRcrainfoClientForUser(supabase, user.id);
+    // Delegation/team-aware — a read-only EPA registry lookup with no
+    // authorization boundary of its own, so it's safe to broaden beyond
+    // the caller's own credentials (Quick-Sign delegates and team members
+    // both need this while creating/finding sites).
+    const { client } = await getRcrainfoClientForAction(supabase, user.id);
     const site = await client.getSiteDetails(epaSiteId);
     return { success: true, site };
   } catch (err) {
@@ -295,7 +301,11 @@ export async function getWasteLineMetadataAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return {};
-  return getWasteLineMetadataForManifest(supabase, user.id, epaMtn);
+  // Team-aware -- this manifest may have been created under the team
+  // owner's effectiveUserId, not the caller's own id (see
+  // createManifestAction).
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  return getWasteLineMetadataForManifest(supabase, effectiveUserId, epaMtn);
 }
 
 export type SiteSearchState =
@@ -317,7 +327,7 @@ export async function searchSitesAction(params: SiteSearchParams): Promise<SiteS
   if (!user) return { success: false, error: "Not logged in." };
 
   try {
-    const client = await getRcrainfoClientForUser(supabase, user.id);
+    const { client } = await getRcrainfoClientForAction(supabase, user.id);
     const result = await client.searchSites(params);
     return { success: true, sites: result.sites ?? [] };
   } catch (err) {
@@ -355,7 +365,7 @@ export async function getFederalWasteCodesAction(): Promise<FederalWasteCodeStat
   }
 
   try {
-    const client = await getRcrainfoClientForUser(supabase, user.id);
+    const { client } = await getRcrainfoClientForAction(supabase, user.id);
     const codes = await client.getFederalWasteCodes();
     cachedFederalWasteCodes = codes;
     return { success: true, codes };
@@ -392,17 +402,17 @@ export async function createManifestAction(
   const { input, wasteLineMetadata } = built;
 
   try {
-    const client = await getRcrainfoClientForUser(supabase, user.id);
+    const { client, effectiveUserId } = await getRcrainfoClientForCreate(supabase, user.id);
     const result = await client.saveManifest(input);
 
-    await recordManifestLocally(supabase, user.id, {
+    await recordManifestLocally(supabase, effectiveUserId, {
       manifestTrackingNumber: result.manifestTrackingNumber,
       status: input.status,
       generator: input.generator,
       transporters: input.transporters,
       designatedFacility: input.designatedFacility,
     });
-    await upsertWasteLineMetadata(supabase, user.id, result.manifestTrackingNumber, wasteLineMetadata);
+    await upsertWasteLineMetadata(supabase, effectiveUserId, result.manifestTrackingNumber, wasteLineMetadata);
 
     return {
       success: true,

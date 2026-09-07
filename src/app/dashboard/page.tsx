@@ -6,6 +6,7 @@ import { listActiveLdrNoticesByMtn } from "@/services/ldrRepository";
 import { listDriverSignInfoByMtn } from "@/services/driverSignRepository";
 import { listGeneratorSignInfoByMtn } from "@/services/generatorSignRepository";
 import { getOnboardingProgress } from "@/services/onboardingRepository";
+import { resolveEffectiveUserId, getActiveTeamMembershipForUser } from "@/services/teamRepository";
 import { brand } from "@/lib/brandColors";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -29,7 +30,13 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const manifests = user ? await listManifestsForUser(supabase, user.id) : [];
+  // Team-aware: a team member's dashboard shows the team owner's shared
+  // workspace, not their own (usually credential-less) account -- see
+  // team_members' additive RLS policies. No blended view.
+  const effectiveUserId = user ? await resolveEffectiveUserId(supabase, user.id) : null;
+  const teamMembership = user ? await getActiveTeamMembershipForUser(supabase, user.id) : null;
+
+  const manifests = effectiveUserId ? await listManifestsForUser(supabase, effectiveUserId) : [];
 
   // Both batched (one query each, not one per row) so the dashboard stays
   // fast and local-only regardless of list length -- see each function's
@@ -37,8 +44,8 @@ export default async function DashboardPage() {
   const manifestIdsWithDocuments = user
     ? await listManifestIdsWithDocuments(supabase, manifests.map((m) => m.id))
     : new Set<string>();
-  const ldrNoticesByMtn = user
-    ? await listActiveLdrNoticesByMtn(supabase, user.id, manifests.map((m) => m.epa_mtn))
+  const ldrNoticesByMtn = effectiveUserId
+    ? await listActiveLdrNoticesByMtn(supabase, effectiveUserId, manifests.map((m) => m.epa_mtn))
     : {};
   const driverSignInfoByMtn = user
     ? await listDriverSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn))
@@ -46,7 +53,7 @@ export default async function DashboardPage() {
   const generatorSignInfoByMtn = user
     ? await listGeneratorSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn))
     : {};
-  const onboardingProgress = user ? await getOnboardingProgress(supabase, user.id) : null;
+  const onboardingProgress = effectiveUserId ? await getOnboardingProgress(supabase, effectiveUserId) : null;
 
   const receivedCount = manifests.filter(
     (m) => deriveManifestBadge(m.generator_signed_at, m.transporter_signed_at, m.facility_signed_at)?.variant === "received"
@@ -58,6 +65,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-10">
+      {teamMembership && (
+        <div className="mb-4 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
+          You&apos;re working in <strong>{teamMembership.ownerEmail}</strong>&apos;s workspace as a team
+          member — everything you see and create here belongs to their account.
+        </div>
+      )}
       {user && onboardingProgress && (
         <div className="mb-6">
           <AccountStatusCard email={user.email ?? ""} progress={onboardingProgress} />

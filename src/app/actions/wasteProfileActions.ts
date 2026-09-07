@@ -13,6 +13,7 @@ import {
   type ShipmentFrequency,
   type PhysicalState,
 } from "@/services/wasteProfileRepository";
+import { resolveEffectiveUserId } from "@/services/teamRepository";
 
 /** Parses an optional numeric form field: blank/missing -> null (not 0 or
  * NaN), so an unset estimate stays genuinely unset rather than looking
@@ -108,7 +109,11 @@ export async function createWasteProfileAction(
   const parsed = parseWasteProfileFormData(formData);
   if ("error" in parsed) return { success: false, error: parsed.error };
 
-  const result = await createWasteProfile(supabase, user.id, parsed);
+  // Team-aware -- a team member's saved profiles belong to the owner's
+  // shared workspace, not the member's own (usually credential-less)
+  // account. See team_members' additive RLS policies on waste_profiles.
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  const result = await createWasteProfile(supabase, effectiveUserId, parsed);
   if (!result.success) return { success: false, error: result.error };
 
   revalidatePath("/profiles");
@@ -131,7 +136,8 @@ export async function updateWasteProfileAction(
   const parsed = parseWasteProfileFormData(formData);
   if ("error" in parsed) return { success: false, error: parsed.error };
 
-  const result = await updateWasteProfile(supabase, user.id, id, parsed);
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  const result = await updateWasteProfile(supabase, effectiveUserId, id, parsed);
   if (!result.success) return { success: false, error: result.error };
 
   revalidatePath("/profiles");
@@ -158,5 +164,6 @@ export async function listWasteProfilesForUserAction(): Promise<WasteProfile[]> 
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
-  return listWasteProfilesForUser(supabase, user.id);
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  return listWasteProfilesForUser(supabase, effectiveUserId);
 }

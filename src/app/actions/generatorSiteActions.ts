@@ -9,15 +9,21 @@ import {
   type ManagedSite,
 } from "@/services/generatorSiteRepository";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
+import { resolveEffectiveUserId } from "@/services/teamRepository";
 import { formatRcrainfoError } from "@/lib/rcrainfo/formatError";
 
+/** View-only for a team member -- they see the owner's declared sites
+ * (needed for LockedGeneratorSelect) but can't add/remove them; only the
+ * owner manages which EPA sites the team can act for (see
+ * team_members' additive RLS -- select only, no insert/delete). */
 export async function listMyManagedSitesAction(): Promise<ManagedSite[]> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
-  return listManagedSites(supabase, user.id);
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  return listManagedSites(supabase, effectiveUserId);
 }
 
 export type AddManagedSiteState =

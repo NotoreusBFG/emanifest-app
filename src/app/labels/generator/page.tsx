@@ -112,7 +112,10 @@ export default function LabelsByGeneratorPage() {
             onSelect={(site) => setGenerator(fillGeneratorFromSite(site))}
           />
         )}
-        {generator && (
+        {/* LockedGeneratorSelect already shows its own name/EPA ID line for the
+            locked path, so this redundant display is only needed for the open
+            SiteSearchField path (non-generator accounts). */}
+        {generator && accountType !== "generator" && (
           <div style={{ marginTop: "8px", fontSize: "14px" }}>
             <strong>{generator.name}</strong> ({generator.epaSiteId})
             <br />

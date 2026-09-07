@@ -53,8 +53,9 @@ export default async function NewLdrChoicePage({
         <Link href={`/ldr/new/prepared${mtnQuery}`} style={cardStyle}>
           <h2 style={{ color: brand.navy, margin: "0 0 8px", fontSize: "17px" }}>Prepare a new notice</h2>
           <p style={{ color: "#666", fontSize: "13px", margin: 0 }}>
-            Fill out the waste codes, how each must be managed (letters A–I), and sign any
-            certifications required — ManifestMate builds the notice for you from scratch.
+            Select the manifest this shipment is on — draft or already signed — and ManifestMate
+            pulls its waste codes for you. You finish by choosing how each must be managed (letters
+            A–I) and signing any certifications required.
           </p>
         </Link>
       </div>

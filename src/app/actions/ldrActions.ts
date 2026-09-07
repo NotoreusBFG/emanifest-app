@@ -147,7 +147,7 @@ export async function createLdrNoticeAction(
   }
 
   if (!generatorEpaSiteId || !receivingFacilityEpaSiteId || !receivingFacilityName) {
-    return { success: false, error: "Generator and receiving facility are required." };
+    return { success: false, error: "Select a manifest first — the generator and receiving facility are pulled from it." };
   }
   if (!preparedByName) {
     return { success: false, error: "A printed name is required to complete this notice." };

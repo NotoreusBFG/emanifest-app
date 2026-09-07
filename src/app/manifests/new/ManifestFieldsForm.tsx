@@ -239,12 +239,14 @@ export interface ManifestFieldsFormProps {
    * manifest for generator/transporter/facility).
    */
   mode?: "edit" | "wasteLinesOnly";
-  /** When true, the generator fieldset's site picker is restricted to the
-   * caller's own declared generator sites (LockedGeneratorSelect) instead
-   * of the open EPA site search — set for `generator`-type accounts, see
-   * src/app/manifests/new/page.tsx. Transporter/disposal-facility slots
-   * are unaffected regardless of this flag. */
-  lockGeneratorToOwnSites?: boolean;
+  /** When set, the generator fieldset's site picker is restricted to a
+   * closed list (LockedGeneratorSelect) instead of the open EPA site
+   * search — "managed" for `generator`-type accounts (their own declared
+   * sites), "customers" for `third_party` accounts (their approved
+   * customer list). Omit for account types that keep the open search
+   * (transporter/disposal). Transporter/disposal-facility slots are
+   * unaffected regardless of this prop. */
+  generatorSelectSource?: "managed" | "customers";
 }
 
 /** Read-only display for a locked-out section in `mode="wasteLinesOnly"` — see that prop's comment for why this is a UI-clarity measure, not the real enforcement. */
@@ -287,7 +289,7 @@ export function ManifestFieldsForm({
   federalWasteCodesFn,
   wasteProfiles = [],
   mode = "edit",
-  lockGeneratorToOwnSites = false,
+  generatorSelectSource,
 }: ManifestFieldsFormProps) {
   const wasteLinesOnly = mode === "wasteLinesOnly";
   // Keyed by line id -- set when a profile's disposal facility EPA ID
@@ -407,8 +409,8 @@ export function ManifestFieldsForm({
       ) : (
       <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px" }}>
         <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Generator</legend>
-        {lockGeneratorToOwnSites ? (
-          <LockedGeneratorSelect onSelect={fillGeneratorFromSite} />
+        {generatorSelectSource ? (
+          <LockedGeneratorSelect onSelect={fillGeneratorFromSite} source={generatorSelectSource} />
         ) : (
           <SiteSearchField
             siteType="Generator"

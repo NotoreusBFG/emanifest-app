@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { listMyManagedSitesAction } from "@/app/actions/generatorSiteActions";
+import { listMyApprovedCustomersAction } from "@/app/actions/thirdPartyCustomerActions";
 import { getSiteDetailsAction } from "@/app/actions/manifestActions";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import { brand } from "@/lib/brandColors";
@@ -15,24 +16,36 @@ interface LockedGeneratorSelectProps {
    * display-only name/address, so callers get real contact/address data
    * exactly like they would from SiteSearchField. */
   onSelect: (site: SiteSearchResultItem) => void;
+  /** "managed" (default): the caller's own declared generator_managed_sites.
+   * "customers": a third_party account's approved third_party_customers --
+   * same closed-list UX, different source list. */
+  source?: "managed" | "customers";
 }
 
 /**
- * Restricts generator selection to the caller's own declared sites
- * (generator_managed_sites via Settings) instead of the open EPA site
- * search any account could previously use for the generator slot. Zero
- * sites -> prompts to add one in Settings. One site -> auto-selected,
- * shown read-only. Multiple -> a closed dropdown, no free text/search.
+ * Restricts generator selection to a closed list instead of the open EPA
+ * site search any account could previously use for the generator slot --
+ * either the caller's own declared sites (generator_managed_sites via
+ * Settings) or, for third_party accounts, their approved customer list
+ * (third_party_customers). Zero sites -> prompts to add one in Settings.
+ * One site -> auto-selected, shown read-only. Multiple -> a closed
+ * dropdown, no free text/search.
  */
-export function LockedGeneratorSelect({ onSelect }: LockedGeneratorSelectProps) {
+export function LockedGeneratorSelect({ onSelect, source = "managed" }: LockedGeneratorSelectProps) {
   const [sites, setSites] = useState<{ id: string; epaSiteId: string; siteName: string }[] | null>(null);
   const [selectedEpaSiteId, setSelectedEpaSiteId] = useState("");
   const [isResolving, setIsResolving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listMyManagedSitesAction().then(setSites);
-  }, []);
+    const list =
+      source === "customers"
+        ? listMyApprovedCustomersAction().then((customers) =>
+            customers.map((c) => ({ id: c.id, epaSiteId: c.epaSiteId, siteName: c.siteName }))
+          )
+        : listMyManagedSitesAction();
+    list.then(setSites);
+  }, [source]);
 
   const resolveAndSelect = async (epaSiteId: string) => {
     setIsResolving(true);
@@ -64,9 +77,11 @@ export function LockedGeneratorSelect({ onSelect }: LockedGeneratorSelectProps) 
   if (sites.length === 0) {
     return (
       <p style={{ fontSize: "13px", color: "#a15c00" }}>
-        You haven&apos;t added any generator sites yet.{" "}
+        {source === "customers"
+          ? "You don't have any approved customers yet."
+          : "You haven't added any generator sites yet."}{" "}
         <Link href="/settings" style={{ color: brand.blue }}>
-          Add one in Settings →
+          {source === "customers" ? "Request access in Settings →" : "Add one in Settings →"}
         </Link>
       </p>
     );

@@ -103,8 +103,11 @@ export default function LabelsByGeneratorPage() {
 
       <div style={{ border: "1px solid #ddd", borderRadius: "6px", padding: "12px", marginBottom: "20px" }}>
         <p style={{ margin: "0 0 8px", fontWeight: 600, color: brand.navy }}>Generator</p>
-        {accountType === "generator" ? (
-          <LockedGeneratorSelect onSelect={(site) => setGenerator(fillGeneratorFromSite(site))} />
+        {accountType === "generator" || accountType === "third_party" ? (
+          <LockedGeneratorSelect
+            onSelect={(site) => setGenerator(fillGeneratorFromSite(site))}
+            source={accountType === "third_party" ? "customers" : "managed"}
+          />
         ) : (
           <SiteSearchField
             siteType="Generator"
@@ -114,8 +117,8 @@ export default function LabelsByGeneratorPage() {
         )}
         {/* LockedGeneratorSelect already shows its own name/EPA ID line for the
             locked path, so this redundant display is only needed for the open
-            SiteSearchField path (non-generator accounts). */}
-        {generator && accountType !== "generator" && (
+            SiteSearchField path. */}
+        {generator && accountType !== "generator" && accountType !== "third_party" && (
           <div style={{ marginTop: "8px", fontSize: "14px" }}>
             <strong>{generator.name}</strong> ({generator.epaSiteId})
             <br />

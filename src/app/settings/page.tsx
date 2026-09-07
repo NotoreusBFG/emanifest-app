@@ -28,6 +28,15 @@ import {
   getMyTeamMembershipStatusAction,
 } from '@/app/actions/teamActions';
 import type { TeamMemberRecord } from '@/services/teamRepository';
+import {
+  requestCustomerConnectionAction,
+  listMyCustomersAction,
+  revokeCustomerConnectionAction,
+  listConnectedThirdPartiesForSiteAction,
+} from '@/app/actions/thirdPartyCustomerActions';
+import type { ThirdPartyCustomer } from '@/services/thirdPartyCustomerRepository';
+import { SiteSearchField } from '@/app/manifests/new/SiteSearchField';
+import type { SiteSearchResultItem } from '@/lib/rcrainfo/types';
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from '@/lib/constants';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -148,6 +157,12 @@ export default function EpaSettingsPage() {
           </Card>
         )}
 
+        {accountType === 'third_party' && (
+          <Card className="p-6">
+            <ThirdPartyCustomersSection />
+          </Card>
+        )}
+
         {!teamMembership && (
           <Card className="p-6">
             <TeamSection />
@@ -241,9 +256,17 @@ function GeneratorSitesSection({ isTeamMember }: { isTeamMember: boolean }) {
   const [sites, setSites] = useState<ManagedSite[] | null>(null);
   const [addState, addFormAction, isAddPending] = useActionState(addManagedSiteAction, null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [connectedThirdParties, setConnectedThirdParties] = useState<string[]>([]);
 
   const refreshSites = () => {
-    listMyManagedSitesAction().then(setSites);
+    listMyManagedSitesAction().then((list) => {
+      setSites(list);
+      Promise.all(list.map((s) => listConnectedThirdPartiesForSiteAction(s.epaSiteId))).then((results) => {
+        const emails = new Set<string>();
+        results.flat().forEach((c) => c.thirdPartyEmail && emails.add(c.thirdPartyEmail));
+        setConnectedThirdParties([...emails]);
+      });
+    });
   };
 
   useEffect(() => {
@@ -314,6 +337,158 @@ function GeneratorSitesSection({ isTeamMember }: { isTeamMember: boolean }) {
                       className="text-xs font-semibold text-red-600 disabled:opacity-50"
                     >
                       {removingId === s.id ? 'Removing...' : 'Remove'}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {connectedThirdParties.length > 0 && !isTeamMember && (
+        <div className="mt-4 rounded-md bg-brand-tint px-3 py-2 text-sm text-brand-navy">
+          <p className="font-semibold">Third parties with creation access to your sites:</p>
+          <p className="mt-1">{connectedThirdParties.join(', ')}</p>
+          <p className="mt-1 text-xs text-gray-600">
+            They can create records for you, but not sign as you. To let one of them sign too,
+            invite their email as a Quick-Sign delegate below.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Third-party (broker/consultant) customer list -- which generators this
+ * account is allowed to act for. This is the one place a free EPA site
+ * search stays (discovering a prospective client needs open search, there's
+ * no existing list to restrict to yet). Submitting emails the site's POC an
+ * approval link; the generator field on manifest/profile/label creation is
+ * then restricted to whichever of these end up 'approved' (see
+ * LockedGeneratorSelect's third_party source).
+ */
+function ThirdPartyCustomersSection() {
+  const [customers, setCustomers] = useState<ThirdPartyCustomer[] | null>(null);
+  const [requestState, requestFormAction, isRequestPending] = useActionState(requestCustomerConnectionAction, null);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [siteEpaId, setSiteEpaId] = useState('');
+  const [siteName, setSiteName] = useState('');
+  const [siteAddress, setSiteAddress] = useState('');
+  const [pocEmail, setPocEmail] = useState('');
+
+  const fillFromSite = (site: SiteSearchResultItem) => {
+    const addr = site.siteAddress;
+    setSiteEpaId(site.epaSiteId);
+    setSiteName(site.name);
+    setSiteAddress([addr?.address1, addr?.city, addr?.state?.code, addr?.zip].filter(Boolean).join(', '));
+    setPocEmail(site.contact?.email ?? '');
+  };
+
+  const refreshCustomers = () => {
+    listMyCustomersAction().then(setCustomers);
+  };
+
+  useEffect(() => {
+    refreshCustomers();
+  }, []);
+
+  useEffect(() => {
+    if (requestState?.success) {
+      refreshCustomers();
+      setSiteEpaId('');
+      setSiteName('');
+      setSiteAddress('');
+      setPocEmail('');
+    }
+  }, [requestState]);
+
+  const handleRevoke = async (id: string) => {
+    setRevokingId(id);
+    await revokeCustomerConnectionAction(id);
+    setRevokingId(null);
+    refreshCustomers();
+  };
+
+  const statusLabel: Record<string, string> = {
+    pending: 'Pending',
+    approved: 'Approved',
+    declined: 'Declined',
+    revoked: 'Revoked',
+  };
+
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-brand-navy">My customers</h2>
+      <p className="mt-1 text-sm text-gray-600">
+        Search for a generator you work with, and ManifestMate will email their point of contact an
+        approval link. Once approved, you can create manifests, waste profiles, and labels for
+        them — approving does <strong>not</strong> let you sign as them.
+      </p>
+
+      <form action={requestFormAction} className="mt-4 flex flex-col gap-3">
+        <input type="hidden" name="epaSiteId" value={siteEpaId} />
+        <input type="hidden" name="siteName" value={siteName} />
+        <input type="hidden" name="siteAddress" value={siteAddress} />
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-brand-navy">Search registered generators</label>
+          <SiteSearchField siteType="Generator" placeholder="Search by facility name…" onSelect={fillFromSite} />
+        </div>
+
+        {siteEpaId && (
+          <div className="rounded-md bg-brand-tint px-3 py-2 text-sm text-brand-navy">
+            <span className="font-semibold">{siteName}</span> ({siteEpaId})
+          </div>
+        )}
+
+        <Input
+          id="pocEmail"
+          name="pocEmail"
+          type="email"
+          label="Point-of-contact email"
+          required
+          value={pocEmail}
+          onChange={(e) => setPocEmail(e.target.value)}
+          hint="Auto-filled from EPA's records when available — double-check it's the right person."
+        />
+
+        <Button type="submit" disabled={isRequestPending || !siteEpaId} className="self-start px-4 py-2 text-sm">
+          {isRequestPending ? 'Sending...' : 'Send approval request'}
+        </Button>
+        {requestState?.success && <p className="text-sm text-green-700">✅ {requestState.message}</p>}
+        {requestState?.success === false && <p className="text-sm text-red-600">❌ {requestState.error}</p>}
+      </form>
+
+      {customers && customers.length > 0 && (
+        <table className="mt-4 w-full border-collapse text-sm">
+          <thead>
+            <tr className="text-left text-gray-500">
+              <th className="py-1 font-medium">Site</th>
+              <th className="py-1 font-medium">Status</th>
+              <th className="py-1" />
+            </tr>
+          </thead>
+          <tbody>
+            {customers.map((c) => (
+              <tr key={c.id} className="border-t border-gray-100">
+                <td className="py-1.5">
+                  {c.siteName}
+                  <div className="text-xs text-gray-500">
+                    {c.epaSiteId} · sent to {c.pocEmail}
+                  </div>
+                </td>
+                <td className="py-1.5">{statusLabel[c.status] ?? c.status}</td>
+                <td className="py-1.5 text-right">
+                  {c.status === 'approved' && (
+                    <button
+                      type="button"
+                      onClick={() => handleRevoke(c.id)}
+                      disabled={revokingId === c.id}
+                      className="text-xs font-semibold text-red-600 disabled:opacity-50"
+                    >
+                      {revokingId === c.id ? 'Revoking...' : 'Revoke'}
                     </button>
                   )}
                 </td>

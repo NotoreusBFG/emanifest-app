@@ -186,12 +186,12 @@ export default function NewManifestPage() {
   // does nothing if the user has no EPA ID saved yet, or if the lookup
   // fails (e.g. not yet authorized for that site) -- this is a convenience
   // prefill, not something that should surface an error on page load.
-  // Superseded for `generator` accounts by LockedGeneratorSelect's own
-  // auto-select (see generator_managed_sites) -- skipped here so the two
-  // don't race, and because a generator account may have declared a
-  // different "home" site than whatever onboarding originally captured.
+  // Superseded for `generator`/`third_party` accounts by LockedGeneratorSelect's
+  // own auto-select (see generator_managed_sites / third_party_customers) --
+  // skipped here so the two don't race, and because their declared/approved
+  // site(s) may differ from whatever onboarding originally captured.
   useEffect(() => {
-    if (accountType === "generator") return;
+    if (accountType === "generator" || accountType === "third_party") return;
     getOnboardingProgressAction().then((progress) => {
       const epaId = progress?.epaIdNumber?.trim();
       if (!epaId) return;
@@ -343,7 +343,9 @@ export default function NewManifestPage() {
           setHandlingInstructions={setHandlingInstructions}
           defaultEmergencyPhone={defaultEmergencyPhone}
           wasteProfiles={wasteProfiles}
-          lockGeneratorToOwnSites={accountType === "generator"}
+          generatorSelectSource={
+            accountType === "generator" ? "managed" : accountType === "third_party" ? "customers" : undefined
+          }
         />
 
         <div style={{ display: "flex", gap: "10px" }}>

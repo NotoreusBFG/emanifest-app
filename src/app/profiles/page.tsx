@@ -18,6 +18,7 @@ import { HazmatSearchField } from "@/app/manifests/new/HazmatSearchField";
 import { UNIT_CODES, CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { PrintLabelForm } from "./PrintLabelForm";
 import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
+import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 
@@ -189,6 +190,10 @@ function WasteProfileForm({
   const [generatorEpaId, setGeneratorEpaId] = useState(profile?.generatorEpaId ?? "");
   const [generatorName, setGeneratorName] = useState(profile?.generatorName ?? "");
   const [generatorAddress, setGeneratorAddress] = useState(profile?.generatorAddress ?? "");
+  const [accountType, setAccountType] = useState<string | null>(null);
+  useEffect(() => {
+    getMyAccountTypeAction().then(setAccountType);
+  }, []);
 
   const fillGeneratorFromSite = (site: SiteSearchResultItem) => {
     const addr = site.siteAddress;
@@ -250,7 +255,10 @@ function WasteProfileForm({
             Every waste profile is now tied to a generator — this profile, and any label printed
             from it, will always be for this site.
           </p>
-          <LockedGeneratorSelect onSelect={fillGeneratorFromSite} />
+          <LockedGeneratorSelect
+            onSelect={fillGeneratorFromSite}
+            source={accountType === "third_party" ? "customers" : "managed"}
+          />
         </div>
       )}
 

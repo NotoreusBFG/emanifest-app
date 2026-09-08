@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { signManifestAction, type SignManifestParams } from "@/app/actions/manifestActions";
 import { getMyDelegationStatusAction } from "@/app/actions/delegateActions";
+import { getMyTeamMembershipStatusAction } from "@/app/actions/teamActions";
+import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import type { Manifest } from "@/lib/rcrainfo/types";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { brand } from "@/lib/brandColors";
@@ -39,6 +41,19 @@ function rolesFor(manifest: Manifest): SignableRole[] {
   });
   return roles;
 }
+
+type SiteType = SignManifestParams["siteType"];
+
+/** Which roles an account type can sign as using its own credentials --
+ * third_party is deliberately Transporter-only (a broker/carrier signing
+ * for shipments they actually run), not Generator, which stays limited to
+ * an actual generator account or a Quick-Sign delegate invited for it. */
+const OWN_ACCOUNT_SIGNABLE_ROLES: Record<string, SiteType[]> = {
+  generator: ["Generator"],
+  transporter: ["Transporter"],
+  disposal: ["Tsdf"],
+  third_party: ["Transporter"],
+};
 
 /**
  * Exposes RcrainfoClient.signManifest() (quicker-sign) in the app for the
@@ -80,11 +95,39 @@ export function SignManifestPanel({
   // this just makes sure a delegate always sees whose authority they're
   // acting under before they confirm a signature.
   const [delegationOwnerEmail, setDelegationOwnerEmail] = useState<string | null>(null);
+
+  // Which role buttons actually show — null means "show all" (still the
+  // real-world backstop is RCRAInfo's own site-permission check, this is
+  // just decluttering buttons that can never apply). Priority: an active
+  // team membership grants full owner-equivalent access (unscoped, same
+  // reasoning as team_members' migration); else an active Quick-Sign
+  // delegation is scoped to its own allowed_site_types (null there also
+  // means unrestricted); else fall back to what the caller's own account
+  // type can sign as using its own credentials.
+  const [allowedSiteTypes, setAllowedSiteTypes] = useState<SiteType[] | null>(null);
   useEffect(() => {
-    getMyDelegationStatusAction().then((status) => setDelegationOwnerEmail(status?.ownerEmail ?? null));
+    let cancelled = false;
+    Promise.all([getMyTeamMembershipStatusAction(), getMyDelegationStatusAction(), getMyAccountTypeAction()]).then(
+      ([team, delegation, accountType]) => {
+        if (cancelled) return;
+        setDelegationOwnerEmail(delegation?.ownerEmail ?? null);
+        if (team) {
+          setAllowedSiteTypes(null);
+        } else if (delegation) {
+          setAllowedSiteTypes(delegation.allowedSiteTypes);
+        } else {
+          setAllowedSiteTypes(OWN_ACCOUNT_SIGNABLE_ROLES[accountType] ?? null);
+        }
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const roles = rolesFor(manifest);
+  const roles = rolesFor(manifest).filter(
+    (role) => allowedSiteTypes === null || allowedSiteTypes.includes(role.siteType)
+  );
 
   const requestSign = (role: SignableRole) => {
     if (!printedName.trim()) {
@@ -145,6 +188,21 @@ export function SignManifestPanel({
         will only sign successfully if it happens to match a site you&apos;re actually authorized
         for.
       </p>
+
+      {allowedSiteTypes !== null && (
+        <p style={{ fontSize: "12px", color: "#888", marginBottom: "10px" }}>
+          Only showing the role(s) your account can sign as. For anyone else who needs to sign
+          this manifest, use &quot;Send for signature&quot; above instead of handing them your
+          login.
+        </p>
+      )}
+
+      {roles.length === 0 && (
+        <p style={{ fontSize: "13px", color: "#a15c00", marginBottom: "10px" }}>
+          Your account isn&apos;t set up to sign any role on this manifest. Use &quot;Send for
+          signature&quot; above to get the right person to sign.
+        </p>
+      )}
 
       <div style={{ marginBottom: "12px" }}>
         <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>

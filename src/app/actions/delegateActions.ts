@@ -88,8 +88,13 @@ export async function revokeDelegateAction(delegateRowId: string): Promise<Deleg
 }
 
 /** Whether the *current* user is themselves an active delegate for someone
- * else — used by the sign confirmation dialog to show "on behalf of X." */
-export async function getMyDelegationStatusAction(): Promise<{ ownerEmail: string } | null> {
+ * else — used by the sign confirmation dialog to show "on behalf of X,"
+ * and by SignManifestPanel to restrict which role buttons show to
+ * whatever this delegation's own allowed_site_types actually covers
+ * (null = unrestricted, same as an unscoped delegation always could). */
+export async function getMyDelegationStatusAction(): Promise<
+  { ownerEmail: string; allowedSiteTypes: DelegateSiteType[] | null } | null
+> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -97,7 +102,7 @@ export async function getMyDelegationStatusAction(): Promise<{ ownerEmail: strin
   if (!user) return null;
 
   const delegation = await getActiveDelegationForUser(supabase, user.id);
-  return delegation ? { ownerEmail: delegation.ownerEmail } : null;
+  return delegation ? { ownerEmail: delegation.ownerEmail, allowedSiteTypes: delegation.allowedSiteTypes } : null;
 }
 
 export type AcceptInviteState =

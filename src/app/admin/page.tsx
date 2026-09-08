@@ -4,7 +4,11 @@ import { isAdminEmail } from "@/lib/admin";
 import { listFeatureFlags } from "@/services/featureFlagRepository";
 import { toggleFeatureFlagAction } from "@/app/actions/featureFlagActions";
 import { listPendingAccounts } from "@/services/profileRepository";
-import { approveAccountAction } from "@/app/actions/accountApprovalActions";
+import {
+  approveAccountAction,
+  rejectAccountAction,
+  listRejectedAccountsAction,
+} from "@/app/actions/accountApprovalActions";
 import { getMyAdminRole, listAdmins } from "@/services/adminRepository";
 import { AdminsSection } from "./AdminsSection";
 import { Card } from "@/components/ui/Card";
@@ -23,7 +27,12 @@ const FLAG_LABELS: Record<string, { label: string; description: string }> = {
   },
 };
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ highlight?: string }>;
+}) {
+  const { highlight } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -41,6 +50,7 @@ export default async function AdminPage() {
 
   const flags = await listFeatureFlags(supabase);
   const pendingAccounts = await listPendingAccounts(supabase);
+  const rejectedAccounts = await listRejectedAccountsAction();
   const admins = await listAdmins(supabase);
 
   return (
@@ -65,7 +75,10 @@ export default async function AdminPage() {
         ) : (
           <div className="mt-4 flex flex-col gap-3">
             {pendingAccounts.map((account) => (
-              <Card key={account.userId} className="p-5">
+              <Card
+                key={account.userId}
+                className={`p-5 ${account.userId === highlight ? "ring-2 ring-brand-blue" : ""}`}
+              >
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="font-bold text-brand-navy break-all">{account.email}</p>
@@ -73,19 +86,61 @@ export default async function AdminPage() {
                       Signed up {new Date(account.createdAt).toLocaleString()}
                     </p>
                   </div>
-                  <form action={approveAccountAction} className="shrink-0">
-                    <input type="hidden" name="userId" value={account.userId} />
-                    <button
-                      type="submit"
-                      className="rounded-full px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-brand-blue to-brand-green hover:opacity-90"
-                    >
-                      Approve
-                    </button>
-                  </form>
+                  <div className="flex shrink-0 gap-2">
+                    <form action={rejectAccountAction}>
+                      <input type="hidden" name="userId" value={account.userId} />
+                      <button
+                        type="submit"
+                        className="rounded-full border-2 border-red-500 px-5 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Reject
+                      </button>
+                    </form>
+                    <form action={approveAccountAction}>
+                      <input type="hidden" name="userId" value={account.userId} />
+                      <button
+                        type="submit"
+                        className="rounded-full px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-brand-blue to-brand-green hover:opacity-90"
+                      >
+                        Approve
+                      </button>
+                    </form>
+                  </div>
                 </div>
               </Card>
             ))}
           </div>
+        )}
+
+        {rejectedAccounts.length > 0 && (
+          <details className="mt-4">
+            <summary className="cursor-pointer text-sm font-medium text-gray-500">
+              Rejected accounts ({rejectedAccounts.length})
+            </summary>
+            <div className="mt-3 flex flex-col gap-3">
+              {rejectedAccounts.map((account) => (
+                <Card key={account.userId} className="p-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="font-bold text-brand-navy break-all">{account.email}</p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        Rejected {new Date(account.rejectedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <form action={approveAccountAction} className="shrink-0">
+                      <input type="hidden" name="userId" value={account.userId} />
+                      <button
+                        type="submit"
+                        className="rounded-full px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-brand-blue to-brand-green hover:opacity-90"
+                      >
+                        Approve anyway
+                      </button>
+                    </form>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </details>
         )}
       </div>
 

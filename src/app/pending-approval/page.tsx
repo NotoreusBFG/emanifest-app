@@ -20,17 +20,29 @@ export default async function PendingApprovalPage() {
 
   if (!user) redirect("/login");
 
-  const { approved } = await getProfileGate(supabase, user.id);
+  const { approved, rejected } = await getProfileGate(supabase, user.id);
   if (approved) redirect("/dashboard");
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-6 py-16">
       <Card className="w-full p-8 text-center">
-        <h1 className="text-xl font-bold text-brand-navy">Your account is awaiting approval</h1>
-        <p className="mt-3 text-sm text-gray-600">
-          Thanks for confirming your email. We manually review new accounts before granting
-          access — you&apos;ll be notified once yours is approved.
-        </p>
+        {rejected ? (
+          <>
+            <h1 className="text-xl font-bold text-brand-navy">Your account wasn&apos;t approved</h1>
+            <p className="mt-3 text-sm text-gray-600">
+              An admin reviewed this signup and declined it. If you think this was a mistake,
+              reach out directly — this decision can be reversed on our end.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-xl font-bold text-brand-navy">Your account is awaiting approval</h1>
+            <p className="mt-3 text-sm text-gray-600">
+              Thanks for confirming your email. We manually review new accounts before granting
+              access — you&apos;ll be notified once yours is approved.
+            </p>
+          </>
+        )}
         <form action={signOutAction} className="mt-6">
           <button type="submit" className="text-sm font-medium text-brand-blue hover:underline">
             Sign out

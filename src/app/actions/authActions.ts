@@ -73,7 +73,7 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
   const emailRedirectTo = `${origin}${safeNextPath(next, fallback)}`;
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -89,19 +89,24 @@ export async function signUpAction(prevState: unknown, formData: FormData) {
   if (error) return { success: false, error: error.message };
 
   // Generator and third-party signups now require manual approval before
-  // they get app access (see 2026090601_add_approval_gate_to_profiles.sql
-  // and 20260917_extend_approval_gate_to_third_party.sql) -- notify every
-  // admin so there's no need to remember to check /admin. Non-fatal: the
-  // account still gets created (and the profiles row still lands pending)
-  // even if this email fails to send.
+  // they get app access (see 2026090601_add_approval_gate_to_profiles.sql,
+  // 20260917_extend_approval_gate_to_third_party.sql, and
+  // 2026091802_add_reject_profile.sql) -- notify every admin so there's no
+  // need to remember to check /admin. Deep-links straight to this signup
+  // (highlighted on the page) rather than the general pending list --
+  // approving/rejecting still requires being logged in as an admin, same
+  // as clicking the buttons directly on /admin; the link is a shortcut to
+  // the right row, not a bypass of that check. Non-fatal: the account
+  // still gets created (and the profiles row still lands pending) even if
+  // this email fails to send.
   if (accountType === "generator" || accountType === "third_party") {
-    const adminUrl = `${origin}/admin`;
+    const adminUrl = signUpData.user ? `${origin}/admin?highlight=${signUpData.user.id}` : `${origin}/admin`;
     for (const adminEmail of getAdminEmails()) {
       try {
         await sendEmail(
           adminEmail,
           "New ManifestMate signup awaiting approval",
-          `${email} just signed up for a ${accountType.replace("_", " ")} account. Approve them here: ${adminUrl}`
+          `${email} just signed up for a ${accountType.replace("_", " ")} account. Approve or reject them here: ${adminUrl}`
         );
       } catch (err) {
         if (!(err instanceof EmailNotConfiguredError)) {

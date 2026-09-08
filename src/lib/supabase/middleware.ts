@@ -62,15 +62,17 @@ export async function updateSession(request: NextRequest) {
     const gate = await getProfileGate(supabase, user.id);
 
     // Approval gate (generator/third-party accounts only — see
-    // 2026090601_add_approval_gate_to_profiles.sql and
-    // 20260917_extend_approval_gate_to_third_party.sql): a pending account
+    // 2026090601_add_approval_gate_to_profiles.sql,
+    // 20260917_extend_approval_gate_to_third_party.sql, and
+    // 2026091802_add_reject_profile.sql): a pending or rejected account
     // who already has a session (e.g. just clicked their email
     // confirmation link) gets bounced to /pending-approval instead of
-    // reaching any protected page.
+    // reaching any protected page — that page itself shows different
+    // copy for rejected vs still-pending.
     if (!gate.approved) {
       const url = request.nextUrl.clone();
       url.pathname = "/pending-approval";
-      url.search = "";
+      url.search = gate.rejected ? "?rejected=1" : "";
       return NextResponse.redirect(url);
     }
 

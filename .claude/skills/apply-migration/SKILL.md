@@ -75,6 +75,21 @@ mismatch already seen once with the 2026-09-06 collision (see
 `db push`/`migration list` output showing local/remote version pairs
 that don't line up if this is ever attempted).
 
+**The date prefix is NOT the real calendar date — check `ls supabase/migrations/ | sort | tail`, not `date`.**
+Hit 2026-09-08: the real-world date was 2026-09-08, but the last migration
+file in the repo was already `20260918_create_third_party_customers.sql`
+and fully applied to the sandbox remote. Naming a new migration after
+today's actual date (`2026090801_...`) put it chronologically *before*
+the last-applied remote migration, and `db push --dry-run` refused it
+with `LegacyDbPushMissingRemoteError` ("Found local migration files to
+be inserted before the last migration on remote database"). Do not fix
+this with `--include-all` — that forces past the ordering safety check
+and risks reconciling remote history in ways that aren't obvious. Fix it
+by renaming the new file to sort *after* the highest existing filename
+in `supabase/migrations/` (here: `20260919_...`), then re-run
+`db push --dry-run` and confirm it now lists just the one new migration
+before pushing for real.
+
 ## Don't trust "I ran it" — verify
 
 A migration was reported as applied once but silently wasn't; the app

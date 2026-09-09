@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   saveEpaSettingsAction,
   saveDefaultEmergencyPhoneAction,
@@ -14,7 +15,9 @@ import {
   revokeDelegateAction,
 } from '@/app/actions/delegateActions';
 import type { DelegateRecord, DelegateSiteType } from '@/services/delegateRepository';
-import { getMyAccountTypeAction } from '@/app/actions/accountActions';
+import { getMyAccountTypeAction, setMyAccountTypeAction } from '@/app/actions/accountActions';
+import { getMyAdminRoleAction } from '@/app/actions/adminActions';
+import type { AccountType } from '@/services/profileRepository';
 import {
   addManagedSiteAction,
   listMyManagedSitesAction,
@@ -54,9 +57,15 @@ export default function EpaSettingsPage() {
     null
   );
 
-  const [accountType, setAccountType] = useState<string | null>(null);
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const refreshAccountType = () => getMyAccountTypeAction().then(setAccountType);
   useEffect(() => {
-    getMyAccountTypeAction().then(setAccountType);
+    refreshAccountType();
+  }, []);
+
+  const [adminRole, setAdminRole] = useState<string | null>(null);
+  useEffect(() => {
+    getMyAdminRoleAction().then(setAdminRole);
   }, []);
 
   const [teamMembership, setTeamMembership] = useState<{ ownerEmail: string } | null>(null);
@@ -97,6 +106,18 @@ export default function EpaSettingsPage() {
       )}
 
       <div className="flex flex-col gap-6">
+        {adminRole && accountType && (
+          <Card className="p-6">
+            <TestAccountTypeSection
+              accountType={accountType}
+              onChanged={(next) => {
+                setAccountType(next);
+                refreshAccountType();
+              }}
+            />
+          </Card>
+        )}
+
         <Card className="p-6">
           <h2 className="text-lg font-bold text-brand-navy">RCRAInfo API credentials</h2>
           <p className="mt-1 text-sm text-gray-600">Securely store your API credentials.</p>
@@ -195,6 +216,78 @@ const SITE_TYPE_OPTIONS: { value: DelegateSiteType; label: string; warn?: boolea
   { value: 'Transporter', label: 'Transporter (e.g. a driver)' },
   { value: 'Tsdf', label: 'Designated facility' },
 ];
+
+const ACCOUNT_TYPE_OPTIONS: { value: AccountType; label: string }[] = [
+  { value: 'generator', label: 'Generator' },
+  { value: 'transporter', label: 'Transporter' },
+  { value: 'disposal', label: 'Disposal facility' },
+  { value: 'third_party', label: 'Third party' },
+];
+
+/**
+ * Admin-only testing tool -- switches the caller's own account_type so an
+ * admin can see the app (nav, dashboard, creation locks) as any of the
+ * four account types without a separate test signup. Gated here only for
+ * UI purposes; the real authorization boundary is set_my_account_type()'s
+ * own is_admin_caller() check. Router refresh picks up the new type in
+ * the server-rendered nav (layout.tsx), which this page's own client
+ * state can't reach on its own.
+ */
+function TestAccountTypeSection({
+  accountType,
+  onChanged,
+}: {
+  accountType: AccountType;
+  onChanged: (next: AccountType) => void;
+}) {
+  const router = useRouter();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = async (next: AccountType) => {
+    if (next === accountType) return;
+    setIsPending(true);
+    setError(null);
+    const result = await setMyAccountTypeAction(next);
+    setIsPending(false);
+    if (result && !result.success) {
+      setError(result.error);
+      return;
+    }
+    onChanged(next);
+    router.refresh();
+  };
+
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-brand-navy">🧪 Testing: account type</h2>
+      <p className="mt-1 text-sm text-gray-600">
+        Admin-only. Switches <strong>your own account</strong> to see the app as a different
+        account type -- useful for testing without a separate signup. Change it back to
+        &quot;Generator&quot; when you&apos;re done to restore your normal view.
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {ACCOUNT_TYPE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            disabled={isPending || opt.value === accountType}
+            onClick={() => handleChange(opt.value)}
+            className={`rounded-full border px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 ${
+              opt.value === accountType
+                ? 'border-brand-blue bg-brand-tint text-brand-navy'
+                : 'border-gray-300 bg-white text-gray-700 hover:border-brand-blue'
+            }`}
+          >
+            {opt.value === accountType ? `✓ ${opt.label}` : opt.label}
+          </button>
+        ))}
+      </div>
+      {error && <p className="mt-2 text-sm text-red-600">❌ {error}</p>}
+    </div>
+  );
+}
 
 function PasswordChangeSection() {
   const [state, formAction, isPending] = useActionState(changePasswordAction, null);

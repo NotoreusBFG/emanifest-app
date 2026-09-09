@@ -49,12 +49,12 @@ export async function lookupBillOfLadingByNumberAction(bolNumber: string): Promi
   return getBillOfLadingByNumber(supabase, user.id, bolNumber);
 }
 
-export async function listRecentBillsOfLadingAction(): Promise<RecentBillOfLading[]> {
+export async function listRecentBillsOfLadingAction(shipperEpaId?: string): Promise<RecentBillOfLading[]> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  return listRecentBillsOfLading(supabase, user.id);
+  return listRecentBillsOfLading(supabase, user.id, 10, shipperEpaId);
 }

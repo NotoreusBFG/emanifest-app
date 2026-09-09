@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { lookupBillOfLadingByNumberAction, listRecentBillsOfLadingAction } from "@/app/actions/billOfLadingActions";
 import type { RecentBillOfLading } from "@/services/billOfLadingRepository";
+import { SiteFilterButtons } from "@/components/SiteFilterButtons";
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 
@@ -17,10 +18,11 @@ export default function BillOfLadingLookupPage() {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<RecentBillOfLading[] | null>(null);
+  const [siteFilter, setSiteFilter] = useState("");
 
   useEffect(() => {
-    listRecentBillsOfLadingAction().then(setRecent);
-  }, []);
+    listRecentBillsOfLadingAction(siteFilter || undefined).then(setRecent);
+  }, [siteFilter]);
 
   const handleLookup = async () => {
     if (!bolNumber.trim()) return;
@@ -61,6 +63,10 @@ export default function BillOfLadingLookupPage() {
       </div>
 
       {error && <p style={{ color: "red" }}>❌ {error}</p>}
+
+      <div style={{ marginBottom: "12px" }}>
+        <SiteFilterButtons value={siteFilter} onChange={setSiteFilter} />
+      </div>
 
       {recent && recent.length > 0 && (
         <div>

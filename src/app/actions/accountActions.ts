@@ -2,6 +2,19 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getAccountType, type AccountType } from "@/services/profileRepository";
+import { getSiteFilterOptions, type SiteFilterOption } from "@/lib/siteFilterOptions";
+
+/** Client-callable version of getSiteFilterOptions -- backs the "Site:"
+ * filter on client-rendered combined lists (waste profiles, BOL) that
+ * can't call it server-side directly. */
+export async function getMySiteFilterOptionsAction(): Promise<SiteFilterOption[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  return getSiteFilterOptions(supabase, user.id);
+}
 
 /** Client-callable account-type lookup — src/app/settings/page.tsx is a
  * client component with no server-side account-type check today, so

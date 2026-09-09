@@ -257,23 +257,29 @@ export interface RecentBillOfLading {
   id: string;
   bolNumber: string;
   shipperName: string;
+  shipperEpaId: string;
   consigneeName: string;
   createdAt: string;
 }
 
 /** Most recent bills of lading for this user -- backs a "recent" list on
- * the lookup page, same idea as listRecentManifestSearchesAction. */
+ * the lookup page, same idea as listRecentManifestSearchesAction.
+ * Optionally scoped to one shipper site (the "Site:" filter) -- filtered
+ * at the query level, not client-side after the fact, so the `limit` still
+ * returns the most recent *matching* rows rather than the most recent
+ * rows overall with non-matching ones stripped out. */
 export async function listRecentBillsOfLading(
   supabase: SupabaseClient,
   userId: string,
-  limit = 10
+  limit = 10,
+  shipperEpaId?: string
 ): Promise<RecentBillOfLading[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("bills_of_lading")
-    .select("id, bol_number, shipper_name, consignee_name, created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .select("id, bol_number, shipper_name, shipper_epa_id, consignee_name, created_at")
+    .eq("user_id", userId);
+  if (shipperEpaId) query = query.eq("shipper_epa_id", shipperEpaId);
+  const { data, error } = await query.order("created_at", { ascending: false }).limit(limit);
 
   if (error) {
     console.error("listRecentBillsOfLading failed:", describePostgrestError(error));
@@ -283,6 +289,7 @@ export async function listRecentBillsOfLading(
     id: row.id as string,
     bolNumber: row.bol_number as string,
     shipperName: (row.shipper_name as string) ?? "",
+    shipperEpaId: (row.shipper_epa_id as string) ?? "",
     consigneeName: (row.consignee_name as string) ?? "",
     createdAt: row.created_at as string,
   }));

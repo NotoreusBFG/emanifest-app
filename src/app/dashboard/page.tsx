@@ -7,6 +7,8 @@ import { listDriverSignInfoByMtn } from "@/services/driverSignRepository";
 import { listGeneratorSignInfoByMtn } from "@/services/generatorSignRepository";
 import { getOnboardingProgress } from "@/services/onboardingRepository";
 import { resolveEffectiveUserId, getActiveTeamMembershipForUser } from "@/services/teamRepository";
+import { getSiteFilterOptions } from "@/lib/siteFilterOptions";
+import { SiteFilterLinks } from "@/components/SiteFilterLinks";
 import { brand } from "@/lib/brandColors";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -24,7 +26,12 @@ import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR 
  * given manifest is looked up or signed (see `recordManifestLocally` in
  * manifestRepository.ts for how the mirror gets refreshed).
  */
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ site?: string }>;
+}) {
+  const { site: siteFilter = "" } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,7 +43,12 @@ export default async function DashboardPage() {
   const effectiveUserId = user ? await resolveEffectiveUserId(supabase, user.id) : null;
   const teamMembership = user ? await getActiveTeamMembershipForUser(supabase, user.id) : null;
 
-  const manifests = effectiveUserId ? await listManifestsForUser(supabase, effectiveUserId) : [];
+  const allManifests = effectiveUserId ? await listManifestsForUser(supabase, effectiveUserId) : [];
+  const siteOptions = effectiveUserId ? await getSiteFilterOptions(supabase, effectiveUserId) : [];
+  // Filtered before any of the batched per-manifest lookups below, so
+  // those only ever run against what's actually being shown -- cheaper,
+  // not just fewer rows rendered.
+  const manifests = siteFilter ? allManifests.filter((m) => m.generator_epa_site_id === siteFilter) : allManifests;
 
   // Both batched (one query each, not one per row) so the dashboard stays
   // fast and local-only regardless of list length -- see each function's
@@ -91,6 +103,8 @@ export default async function DashboardPage() {
         </div>
         <Button href="/manifests/new">+ New manifest</Button>
       </div>
+
+      <SiteFilterLinks basePath="/dashboard" sites={siteOptions} current={siteFilter} />
 
       {manifests.length === 0 ? (
         <p className="mt-8 text-gray-600">

@@ -18,6 +18,7 @@ import { HazmatSearchField } from "@/app/manifests/new/HazmatSearchField";
 import { UNIT_CODES, CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { PrintLabelForm } from "./PrintLabelForm";
 import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
+import { SiteFilterButtons } from "@/components/SiteFilterButtons";
 import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
@@ -42,10 +43,15 @@ export default function WasteProfilesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [siteFilter, setSiteFilter] = useState("");
 
   const refresh = () => {
     listWasteProfilesForUserAction().then(setProfiles);
   };
+
+  const filteredProfiles = siteFilter
+    ? profiles?.filter((p) => p.generatorEpaId === siteFilter) ?? null
+    : profiles;
 
   useEffect(() => {
     refresh();
@@ -97,10 +103,17 @@ export default function WasteProfilesPage() {
         )}
       </Card>
 
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="mt-6">
+        <SiteFilterButtons value={siteFilter} onChange={setSiteFilter} />
+      </div>
+
+      <div className="mt-4 flex flex-col gap-4">
         {profiles === null && <p className="text-sm text-gray-500">Loading…</p>}
+        {profiles && profiles.length > 0 && filteredProfiles?.length === 0 && (
+          <p className="text-sm text-gray-500">No saved waste profiles for this site.</p>
+        )}
         {profiles?.length === 0 && <p className="text-sm text-gray-500">No saved waste profiles yet.</p>}
-        {profiles?.map((p) =>
+        {filteredProfiles?.map((p) =>
           editingId === p.id ? (
             <Card key={p.id} className="p-6">
               <WasteProfileForm

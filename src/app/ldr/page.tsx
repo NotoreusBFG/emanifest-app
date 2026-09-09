@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listLdrNoticesForUser } from "@/services/ldrRepository";
+import { getSiteFilterOptions } from "@/lib/siteFilterOptions";
+import { SiteFilterLinks } from "@/components/SiteFilterLinks";
 import { brand } from "@/lib/brandColors";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -11,13 +13,20 @@ import { Button } from "@/components/ui/Button";
  * e-Manifest system (confirmed out of scope there), so this list reads
  * only from ManifestMate's own `ldr_notices` table, never RCRAInfo.
  */
-export default async function LdrNoticesPage() {
+export default async function LdrNoticesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ site?: string }>;
+}) {
+  const { site: siteFilter = "" } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const notices = user ? await listLdrNoticesForUser(supabase, user.id) : [];
+  const allNotices = user ? await listLdrNoticesForUser(supabase, user.id) : [];
+  const siteOptions = user ? await getSiteFilterOptions(supabase, user.id) : [];
+  const notices = siteFilter ? allNotices.filter((n) => n.generatorEpaSiteId === siteFilter) : allNotices;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-10">
@@ -33,6 +42,8 @@ export default async function LdrNoticesPage() {
           Learn more in Haz Waste University →
         </Link>
       </p>
+
+      <SiteFilterLinks basePath="/ldr" sites={siteOptions} current={siteFilter} />
 
       {notices.length === 0 ? (
         <p className="mt-8 text-gray-600">No LDR notices on file yet.</p>

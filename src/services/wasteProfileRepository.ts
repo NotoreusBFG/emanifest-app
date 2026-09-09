@@ -4,11 +4,13 @@ import { describePostgrestError } from "@/services/manifestRepository";
 export type WastewaterCategory = "wastewater" | "nonwastewater";
 export type ShipmentFrequency = "one_time" | "monthly" | "quarterly" | "biannual" | "annual" | "other";
 export type PhysicalState = "solid" | "liquid" | "sludge" | "gas";
+export type WasteCategory = "hazardous" | "non_hazardous" | "universal";
 
 export interface WasteProfile {
   id: string;
   mmProfileNumber: string;
   profileName: string;
+  wasteCategory: WasteCategory;
   generatorEpaId: string;
   generatorName: string;
   generatorAddress: string;
@@ -49,6 +51,7 @@ export interface WasteProfile {
 
 export interface WasteProfileInput {
   profileName: string;
+  wasteCategory: WasteCategory;
   generatorEpaId: string;
   generatorName: string;
   generatorAddress: string;
@@ -85,6 +88,7 @@ function mapRow(row: Record<string, unknown>): WasteProfile {
     id: row.id as string,
     mmProfileNumber: row.mm_profile_number as string,
     profileName: row.profile_name as string,
+    wasteCategory: (row.waste_category as WasteCategory) ?? "hazardous",
     generatorEpaId: (row.generator_epa_id as string) ?? "",
     generatorName: (row.generator_name as string) ?? "",
     generatorAddress: (row.generator_address as string) ?? "",
@@ -122,6 +126,7 @@ function mapRow(row: Record<string, unknown>): WasteProfile {
 function toRow(input: WasteProfileInput) {
   return {
     profile_name: input.profileName,
+    waste_category: input.wasteCategory,
     generator_epa_id: input.generatorEpaId,
     generator_name: input.generatorName,
     generator_address: input.generatorAddress,

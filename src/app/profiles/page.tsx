@@ -9,7 +9,7 @@ import {
   listWasteProfilesForUserAction,
   type WasteProfileActionState,
 } from "@/app/actions/wasteProfileActions";
-import type { WasteProfile, ShipmentFrequency } from "@/services/wasteProfileRepository";
+import type { WasteProfile, ShipmentFrequency, WasteCategory } from "@/services/wasteProfileRepository";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +36,20 @@ const FREQUENCY_OPTIONS: { value: ShipmentFrequency; label: string }[] = [
   { value: "annual", label: "Annual" },
   { value: "other", label: "Other" },
 ];
+
+const WASTE_CATEGORY_OPTIONS: { value: WasteCategory; label: string; hint: string }[] = [
+  { value: "hazardous", label: "Hazardous Waste", hint: "Full RCRA-regulated hazardous waste — travels on an e-Manifest." },
+  { value: "non_hazardous", label: "Non-Hazardous Waste", hint: "Not RCRA-regulated — can ship on a Bill of Lading instead." },
+  { value: "universal", label: "Universal Waste", hint: "Batteries, lamps, pesticides, mercury devices (40 CFR 273) — reduced requirements, not a full manifest." },
+];
+
+// Card border color keyed to waste_category, so a profile's regulatory
+// category is visible at a glance in the list without reading the text.
+const WASTE_CATEGORY_BORDER: Record<WasteCategory, string> = {
+  hazardous: "border-2 border-yellow-400",
+  non_hazardous: "border-2 border-blue-400",
+  universal: "border-2 border-purple-900",
+};
 
 export default function WasteProfilesPage() {
   const [profiles, setProfiles] = useState<WasteProfile[] | null>(null);
@@ -131,11 +145,14 @@ export default function WasteProfilesPage() {
               <PrintLabelForm profile={p} onCancel={() => setPrintingId(null)} />
             </Card>
           ) : (
-            <Card key={p.id} className="p-4">
+            <Card key={p.id} className={`p-4 ${WASTE_CATEGORY_BORDER[p.wasteCategory]}`}>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-brand-navy">
                     {p.profileName} <span className="font-normal text-gray-400">— {p.mmProfileNumber}</span>
+                  </p>
+                  <p className="mt-0.5 text-xs font-medium text-gray-500">
+                    {WASTE_CATEGORY_OPTIONS.find((o) => o.value === p.wasteCategory)?.label ?? p.wasteCategory}
                   </p>
                   <p className="mt-0.5 text-sm text-gray-700">
                     {p.dotHazardous ? p.properShippingName : p.wasteDescription}
@@ -194,6 +211,16 @@ function WasteProfileForm({
   const [isRcraWaste, setIsRcraWaste] = useState(profile?.isRcraWaste ?? true);
   const [federalWasteCode, setFederalWasteCode] = useState(profile?.federalWasteCode ?? "");
 
+  const [wasteCategory, setWasteCategory] = useState<WasteCategory>(profile?.wasteCategory ?? "hazardous");
+  // Only fires on an explicit category change (not on mount), so editing
+  // an existing profile never silently overwrites dotHazardous/isRcraWaste
+  // values the user already customized.
+  const handleCategoryChange = (next: WasteCategory) => {
+    setWasteCategory(next);
+    setDotHazardous(next === "hazardous");
+    setIsRcraWaste(next === "hazardous");
+  };
+
   // Controlled (rather than defaultValue) specifically so the RCRAInfo
   // facility search and the DOT hazmat table search below can populate
   // them programmatically -- every other field on this form stays
@@ -251,6 +278,28 @@ function WasteProfileForm({
   return (
     <form action={formAction} className="flex flex-col gap-3">
       {mode === "edit" && profile && <input type="hidden" name="id" value={profile.id} />}
+
+      <div>
+        <p className="mb-1 text-sm font-medium text-brand-navy">Waste category</p>
+        <input type="hidden" name="wasteCategory" value={wasteCategory} />
+        <div className="grid gap-2 sm:grid-cols-3">
+          {WASTE_CATEGORY_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => handleCategoryChange(opt.value)}
+              className={`rounded-md p-2 text-left ${
+                wasteCategory === opt.value
+                  ? `${WASTE_CATEGORY_BORDER[opt.value]} bg-brand-tint`
+                  : "border-2 border-gray-200 bg-white hover:border-gray-300"
+              }`}
+            >
+              <p className="text-sm font-semibold text-brand-navy">{opt.label}</p>
+              <p className="mt-0.5 text-xs text-gray-500">{opt.hint}</p>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <Input
         id="profileName"

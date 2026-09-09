@@ -12,7 +12,10 @@ import {
   type WastewaterCategory,
   type ShipmentFrequency,
   type PhysicalState,
+  type WasteCategory,
 } from "@/services/wasteProfileRepository";
+
+const WASTE_CATEGORIES: WasteCategory[] = ["hazardous", "non_hazardous", "universal"];
 import { resolveEffectiveUserId } from "@/services/teamRepository";
 
 /** Parses an optional numeric form field: blank/missing -> null (not 0 or
@@ -33,6 +36,12 @@ export type WasteProfileActionState =
 function parseWasteProfileFormData(formData: FormData): WasteProfileInput | { error: string } {
   const profileName = ((formData.get("profileName") as string) ?? "").trim();
   if (!profileName) return { error: "Give this profile a name." };
+
+  const wasteCategoryRaw = formData.get("wasteCategory") as string;
+  if (!WASTE_CATEGORIES.includes(wasteCategoryRaw as WasteCategory)) {
+    return { error: "Choose a waste category." };
+  }
+  const wasteCategory = wasteCategoryRaw as WasteCategory;
 
   const generatorEpaId = ((formData.get("generatorEpaId") as string) ?? "").trim().toUpperCase();
   if (!generatorEpaId) {
@@ -64,6 +73,7 @@ function parseWasteProfileFormData(formData: FormData): WasteProfileInput | { er
 
   return {
     profileName,
+    wasteCategory,
     generatorEpaId,
     generatorName,
     generatorAddress,

@@ -11,8 +11,9 @@ import type { WasteProfile } from "@/services/wasteProfileRepository";
 import type { BillOfLading } from "@/services/billOfLadingRepository";
 import { BolPrintLabelsPanel } from "../BolPrintLabelsPanel";
 import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
-import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
 import { getMyAccountTypeAction } from "@/app/actions/accountActions";
+import { listMyManagedSitesAction } from "@/app/actions/generatorSiteActions";
+import { getSiteDetailsAction } from "@/app/actions/manifestActions";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 
 const row = { display: "flex", gap: "10px" };
@@ -83,37 +84,31 @@ function emptyLine(id: number): LineState {
 
 function PartyFieldset({
   title,
+  roleLabel,
   siteType,
   party,
   setParty,
-  generatorSelectSource,
 }: {
   title: string;
+  /** Shown next to the title in parens, e.g. "Consignee (Disposal)" -- same
+   * role naming as a real e-Manifest, so a BOL-only user has no confusion
+   * about which manifest role each fieldset corresponds to. */
+  roleLabel: string;
   siteType: "Generator" | "Transporter" | "Tsdf" | "Broker";
   party: PartyState;
   setParty: (p: PartyState) => void;
-  /** Only meaningful when siteType is "Generator" -- restricts the shipper
-   * picker to the caller's own declared sites (generator accounts) or
-   * approved customer list (third_party accounts), same LockedGeneratorSelect
-   * used for manifests/waste profiles, instead of the open EPA site search. */
-  generatorSelectSource?: "managed" | "customers";
 }) {
   const set = (patch: Partial<PartyState>) => setParty({ ...party, ...patch });
   return (
     <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px", padding: "12px" }}>
-      <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>{title}</legend>
-      {siteType === "Generator" && generatorSelectSource ? (
-        <LockedGeneratorSelect
-          source={generatorSelectSource}
-          onSelect={(site) => setParty(fillPartyFromSite(site, party))}
-        />
-      ) : (
-        <SiteSearchField
-          siteType={siteType}
-          placeholder={`Search registered ${title.toLowerCase()} sites by name…`}
-          onSelect={(site) => setParty(fillPartyFromSite(site, party))}
-        />
-      )}
+      <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>
+        {title} ({roleLabel})
+      </legend>
+      <SiteSearchField
+        siteType={siteType}
+        placeholder={`Search registered ${title.toLowerCase()} sites by name…`}
+        onSelect={(site) => setParty(fillPartyFromSite(site, party))}
+      />
       <div style={row}>
         <div style={field}>
           <label style={label}>Company name</label>
@@ -155,13 +150,6 @@ function PartyFieldset({
 }
 
 export default function NewBillOfLadingPage() {
-  const [accountType, setAccountType] = useState<string | null>(null);
-  useEffect(() => {
-    getMyAccountTypeAction().then(setAccountType);
-  }, []);
-  const generatorSelectSource =
-    accountType === "generator" ? "managed" : accountType === "third_party" ? "customers" : undefined;
-
   const [shipper, setShipper] = useState<PartyState>(BLANK_PARTY);
   const [consignee, setConsignee] = useState<PartyState>(BLANK_PARTY);
   const [carrierEpaId, setCarrierEpaId] = useState("");
@@ -178,6 +166,23 @@ export default function NewBillOfLadingPage() {
 
   useEffect(() => {
     listWasteProfilesForUserAction().then(setWasteProfiles);
+  }, []);
+
+  // Convenience pre-fill only -- the Shipper search above is wide open, so
+  // this never restricts who a BOL can be issued for. Only fills a
+  // generator account's own default site, and only into a still-blank
+  // form (never overwrites a manual edit or a search result).
+  useEffect(() => {
+    getMyAccountTypeAction().then((accountType) => {
+      if (accountType !== "generator") return;
+      listMyManagedSitesAction().then((sites) => {
+        if (sites.length === 0) return;
+        getSiteDetailsAction(sites[0].epaSiteId).then((result) => {
+          if (!result.success) return;
+          setShipper((s) => (s.epaSiteId ? s : fillPartyFromSite(result.site, s)));
+        });
+      });
+    });
   }, []);
 
   // Only non-RCRA-waste profiles apply here -- an actual RCRA hazardous
@@ -300,17 +305,11 @@ export default function NewBillOfLadingPage() {
         below.
       </p>
 
-      <PartyFieldset
-        title="Shipper"
-        siteType="Generator"
-        party={shipper}
-        setParty={setShipper}
-        generatorSelectSource={generatorSelectSource}
-      />
-      <PartyFieldset title="Consignee" siteType="Tsdf" party={consignee} setParty={setConsignee} />
+      <PartyFieldset title="Shipper" roleLabel="Generator" siteType="Generator" party={shipper} setParty={setShipper} />
+      <PartyFieldset title="Consignee" roleLabel="Disposal" siteType="Tsdf" party={consignee} setParty={setConsignee} />
 
       <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px", padding: "12px" }}>
-        <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Carrier</legend>
+        <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>Carrier (Transporter)</legend>
         <SiteSearchField
           siteType="Transporter"
           placeholder="Search registered transporter sites by name…"

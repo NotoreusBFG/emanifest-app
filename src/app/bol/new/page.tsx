@@ -11,6 +11,8 @@ import type { WasteProfile } from "@/services/wasteProfileRepository";
 import type { BillOfLading } from "@/services/billOfLadingRepository";
 import { BolPrintLabelsPanel } from "../BolPrintLabelsPanel";
 import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
+import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
+import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 
 const row = { display: "flex", gap: "10px" };
@@ -84,21 +86,34 @@ function PartyFieldset({
   siteType,
   party,
   setParty,
+  generatorSelectSource,
 }: {
   title: string;
   siteType: "Generator" | "Transporter" | "Tsdf" | "Broker";
   party: PartyState;
   setParty: (p: PartyState) => void;
+  /** Only meaningful when siteType is "Generator" -- restricts the shipper
+   * picker to the caller's own declared sites (generator accounts) or
+   * approved customer list (third_party accounts), same LockedGeneratorSelect
+   * used for manifests/waste profiles, instead of the open EPA site search. */
+  generatorSelectSource?: "managed" | "customers";
 }) {
   const set = (patch: Partial<PartyState>) => setParty({ ...party, ...patch });
   return (
     <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px", padding: "12px" }}>
       <legend style={{ padding: "0 8px", color: brand.navy, fontWeight: 600 }}>{title}</legend>
-      <SiteSearchField
-        siteType={siteType}
-        placeholder={`Search registered ${title.toLowerCase()} sites by name…`}
-        onSelect={(site) => setParty(fillPartyFromSite(site, party))}
-      />
+      {siteType === "Generator" && generatorSelectSource ? (
+        <LockedGeneratorSelect
+          source={generatorSelectSource}
+          onSelect={(site) => setParty(fillPartyFromSite(site, party))}
+        />
+      ) : (
+        <SiteSearchField
+          siteType={siteType}
+          placeholder={`Search registered ${title.toLowerCase()} sites by name…`}
+          onSelect={(site) => setParty(fillPartyFromSite(site, party))}
+        />
+      )}
       <div style={row}>
         <div style={field}>
           <label style={label}>Company name</label>
@@ -140,6 +155,13 @@ function PartyFieldset({
 }
 
 export default function NewBillOfLadingPage() {
+  const [accountType, setAccountType] = useState<string | null>(null);
+  useEffect(() => {
+    getMyAccountTypeAction().then(setAccountType);
+  }, []);
+  const generatorSelectSource =
+    accountType === "generator" ? "managed" : accountType === "third_party" ? "customers" : undefined;
+
   const [shipper, setShipper] = useState<PartyState>(BLANK_PARTY);
   const [consignee, setConsignee] = useState<PartyState>(BLANK_PARTY);
   const [carrierEpaId, setCarrierEpaId] = useState("");
@@ -278,7 +300,13 @@ export default function NewBillOfLadingPage() {
         below.
       </p>
 
-      <PartyFieldset title="Shipper" siteType="Generator" party={shipper} setParty={setShipper} />
+      <PartyFieldset
+        title="Shipper"
+        siteType="Generator"
+        party={shipper}
+        setParty={setShipper}
+        generatorSelectSource={generatorSelectSource}
+      />
       <PartyFieldset title="Consignee" siteType="Tsdf" party={consignee} setParty={setConsignee} />
 
       <fieldset style={{ marginBottom: "20px", border: "1px solid #ddd", borderRadius: "6px", padding: "12px" }}>

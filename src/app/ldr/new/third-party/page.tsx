@@ -5,11 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   createThirdPartyLdrNoticeAction,
-  listGeneratorSitesForUserAction,
   type CreateThirdPartyLdrNoticeState,
 } from "@/app/actions/ldrActions";
-import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
-import type { GeneratorSiteOption } from "@/services/manifestRepository";
+import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
+import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 
@@ -33,12 +32,14 @@ function NewThirdPartyLdrNoticePageInner() {
     null
   );
 
-  const [generatorSites, setGeneratorSites] = useState<GeneratorSiteOption[]>([]);
   const [generatorEpaSiteId, setGeneratorEpaSiteId] = useState("");
 
+  const [accountType, setAccountType] = useState<string | null>(null);
   useEffect(() => {
-    listGeneratorSitesForUserAction().then(setGeneratorSites);
+    getMyAccountTypeAction().then(setAccountType);
   }, []);
+  const generatorSelectSource =
+    accountType === "generator" ? "managed" : accountType === "third_party" ? "customers" : undefined;
 
   // Once the row exists, hand off to the detail page -- that's where the
   // actual PDF gets attached, via the same AttachmentsSection used on
@@ -66,31 +67,8 @@ function NewThirdPartyLdrNoticePageInner() {
 
         <div>
           <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>Generator</label>
-          {generatorSites.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
-              {generatorSites.map((site) => (
-                <button
-                  key={site.epaSiteId}
-                  type="button"
-                  onClick={() => setGeneratorEpaSiteId(site.epaSiteId)}
-                  style={{
-                    padding: "5px 10px",
-                    borderRadius: "999px",
-                    fontSize: "12px",
-                    cursor: "pointer",
-                    border: `1px solid ${site.epaSiteId === generatorEpaSiteId ? brand.blue : "#ddd"}`,
-                    background: site.epaSiteId === generatorEpaSiteId ? brand.tint : "white",
-                    color: site.epaSiteId === generatorEpaSiteId ? brand.navy : "#555",
-                  }}
-                >
-                  {site.name || site.epaSiteId}
-                </button>
-              ))}
-            </div>
-          )}
-          <SiteSearchField
-            siteType="Generator"
-            placeholder="Or search a generator by name…"
+          <LockedGeneratorSelect
+            source={generatorSelectSource ?? "managed"}
             onSelect={(site) => setGeneratorEpaSiteId(site.epaSiteId)}
           />
           <input

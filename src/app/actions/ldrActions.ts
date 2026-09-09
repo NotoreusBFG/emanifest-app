@@ -14,7 +14,6 @@ import {
   uploadLdrNoticeAttachment,
   type LdrNoticeAttachment,
 } from "@/services/ldrRepository";
-import { listGeneratorSitesForUser, type GeneratorSiteOption } from "@/services/manifestRepository";
 import {
   computeWasteCodeKey,
   type LdrCertification,
@@ -23,17 +22,6 @@ import {
   type LdrWasteLineEntry,
 } from "@/lib/ldr/types";
 import { LDR_MANAGEMENT_OPTIONS } from "@/lib/ldr/certificationText";
-
-/** Quick-pick list for the third-party LDR form's generator field -- the
- * distinct sites this user has actually filed/looked up manifests for. */
-export async function listGeneratorSitesForUserAction(): Promise<GeneratorSiteOption[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
-  return listGeneratorSitesForUser(supabase, user.id);
-}
 
 export async function listLdrNoticesAction(): Promise<LdrNotice[]> {
   const supabase = await createClient();

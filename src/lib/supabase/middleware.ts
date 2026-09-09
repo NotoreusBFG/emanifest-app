@@ -76,17 +76,23 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Manifest creation is the generator's responsibility (or an approved
-    // third party's, scoped to their customer list — see
+    // Manifest/LDR/BOL creation is the generator's responsibility (or an
+    // approved third party's, scoped to their customer list — see
     // third_party_customers) — transporter/disposal accounts never create,
     // only sign/look up. Enforced here, not just by hiding the nav link, so
     // a direct URL hit is blocked too.
     if (
-      request.nextUrl.pathname.startsWith("/manifests/new") &&
+      (request.nextUrl.pathname.startsWith("/manifests/new") ||
+        request.nextUrl.pathname.startsWith("/ldr/new") ||
+        request.nextUrl.pathname.startsWith("/bol/new")) &&
       (gate.accountType === "transporter" || gate.accountType === "disposal")
     ) {
       const url = request.nextUrl.clone();
-      url.pathname = "/manifests";
+      url.pathname = request.nextUrl.pathname.startsWith("/manifests/new")
+        ? "/manifests"
+        : request.nextUrl.pathname.startsWith("/ldr/new")
+          ? "/ldr"
+          : "/bol";
       url.search = "";
       return NextResponse.redirect(url);
     }

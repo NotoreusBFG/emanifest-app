@@ -28,10 +28,12 @@ import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
 import { getOnboardingProgressAction } from "@/app/actions/onboardingActions";
 import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import { listWasteProfilesForUserAction } from "@/app/actions/wasteProfileActions";
+import { listLabPacksForUserAction } from "@/app/actions/labPackActions";
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { Manifest } from "@/lib/rcrainfo/types";
 import type { ImportedManifestPayload } from "@/lib/import/types";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
+import type { LabPack } from "@/lib/labPack/types";
 
 /**
  * Every field here is controlled by React state (not `defaultValue`),
@@ -60,6 +62,13 @@ export default function NewManifestPage() {
   const [wasteProfiles, setWasteProfiles] = useState<WasteProfile[]>([]);
   useEffect(() => {
     listWasteProfilesForUserAction().then(setWasteProfiles);
+  }, []);
+
+  const [labPacks, setLabPacks] = useState<LabPack[]>([]);
+  useEffect(() => {
+    // Only unlinked, draft packs make sense to offer here -- one already
+    // attached to a shipped manifest shouldn't be picked again.
+    listLabPacksForUserAction().then((packs) => setLabPacks(packs.filter((p) => !p.epaMtn)));
   }, []);
 
   const [accountType, setAccountType] = useState<string | null>(null);
@@ -169,6 +178,7 @@ export default function NewManifestPage() {
         federalWasteCode: (w.federalWasteCodes ?? []).join(", "),
         wastewaterCategory: "nonwastewater",
         isLabPack: false,
+        labPackId: null,
         wasteDescription: !w.dotHazardous ? w.description : "",
         quantity: String(w.quantity),
         unitCode: w.unitCode,
@@ -343,6 +353,7 @@ export default function NewManifestPage() {
           setHandlingInstructions={setHandlingInstructions}
           defaultEmergencyPhone={defaultEmergencyPhone}
           wasteProfiles={wasteProfiles}
+          labPacks={labPacks}
           generatorSelectSource={
             accountType === "generator" ? "managed" : accountType === "third_party" ? "customers" : undefined
           }

@@ -9,6 +9,9 @@ export interface WasteLineMetadata {
    * default straight to letter E (lab pack) when prefilled, instead of
    * the generic letter A default. */
   isLabPack: boolean;
+  /** The /lab-packs record loaded onto this line, if any -- lets the
+   * manifest lookup page link to its printable packing slip. */
+  labPackId: string | null;
 }
 
 /** Persists per-line metadata captured at manifest-creation time -- see
@@ -20,7 +23,7 @@ export async function upsertWasteLineMetadata(
   supabase: SupabaseClient,
   userId: string,
   epaMtn: string,
-  lines: { lineNumber: number; wastewaterCategory: WastewaterCategory; isLabPack: boolean }[]
+  lines: { lineNumber: number; wastewaterCategory: WastewaterCategory; isLabPack: boolean; labPackId?: string | null }[]
 ): Promise<void> {
   if (lines.length === 0) return;
 
@@ -31,6 +34,7 @@ export async function upsertWasteLineMetadata(
       line_number: l.lineNumber,
       wastewater_category: l.wastewaterCategory,
       is_lab_pack: l.isLabPack,
+      lab_pack_id: l.labPackId ?? null,
       updated_at: new Date().toISOString(),
     })),
     { onConflict: "user_id,epa_mtn,line_number" }
@@ -55,7 +59,7 @@ export async function getWasteLineMetadataForManifest(
 ): Promise<Record<number, WasteLineMetadata>> {
   const { data, error } = await supabase
     .from("manifest_waste_line_metadata")
-    .select("line_number, wastewater_category, is_lab_pack")
+    .select("line_number, wastewater_category, is_lab_pack, lab_pack_id")
     .eq("user_id", userId)
     .eq("epa_mtn", epaMtn);
 
@@ -69,6 +73,7 @@ export async function getWasteLineMetadataForManifest(
     map[row.line_number as number] = {
       wastewaterCategory: row.wastewater_category as WastewaterCategory,
       isLabPack: !!row.is_lab_pack,
+      labPackId: (row.lab_pack_id as string | null) ?? null,
     };
   }
   return map;

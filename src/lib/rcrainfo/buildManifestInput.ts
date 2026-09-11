@@ -5,6 +5,10 @@ export interface WasteLineMetadataInput {
   lineNumber: number;
   wastewaterCategory: "wastewater" | "nonwastewater";
   isLabPack: boolean;
+  /** Set when this line was loaded from an existing /lab-packs record --
+   * lets the manifest save flow write the resulting MTN/line number back
+   * onto that lab pack (see linkLabPackToManifestLineAction). */
+  labPackId: string | null;
 }
 
 export interface BuildWasteLinesResult {
@@ -89,7 +93,8 @@ export function buildWasteLinesFromFormData(formData: FormData): BuildWasteLines
     if (federalWasteCodes.length > 0) {
       const wastewaterCategory = formData.get(`wastewaterCategory_${id}`) === "wastewater" ? "wastewater" : "nonwastewater";
       const isLabPack = formData.get(`labPack_${id}`) === "on";
-      wasteLineMetadata.push({ lineNumber: displayLineNumber, wastewaterCategory, isLabPack });
+      const labPackId = (formData.get(`labPackId_${id}`) as string) || null;
+      wasteLineMetadata.push({ lineNumber: displayLineNumber, wastewaterCategory, isLabPack, labPackId });
     }
 
     if (isHazardous) {

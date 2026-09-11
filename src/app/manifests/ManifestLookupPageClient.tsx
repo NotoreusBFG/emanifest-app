@@ -8,6 +8,7 @@ import {
   refetchManifestAction,
   listStoredDocumentsAction,
   listRecentManifestSearchesAction,
+  getWasteLineMetadataAction,
   type LookupManifestState,
   type StoredDocument,
 } from "@/app/actions/manifestActions";
@@ -297,14 +298,7 @@ function ManifestSummary({
       </p>
 
       <h3 style={{ color: brand.navy }}>Waste lines</h3>
-      <ul>
-        {manifest.wastes.map((w) => (
-          <li key={w.lineNumber}>
-            Line {w.lineNumber}: {w.dotInformation?.printedDotInformation ?? w.wasteDescription} —{" "}
-            {w.quantity.quantity} {w.quantity.unitOfMeasurement.description ?? w.quantity.unitOfMeasurement.code}
-          </li>
-        ))}
-      </ul>
+      <LabPackLinkedWasteLines manifest={manifest} />
 
       <PrintLabelsFromManifestPanel manifest={manifest} />
 
@@ -324,6 +318,45 @@ function ManifestSummary({
 
       <SignManifestPanel manifest={manifest} onSigned={onSigned} />
     </Card>
+  );
+}
+
+/**
+ * Waste line list, with a "Print Packing Slip" link on any line loaded
+ * from an existing /lab-packs drum -- lets the printed manifest be handed
+ * out alongside its packing slip(s). Local ManifestMate document only, not
+ * part of what RCRAInfo generates.
+ */
+function LabPackLinkedWasteLines({ manifest }: { manifest: Manifest }) {
+  const [labPackIdByLine, setLabPackIdByLine] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    getWasteLineMetadataAction(manifest.manifestTrackingNumber).then((metadata) => {
+      const map: Record<number, string> = {};
+      for (const [lineNumber, meta] of Object.entries(metadata)) {
+        if (meta.labPackId) map[Number(lineNumber)] = meta.labPackId;
+      }
+      setLabPackIdByLine(map);
+    });
+  }, [manifest.manifestTrackingNumber]);
+
+  return (
+    <ul>
+      {manifest.wastes.map((w) => (
+        <li key={w.lineNumber}>
+          Line {w.lineNumber}: {w.dotInformation?.printedDotInformation ?? w.wasteDescription} —{" "}
+          {w.quantity.quantity} {w.quantity.unitOfMeasurement.description ?? w.quantity.unitOfMeasurement.code}
+          {labPackIdByLine[w.lineNumber] && (
+            <>
+              {" — "}
+              <Link href={`/lab-packs/${labPackIdByLine[w.lineNumber]}`} target="_blank" style={{ color: brand.blue }}>
+                Print packing slip
+              </Link>
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 

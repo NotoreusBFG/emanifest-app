@@ -18,6 +18,7 @@ import {
   upsertWasteLineMetadata,
   type WasteLineMetadata,
 } from "@/services/wasteLineMetadataRepository";
+import { linkLabPackToManifestLine } from "@/services/labPackRepository";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { collectManifestOperationWarnings } from "@/lib/rcrainfo/types";
 import { formatRcrainfoError } from "@/lib/rcrainfo/formatError";
@@ -413,6 +414,11 @@ export async function createManifestAction(
       designatedFacility: input.designatedFacility,
     });
     await upsertWasteLineMetadata(supabase, effectiveUserId, result.manifestTrackingNumber, wasteLineMetadata);
+    await Promise.all(
+      wasteLineMetadata
+        .filter((l) => l.labPackId)
+        .map((l) => linkLabPackToManifestLine(supabase, effectiveUserId, l.labPackId!, result.manifestTrackingNumber, l.lineNumber))
+    );
 
     return {
       success: true,

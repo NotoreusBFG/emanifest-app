@@ -11,6 +11,7 @@ import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { SiteSearchResultItem, FederalWasteCode } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
+import type { LabPack } from "@/lib/labPack/types";
 
 const row = { display: "flex", gap: "10px" };
 const field = { flex: 1, marginBottom: "12px" };
@@ -125,6 +126,10 @@ export interface WasteLineFormState {
    * LDR notice filed later default straight to the lab pack certification
    * (40 CFR 268.42(c)) instead of the generic "requires treatment" default. */
   isLabPack: boolean;
+  /** Set when this line was loaded from an existing /lab-packs record --
+   * carried through to the manifest save so the pack's MTN/line number can
+   * be written back (see linkLabPackFromLine below and manifestActions.ts). */
+  labPackId: string | null;
   wasteDescription: string;
   quantity: string;
   unitCode: string;
@@ -147,6 +152,7 @@ export function emptyWasteLine(id: number, prefill: boolean): WasteLineFormState
     federalWasteCode: prefill ? "D001" : "",
     wastewaterCategory: "nonwastewater",
     isLabPack: false,
+    labPackId: null,
     wasteDescription: "",
     quantity: prefill ? "1" : "",
     unitCode: prefill ? "P" : "",
@@ -224,6 +230,10 @@ export interface ManifestFieldsFormProps {
    * picker entirely, e.g. in a context with no logged-in owner to fetch
    * profiles for. */
   wasteProfiles?: WasteProfile[];
+  /** The current user's unlinked (draft, not yet on a manifest) lab packs,
+   * for the per-line "link a lab pack" picker below. Omit (or pass an
+   * empty array) to hide that picker entirely. */
+  labPacks?: LabPack[];
   /**
    * `"edit"` (default): every fieldset is editable, the owner's
    * `/manifests/new` behavior, unchanged.
@@ -288,6 +298,7 @@ export function ManifestFieldsForm({
   defaultEmergencyPhone,
   federalWasteCodesFn,
   wasteProfiles = [],
+  labPacks = [],
   mode = "edit",
   generatorSelectSource,
 }: ManifestFieldsFormProps) {
@@ -382,6 +393,28 @@ export function ManifestFieldsForm({
       ...(profile.defaultUnitCode ? { unitCode: profile.defaultUnitCode } : {}),
       ...(profile.defaultContainerTypeCode ? { containerTypeCode: profile.defaultContainerTypeCode } : {}),
       specialInstructions,
+    });
+  };
+
+  /** Loads a saved /lab-packs drum onto a waste line -- prefills the
+   * fields the pack itself is authoritative for (federal waste codes,
+   * container type, the lab-pack flag) and drops the pack's combined DOT
+   * shipping description into the proper shipping name field as a
+   * starting point. Unlike applyWasteProfile, the pack's DOT description
+   * is one free-text string (matching the reference vendor packing-slip
+   * convention -- hazard class/PG/ID number are folded into it), so those
+   * structured fields aren't split back out automatically; review them via
+   * the hazmat search above if they need to be exact. */
+  const applyLabPack = (lineId: number, pack: LabPack) => {
+    updateWasteLine(lineId, {
+      dotHazardous: !pack.isNonHazardous,
+      properShippingName: pack.dotShippingDescription,
+      federalWasteCode: pack.wasteCodes.join(", "),
+      isLabPack: true,
+      labPackId: pack.id,
+      containerTypeCode: pack.outerContainerTypeCode,
+      containerNumber: "1",
+      wasteDescription: pack.isNonHazardous ? "Non-hazardous lab pack" : "",
     });
   };
 
@@ -806,6 +839,36 @@ export function ManifestFieldsForm({
                 <p style={{ color: "#c00", fontSize: "13px", margin: "4px 0 0" }}>
                   {profileMismatchError[line.id]}
                 </p>
+              )}
+            </div>
+          )}
+
+          {labPacks.length > 0 && (
+            <div style={field}>
+              <label style={label}>
+                Link a lab pack (optional) —{" "}
+                <Link href="/lab-packs" target="_blank" style={{ color: brand.blue, fontWeight: 400 }}>
+                  manage lab packs
+                </Link>
+              </label>
+              <select
+                value={line.labPackId ?? ""}
+                onChange={(e) => {
+                  const pack = labPacks.find((p) => p.id === e.target.value);
+                  if (pack) applyLabPack(line.id, pack);
+                }}
+                style={inputStyle}
+              >
+                <option value="">— Select a lab pack —</option>
+                {labPacks.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    Drum {p.drumNumber ?? "?"} {p.jobNumber && `(Job ${p.jobNumber})`} —{" "}
+                    {p.isNonHazardous ? "Non-hazardous" : p.wasteCodes.join(", ") || "no codes yet"}
+                  </option>
+                ))}
+              </select>
+              {line.labPackId && (
+                <input type="hidden" name={`labPackId_${line.id}`} value={line.labPackId} />
               )}
             </div>
           )}

@@ -1,55 +1,20 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
-  createWasteProfileAction,
-  updateWasteProfileAction,
   deleteWasteProfileAction,
   listWasteProfilesForUserAction,
-  type WasteProfileActionState,
 } from "@/app/actions/wasteProfileActions";
-import type { WasteProfile, ShipmentFrequency, WasteCategory } from "@/services/wasteProfileRepository";
+import { isWizardEnabledForMeAction, listMyWasteProfileDocumentUrlsAction } from "@/app/actions/wizardActions";
+import type { WasteProfile } from "@/services/wasteProfileRepository";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { SiteSearchField } from "@/app/manifests/new/SiteSearchField";
-import { HazmatSearchField } from "@/app/manifests/new/HazmatSearchField";
-import { UNIT_CODES, CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { PrintLabelForm } from "./PrintLabelForm";
-import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
 import { SiteFilterButtons } from "@/components/SiteFilterButtons";
-import { getMyAccountTypeAction } from "@/app/actions/accountActions";
-import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
-import type { HazmatEntry } from "@/lib/hazmat/types";
-
-const textareaStyle =
-  "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue resize-vertical";
-const selectStyle =
-  "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue bg-white";
-
-const FREQUENCY_OPTIONS: { value: ShipmentFrequency; label: string }[] = [
-  { value: "one_time", label: "One time" },
-  { value: "monthly", label: "Monthly" },
-  { value: "quarterly", label: "Quarterly" },
-  { value: "biannual", label: "Biannual" },
-  { value: "annual", label: "Annual" },
-  { value: "other", label: "Other" },
-];
-
-const WASTE_CATEGORY_OPTIONS: { value: WasteCategory; label: string; hint: string }[] = [
-  { value: "hazardous", label: "Hazardous Waste", hint: "Full RCRA-regulated hazardous waste — travels on an e-Manifest." },
-  { value: "non_hazardous", label: "Non-Hazardous Waste", hint: "Not RCRA-regulated — can ship on a Bill of Lading instead." },
-  { value: "universal", label: "Universal Waste", hint: "Batteries, lamps, pesticides, mercury devices (40 CFR 273) — reduced requirements, not a full manifest." },
-];
-
-// Card border color keyed to waste_category, so a profile's regulatory
-// category is visible at a glance in the list without reading the text.
-const WASTE_CATEGORY_BORDER: Record<WasteCategory, string> = {
-  hazardous: "border-2 border-yellow-400",
-  non_hazardous: "border-2 border-blue-400",
-  universal: "border-2 border-purple-900",
-};
+import { WasteProfileFormFields } from "@/components/WasteProfileFormFields";
+import { WASTE_CATEGORY_OPTIONS, WASTE_CATEGORY_BORDER } from "./wasteCategoryOptions";
 
 export default function WasteProfilesPage() {
   const [profiles, setProfiles] = useState<WasteProfile[] | null>(null);
@@ -58,9 +23,15 @@ export default function WasteProfilesPage() {
   const [printingId, setPrintingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [siteFilter, setSiteFilter] = useState("");
+  const [wizardEnabled, setWizardEnabled] = useState(false);
+  const [documentUrls, setDocumentUrls] = useState<Record<string, { filename: string; url: string }>>({});
 
   const refresh = () => {
     listWasteProfilesForUserAction().then(setProfiles);
+    // Re-fetched alongside the profile list rather than cached -- these are
+    // short-lived signed URLs (10 min), same lifetime as the LDR attachment
+    // pattern this mirrors.
+    listMyWasteProfileDocumentUrlsAction().then(setDocumentUrls);
   };
 
   const filteredProfiles = siteFilter
@@ -69,6 +40,7 @@ export default function WasteProfilesPage() {
 
   useEffect(() => {
     refresh();
+    isWizardEnabledForMeAction().then(setWizardEnabled);
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -102,11 +74,22 @@ export default function WasteProfilesPage() {
 
       <Card className="p-6">
         {!showCreate ? (
-          <Button onClick={() => setShowCreate(true)} className="px-4 py-2 text-sm">
-            + Add waste profile
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => setShowCreate(true)} className="px-4 py-2 text-sm">
+              + Add waste profile
+            </Button>
+            {wizardEnabled && (
+              <Link
+                href="/profiles/wizard"
+                className="inline-flex items-center gap-2 rounded-md border-2 border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-tint"
+              >
+                <Image src="/manifestmate-wizard-icon.png" alt="" width={20} height={20} />
+                ManifestMate Wizard
+              </Link>
+            )}
+          </div>
         ) : (
-          <WasteProfileForm
+          <WasteProfileFormFields
             mode="create"
             onDone={() => {
               setShowCreate(false);
@@ -130,7 +113,7 @@ export default function WasteProfilesPage() {
         {filteredProfiles?.map((p) =>
           editingId === p.id ? (
             <Card key={p.id} className="p-6">
-              <WasteProfileForm
+              <WasteProfileFormFields
                 mode="edit"
                 profile={p}
                 onDone={() => {
@@ -167,6 +150,16 @@ export default function WasteProfilesPage() {
                     Disposal facility: {p.disposalFacilityName || "—"} ({p.disposalFacilityEpaId})
                     {p.disposalFacilityProfileNumber && ` · Facility profile # ${p.disposalFacilityProfileNumber}`}
                   </p>
+                  {documentUrls[p.id] && (
+                    <a
+                      href={documentUrls[p.id].url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-block text-xs font-medium text-brand-blue hover:underline"
+                    >
+                      📎 {documentUrls[p.id].filename}
+                    </a>
+                  )}
                 </div>
                 <div className="flex shrink-0 gap-3 text-sm">
                   <button type="button" onClick={() => setPrintingId(p.id)} className="font-medium text-brand-blue">
@@ -190,478 +183,5 @@ export default function WasteProfilesPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function WasteProfileForm({
-  mode,
-  profile,
-  onDone,
-  onCancel,
-}: {
-  mode: "create" | "edit";
-  profile?: WasteProfile;
-  onDone: () => void;
-  onCancel: () => void;
-}) {
-  const action = mode === "create" ? createWasteProfileAction : updateWasteProfileAction;
-  const [state, formAction, isPending] = useActionState<WasteProfileActionState, FormData>(action, null);
-
-  const [dotHazardous, setDotHazardous] = useState(profile?.dotHazardous ?? true);
-  const [isRcraWaste, setIsRcraWaste] = useState(profile?.isRcraWaste ?? true);
-  const [federalWasteCode, setFederalWasteCode] = useState(profile?.federalWasteCode ?? "");
-
-  const [wasteCategory, setWasteCategory] = useState<WasteCategory>(profile?.wasteCategory ?? "hazardous");
-  // Only fires on an explicit category change (not on mount), so editing
-  // an existing profile never silently overwrites dotHazardous/isRcraWaste
-  // values the user already customized.
-  const handleCategoryChange = (next: WasteCategory) => {
-    setWasteCategory(next);
-    setDotHazardous(next === "hazardous");
-    setIsRcraWaste(next === "hazardous");
-  };
-
-  // Controlled (rather than defaultValue) specifically so the RCRAInfo
-  // facility search and the DOT hazmat table search below can populate
-  // them programmatically -- every other field on this form stays
-  // uncontrolled since nothing else needs to write into it from code.
-  const [disposalFacilityName, setDisposalFacilityName] = useState(profile?.disposalFacilityName ?? "");
-  const [disposalFacilityEpaId, setDisposalFacilityEpaId] = useState(profile?.disposalFacilityEpaId ?? "");
-  const [generatorEpaId, setGeneratorEpaId] = useState(profile?.generatorEpaId ?? "");
-  const [generatorName, setGeneratorName] = useState(profile?.generatorName ?? "");
-  const [generatorAddress, setGeneratorAddress] = useState(profile?.generatorAddress ?? "");
-  const [accountType, setAccountType] = useState<string | null>(null);
-  useEffect(() => {
-    getMyAccountTypeAction().then(setAccountType);
-  }, []);
-
-  const fillGeneratorFromSite = (site: SiteSearchResultItem) => {
-    const addr = site.siteAddress;
-    setGeneratorEpaId(site.epaSiteId);
-    setGeneratorName(site.name);
-    setGeneratorAddress([addr?.address1, addr?.city, addr?.state?.code, addr?.zip].filter(Boolean).join(", "));
-  };
-  const [properShippingName, setProperShippingName] = useState(profile?.properShippingName ?? "");
-  const [hazardClass, setHazardClass] = useState(profile?.hazardClass ?? "");
-  const [packingGroup, setPackingGroup] = useState(profile?.packingGroup ?? "");
-  const [idNumberCode, setIdNumberCode] = useState(profile?.idNumberCode ?? "");
-
-  // Button-group UI, not native radios, so selection needs its own state
-  // plus a hidden input to actually carry the value into FormData.
-  const [shipmentFrequency, setShipmentFrequency] = useState<ShipmentFrequency | "">(
-    profile?.shipmentFrequency ?? ""
-  );
-
-  const fillFacilityFromSite = (site: SiteSearchResultItem) => {
-    setDisposalFacilityName(site.name);
-    setDisposalFacilityEpaId(site.epaSiteId);
-  };
-
-  const fillWasteFromHazmat = (entry: HazmatEntry) => {
-    // Same "waste" double-up guard as ManifestFieldsForm's
-    // fillWasteLineFromHazmat -- a few §172.101 entries already have
-    // "waste" baked into the shipping name.
-    const nameAlreadyIncludesWaste = /\bwaste\b/i.test(entry.properShippingName);
-    setProperShippingName(entry.properShippingName);
-    setHazardClass(entry.hazardClass);
-    setPackingGroup(entry.packingGroup);
-    setIdNumberCode(entry.idNumbers);
-    if (nameAlreadyIncludesWaste) setIsRcraWaste(false);
-  };
-
-  useEffect(() => {
-    if (state?.success) onDone();
-    // onDone is stable enough per-mount for this one-shot "close on success" effect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
-
-  return (
-    <form action={formAction} className="flex flex-col gap-3">
-      {mode === "edit" && profile && <input type="hidden" name="id" value={profile.id} />}
-
-      <div>
-        <p className="mb-1 text-sm font-medium text-brand-navy">Waste category</p>
-        <input type="hidden" name="wasteCategory" value={wasteCategory} />
-        <div className="grid gap-2 sm:grid-cols-3">
-          {WASTE_CATEGORY_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => handleCategoryChange(opt.value)}
-              className={`rounded-md p-2 text-left ${
-                wasteCategory === opt.value
-                  ? `${WASTE_CATEGORY_BORDER[opt.value]} bg-brand-tint`
-                  : "border-2 border-gray-200 bg-white hover:border-gray-300"
-              }`}
-            >
-              <p className="text-sm font-semibold text-brand-navy">{opt.label}</p>
-              <p className="mt-0.5 text-xs text-gray-500">{opt.hint}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <Input
-        id="profileName"
-        name="profileName"
-        label="Profile name"
-        required
-        defaultValue={profile?.profileName}
-        placeholder="e.g. Used Oil — Building A"
-      />
-
-      {!generatorEpaId && (
-        <div>
-          <label className="mb-1 block text-sm font-medium text-brand-navy">Select a generator</label>
-          <p className="mb-1 text-xs text-gray-500">
-            Every waste profile is now tied to a generator — this profile, and any label printed
-            from it, will always be for this site.
-          </p>
-          <LockedGeneratorSelect
-            onSelect={fillGeneratorFromSite}
-            source={accountType === "third_party" ? "customers" : "managed"}
-          />
-        </div>
-      )}
-
-      {generatorEpaId && (
-        <>
-          <input type="hidden" name="generatorEpaId" value={generatorEpaId} />
-          <input type="hidden" name="generatorName" value={generatorName} />
-          <input type="hidden" name="generatorAddress" value={generatorAddress} />
-          <div className="rounded-md bg-brand-tint px-3 py-2 text-sm text-brand-navy">
-            <span className="font-semibold">Generator:</span> {generatorName} ({generatorEpaId})
-          </div>
-
-      <div>
-        <label className="mb-1 block text-sm font-medium text-brand-navy">
-          Search registered disposal facilities (RCRAInfo)
-        </label>
-        <SiteSearchField siteType="Tsdf" placeholder="Search by facility name…" onSelect={fillFacilityFromSite} />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Input
-          id="disposalFacilityName"
-          name="disposalFacilityName"
-          label="Disposal facility name"
-          value={disposalFacilityName}
-          onChange={(e) => setDisposalFacilityName(e.target.value)}
-        />
-        <Input
-          id="disposalFacilityEpaId"
-          name="disposalFacilityEpaId"
-          label="Disposal facility EPA ID"
-          required
-          value={disposalFacilityEpaId}
-          onChange={(e) => setDisposalFacilityEpaId(e.target.value)}
-          hint="Must match the manifest's designated facility exactly, or the profile can't be loaded."
-        />
-      </div>
-      <Input
-        id="disposalFacilityProfileNumber"
-        name="disposalFacilityProfileNumber"
-        label="Disposal facility's own profile / approval number (optional)"
-        defaultValue={profile?.disposalFacilityProfileNumber}
-        hint="Printed into the waste line's notes (Box 14) when this profile is loaded."
-      />
-
-      <label className="flex items-center gap-2 text-sm text-brand-navy">
-        <input
-          type="checkbox"
-          name="dotHazardous"
-          defaultChecked={profile?.dotHazardous ?? true}
-          onChange={(e) => setDotHazardous(e.target.checked)}
-        />
-        DOT hazardous material
-      </label>
-
-      {dotHazardous ? (
-        <>
-          <label className="flex items-center gap-2 text-sm text-brand-navy">
-            <input
-              type="checkbox"
-              name="isRcraWaste"
-              checked={isRcraWaste}
-              onChange={(e) => setIsRcraWaste(e.target.checked)}
-            />
-            RCRA waste (prints &quot;Waste&quot;)
-          </label>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-brand-navy">
-              Search DOT hazardous materials table (49 CFR §172.101)
-            </label>
-            <HazmatSearchField placeholder="Search by shipping name or ID number…" onSelect={fillWasteFromHazmat} />
-          </div>
-          <div>
-            <label htmlFor="properShippingName" className="mb-1 block text-sm font-medium text-brand-navy">
-              Proper shipping name
-            </label>
-            <textarea
-              id="properShippingName"
-              name="properShippingName"
-              rows={2}
-              value={properShippingName}
-              onChange={(e) => setProperShippingName(e.target.value)}
-              className={textareaStyle}
-            />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label className="flex items-center gap-2 self-end pb-2 text-sm text-brand-navy">
-              <input type="checkbox" name="rqIndicator" defaultChecked={profile?.rqIndicator} />
-              RQ (reportable quantity)
-            </label>
-            <Input
-              id="hazardClass"
-              name="hazardClass"
-              label="Hazard class"
-              value={hazardClass}
-              onChange={(e) => setHazardClass(e.target.value)}
-            />
-            <Input
-              id="packingGroup"
-              name="packingGroup"
-              label="Packing group"
-              value={packingGroup}
-              onChange={(e) => setPackingGroup(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              id="idNumberCode"
-              name="idNumberCode"
-              label="DOT ID number (e.g. UN1993)"
-              value={idNumberCode}
-              onChange={(e) => setIdNumberCode(e.target.value)}
-            />
-            <Input
-              id="federalWasteCode"
-              name="federalWasteCode"
-              label="Federal waste codes"
-              defaultValue={profile?.federalWasteCode}
-              onChange={(e) => setFederalWasteCode(e.target.value)}
-            />
-          </div>
-          {federalWasteCode.trim().length > 0 && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <p className="mb-1 text-sm font-medium text-brand-navy">Wastewater or nonwastewater?</p>
-                <div className="flex gap-4 text-sm">
-                  <label className="flex items-center gap-1.5">
-                    <input
-                      type="radio"
-                      name="wastewaterCategory"
-                      value="nonwastewater"
-                      defaultChecked={(profile?.wastewaterCategory ?? "nonwastewater") === "nonwastewater"}
-                    />
-                    Nonwastewater
-                  </label>
-                  <label className="flex items-center gap-1.5">
-                    <input
-                      type="radio"
-                      name="wastewaterCategory"
-                      value="wastewater"
-                      defaultChecked={profile?.wastewaterCategory === "wastewater"}
-                    />
-                    Wastewater
-                  </label>
-                </div>
-              </div>
-              <label className="flex items-center gap-2 self-end pb-2 text-sm text-brand-navy">
-                <input type="checkbox" name="isLabPack" defaultChecked={profile?.isLabPack} />
-                Lab pack (40 CFR 268.42(c))
-              </label>
-            </div>
-          )}
-        </>
-      ) : (
-        <Input
-          id="wasteDescription"
-          name="wasteDescription"
-          label="Waste description"
-          defaultValue={profile?.wasteDescription}
-        />
-      )}
-
-      <div className="border-t border-gray-100 pt-3">
-        <p className="mb-1 text-sm font-semibold text-brand-navy">
-          Waste characterization <span className="font-normal text-gray-400">(optional — printed on a container label)</span>
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <p className="mb-1 text-sm font-medium text-brand-navy">Physical state</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {(
-                [
-                  ["solid", "Solid"],
-                  ["liquid", "Liquid"],
-                  ["sludge", "Sludge"],
-                  ["gas", "Gas"],
-                ] as const
-              ).map(([value, label]) => (
-                <label key={value} className="flex items-center gap-1.5 text-sm text-gray-700">
-                  <input
-                    type="radio"
-                    name="physicalState"
-                    value={value}
-                    defaultChecked={profile?.physicalState === value}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="mb-1 text-sm font-medium text-brand-navy">Hazardous properties</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {(
-                [
-                  ["isIgnitable", "Ignitable", profile?.isIgnitable],
-                  ["isCorrosive", "Corrosive", profile?.isCorrosive],
-                  ["isReactive", "Reactive", profile?.isReactive],
-                  ["isToxic", "Toxic", profile?.isToxic],
-                ] as const
-              ).map(([name, label, checked]) => (
-                <label key={name} className="flex items-center gap-1.5 text-sm text-gray-700">
-                  <input type="checkbox" name={name} defaultChecked={checked} />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-gray-100 pt-3">
-        <p className="mb-1 text-sm font-semibold text-brand-navy">
-          Shipment estimate <span className="font-normal text-gray-400">(optional — for LQG biennial report prep)</span>
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-3">
-            <Input
-              id="estimatedContainerCount"
-              name="estimatedContainerCount"
-              type="number"
-              min="0"
-              step="1"
-              label="Estimated containers per shipment"
-              defaultValue={profile?.estimatedContainerCount ?? undefined}
-            />
-            <div>
-              <label htmlFor="defaultContainerTypeCode" className="mb-1 block text-sm font-medium text-brand-navy">
-                Default container type code (optional)
-              </label>
-              <select
-                id="defaultContainerTypeCode"
-                name="defaultContainerTypeCode"
-                defaultValue={profile?.defaultContainerTypeCode ?? ""}
-                className={selectStyle}
-              >
-                <option value="">— None —</option>
-                {CONTAINER_TYPE_CODES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex flex-col gap-3">
-            <Input
-              id="estimatedQuantity"
-              name="estimatedQuantity"
-              type="number"
-              min="0"
-              step="any"
-              label="Estimated quantity per shipment"
-              defaultValue={profile?.estimatedQuantity ?? undefined}
-              hint="In whatever unit is picked below."
-            />
-            <div>
-              <label htmlFor="defaultUnitCode" className="mb-1 block text-sm font-medium text-brand-navy">
-                Default unit code (optional)
-              </label>
-              <select
-                id="defaultUnitCode"
-                name="defaultUnitCode"
-                defaultValue={profile?.defaultUnitCode ?? ""}
-                className={selectStyle}
-              >
-                <option value="">— None —</option>
-                {UNIT_CODES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <p className="mb-1 text-sm font-medium text-brand-navy">Shipment frequency (optional)</p>
-        <div className="flex flex-wrap gap-2">
-          {FREQUENCY_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              aria-pressed={shipmentFrequency === opt.value}
-              onClick={() => setShipmentFrequency((f) => (f === opt.value ? "" : opt.value))}
-              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-                shipmentFrequency === opt.value
-                  ? "border-brand-blue bg-brand-blue text-white"
-                  : "border-gray-300 text-brand-navy hover:border-brand-blue"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <input type="hidden" name="shipmentFrequency" value={shipmentFrequency} />
-        {shipmentFrequency === "other" && (
-          <div className="mt-2">
-            <Input
-              id="shipmentFrequencyOther"
-              name="shipmentFrequencyOther"
-              label="Describe the range"
-              placeholder="e.g. every 6–8 weeks"
-              defaultValue={profile?.shipmentFrequencyOther}
-            />
-          </div>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="specificGravity" className="mb-1 block text-sm font-medium text-brand-navy">
-          Specific gravity (optional)
-        </label>
-        <div className="flex items-center gap-3">
-          <input
-            id="specificGravity"
-            name="specificGravity"
-            type="number"
-            min="0"
-            step="any"
-            placeholder="10.231"
-            defaultValue={profile?.specificGravity ?? undefined}
-            className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
-          />
-          <span className="text-sm text-gray-500">Water = 1.0</span>
-        </div>
-        <p className="mt-1 text-xs text-gray-500">For converting a volume estimate to weight, e.g. for biennial reporting.</p>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <Button type="submit" disabled={isPending} className="px-4 py-2 text-sm">
-          {isPending ? "Saving…" : mode === "create" ? "Save profile" : "Save changes"}
-        </Button>
-        <button type="button" onClick={onCancel} className="text-sm text-gray-500 hover:underline">
-          Cancel
-        </button>
-      </div>
-      {state?.success === false && <p className="text-sm text-red-600">❌ {state.error}</p>}
-        </>
-      )}
-    </form>
   );
 }

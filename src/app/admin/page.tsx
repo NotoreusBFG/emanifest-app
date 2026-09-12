@@ -25,6 +25,16 @@ const FLAG_LABELS: Record<string, { label: string; description: string }> = {
     description:
       "The \"By generator\" mode on the manifest lookup page — searches EPA's live records by generator name/EPA ID, with status/date-range filters and a printable waste-line table. Off means only the existing by-tracking-number lookup is shown.",
   },
+  manifestmate_wizard_generator: {
+    label: "ManifestMate Wizard — generator accounts",
+    description:
+      "Upload approved waste profile PDFs and have the Wizard draft ManifestMate profiles from them, for generator-type accounts. Off hides the Wizard button on the Waste profiles dashboard for this audience. Requires AI_GATEWAY_API_KEY to actually extract anything — the button still appears when this is on even if that key is missing, but extraction will show a clear \"not configured\" error until it's set.",
+  },
+  manifestmate_wizard_third_party: {
+    label: "ManifestMate Wizard — third-party accounts",
+    description:
+      "Same as above, for third-party accounts (against their approved customer list instead of managed sites).",
+  },
 };
 
 export default async function AdminPage({

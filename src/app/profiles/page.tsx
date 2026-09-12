@@ -83,7 +83,7 @@ export default function WasteProfilesPage() {
                 href="/profiles/wizard"
                 className="inline-flex items-center gap-2 rounded-md border-2 border-brand-blue px-4 py-2 text-sm font-semibold text-brand-blue hover:bg-brand-tint"
               >
-                <Image src="/manifestmate-wizard-icon.png" alt="" width={20} height={20} />
+                <Image src="/manifestmate-wizard-icon.png" alt="" width={30} height={30} />
                 ManifestMate Wizard
               </Link>
             )}

@@ -86,7 +86,7 @@ export default function ManifestMateWizardPage() {
         ← Back to Waste profiles
       </Link>
       <div className="mt-2 flex items-center gap-3">
-        <Image src="/manifestmate-wizard-icon.png" alt="" width={40} height={40} />
+        <Image src="/manifestmate-wizard-icon.png" alt="" width={60} height={60} />
         <h1 className="text-2xl font-bold text-brand-navy">ManifestMate Wizard</h1>
       </div>
 

@@ -243,11 +243,11 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     unNumber: "UN1846",
     shippingName: "Carbon tetrachloride",
     hazardClass: "6.1",
-    fCodes: ["F001"],
+    fCodes: ["F001", "F002"],
     uCodes: ["U211"],
     pCodes: [],
     dCodes: ["D019"],
-    notes: "F001 only -- carbon tetrachloride is NOT on F002's own list (verified against 40 CFR 261.31 text directly, 2026-09-13; an earlier pass had incorrectly added F002 here). D019 TC; U211 unused product (confirmed via secondary source).",
+    notes: "F001 alone if neat/pure carbon tetrachloride. F002 ALSO applies if this is a spent solvent mixture/blend containing 10%+ (by volume) carbon tetrachloride before use -- carbon tetrachloride isn't itself named on F002's own list (confirmed against 40 CFR 261.31 text directly via two independent sources, 2026-09-13), but F002's text cross-references F001's list for exactly this mixture case, and most real lab-pack waste streams are blends rather than neat chemical. D019 TC; U211 unused product (confirmed via secondary source).",
   },
   {
     unNumber: "UN1897",

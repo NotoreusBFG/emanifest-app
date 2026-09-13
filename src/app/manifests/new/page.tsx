@@ -28,12 +28,12 @@ import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
 import { getOnboardingProgressAction } from "@/app/actions/onboardingActions";
 import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import { listWasteProfilesForUserAction } from "@/app/actions/wasteProfileActions";
-import { listLabPacksForUserAction } from "@/app/actions/labPackActions";
+import { listLabPacksForUserAction, listLabPackJobsForUserAction } from "@/app/actions/labPackActions";
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { Manifest } from "@/lib/rcrainfo/types";
 import type { ImportedManifestPayload } from "@/lib/import/types";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
-import type { LabPack } from "@/lib/labPack/types";
+import type { LabPack, LabPackJob } from "@/lib/labPack/types";
 
 /**
  * Every field here is controlled by React state (not `defaultValue`),
@@ -69,6 +69,13 @@ export default function NewManifestPage() {
     // Only unlinked, draft packs make sense to offer here -- one already
     // attached to a shipped manifest shouldn't be picked again.
     listLabPacksForUserAction().then((packs) => setLabPacks(packs.filter((p) => !p.epaMtn)));
+  }, []);
+
+  const [labPackJobs, setLabPackJobs] = useState<LabPackJob[]>([]);
+  useEffect(() => {
+    // A "linked" job's drums are already all on a manifest -- nothing left
+    // to bulk-load, so it's excluded the same way linked drums are above.
+    listLabPackJobsForUserAction().then((jobs) => setLabPackJobs(jobs.filter((j) => j.status !== "linked")));
   }, []);
 
   const [accountType, setAccountType] = useState<string | null>(null);
@@ -354,6 +361,7 @@ export default function NewManifestPage() {
           defaultEmergencyPhone={defaultEmergencyPhone}
           wasteProfiles={wasteProfiles}
           labPacks={labPacks}
+          labPackJobs={labPackJobs}
           generatorSelectSource={
             accountType === "generator" ? "managed" : accountType === "third_party" ? "customers" : undefined
           }

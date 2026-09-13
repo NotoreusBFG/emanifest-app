@@ -9,9 +9,16 @@ import {
   getLabPack,
   listLabPacksForUser,
   linkLabPackToManifestLine,
+  createLabPackJob,
+  listLabPackJobsForGenerator,
+  listLabPackJobsForUser,
+  getLabPackJob,
+  deleteLabPackJob,
+  listLabPacksForJob,
+  duplicateLabPack,
 } from "@/services/labPackRepository";
 import { resolveEffectiveUserId } from "@/services/teamRepository";
-import type { LabPack, LabPackInput } from "@/lib/labPack/types";
+import type { LabPack, LabPackInput, LabPackJob, LabPackJobInput } from "@/lib/labPack/types";
 
 export type LabPackActionState =
   | { success: true; message: string; labPack: LabPack }
@@ -111,4 +118,96 @@ export async function linkLabPackToManifestLineAction(
   if (!user) return;
   const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
   await linkLabPackToManifestLine(supabase, effectiveUserId, labPackId, epaMtn, manifestLineNumber);
+}
+
+export type LabPackJobActionState =
+  | { success: true; message: string; job: LabPackJob }
+  | { success: false; error: string };
+
+export async function createLabPackJobAction(input: LabPackJobInput): Promise<LabPackJobActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  if (!input.generatorEpaId) return { success: false, error: "Select a generator first." };
+
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  const result = await createLabPackJob(supabase, effectiveUserId, input);
+  if (!result.success) return { success: false, error: result.error };
+
+  revalidatePath("/lab-packs");
+  return { success: true, message: "Job created.", job: result.job };
+}
+
+export async function listLabPackJobsForGeneratorAction(epaSiteId: string): Promise<LabPackJob[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  return listLabPackJobsForGenerator(supabase, effectiveUserId, epaSiteId);
+}
+
+export async function listLabPackJobsForUserAction(): Promise<LabPackJob[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  return listLabPackJobsForUser(supabase, effectiveUserId);
+}
+
+export async function getLabPackJobAction(id: string): Promise<LabPackJob | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  return getLabPackJob(supabase, effectiveUserId, id);
+}
+
+export async function deleteLabPackJobAction(id: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  const result = await deleteLabPackJob(supabase, effectiveUserId, id);
+  if (!result.success) return { success: false, error: result.error };
+
+  revalidatePath("/lab-packs");
+  return { success: true };
+}
+
+export async function listLabPacksForJobAction(jobId: string): Promise<LabPack[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  return listLabPacksForJob(supabase, effectiveUserId, jobId);
+}
+
+export async function duplicateLabPackAction(
+  sourceLabPackId: string,
+  target: { jobId: string } | { newJobName: string }
+): Promise<LabPackActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  const result = await duplicateLabPack(supabase, effectiveUserId, sourceLabPackId, target);
+  if (!result.success) return { success: false, error: result.error };
+
+  revalidatePath("/lab-packs");
+  return { success: true, message: "Lab pack copied.", labPack: result.labPack };
 }

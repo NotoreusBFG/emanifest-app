@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { createLabPackAction, updateLabPackAction } from "@/app/actions/labPackActions";
-import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { OUTER_CONTAINER_SIZE_OPTIONS, PHYSICAL_STATE_OPTIONS } from "@/lib/labPack/types";
 import type { LabPack, LabPackInput, LabPackLineItemInput, PhysicalState } from "@/lib/labPack/types";
-import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 
 const selectStyle =
   "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue bg-white";
@@ -39,18 +37,116 @@ function emptyRow(lineNumber: number): LineItemRow {
   };
 }
 
+/**
+ * Quick-add modal for the "standing at a bench packing drums" workflow --
+ * captures just the two essentials (name, waste codes) so entry is as fast
+ * as possible, then stays open with the fields cleared and refocused for
+ * the next chemical. Quantity/size/state/source/notes are still editable
+ * inline in the list below once a chemical's been added, same as before.
+ */
+function ChemicalQuickAddModal({
+  onSave,
+  onClose,
+}: {
+  onSave: (chemicalName: string, epaWasteCodesText: string) => void;
+  onClose: () => void;
+}) {
+  const [chemicalName, setChemicalName] = useState("");
+  const [epaWasteCodesText, setEpaWasteCodesText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSave = () => {
+    const name = chemicalName.trim();
+    if (!name) {
+      setError("Enter a chemical name.");
+      return;
+    }
+    onSave(name, epaWasteCodesText);
+    setChemicalName("");
+    setEpaWasteCodesText("");
+    setError(null);
+    nameInputRef.current?.focus();
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-brand-navy/50 p-5"
+    >
+      <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-brand-navy">Add a chemical</h3>
+          <button type="button" onClick={onClose} className="text-sm text-gray-400 hover:text-gray-600">
+            ✕
+          </button>
+        </div>
+
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSave();
+          }}
+        >
+          <div>
+            <label className="mb-1 block text-sm font-medium text-brand-navy">Chemical name</label>
+            <input
+              ref={nameInputRef}
+              autoFocus
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+              value={chemicalName}
+              onChange={(e) => setChemicalName(e.target.value)}
+            />
+          </div>
+          <Input
+            label="EPA waste code(s)"
+            placeholder="D001, F003"
+            value={epaWasteCodesText}
+            onChange={(e) => setEpaWasteCodesText(e.target.value)}
+          />
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <div className="mt-1 flex gap-3">
+            <Button type="submit" className="px-4 py-2 text-sm">
+              Save
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="px-4 py-2 text-sm">
+              Close
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500">
+            Quantity, container size, state, and source can be filled in on the list below.
+          </p>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export function LabPackFormFields({
   mode,
   labPack,
+  generator,
+  jobId,
   onDone,
   onCancel,
 }: {
   mode: "create" | "edit";
   labPack?: LabPack;
+  /** Fixed generator for a new drum, passed down from the parent job --
+   * generator selection now happens once at the job level (see
+   * LabPackGeneratorGate), not per drum. Omit for `mode="edit"`, where the
+   * drum's own already-set generator fields are used instead. */
+  generator?: { epaSiteId: string; name: string; address: string };
+  /** The lab_pack_jobs batch this drum is being created under. Omit (or
+   * pass null/undefined) for a legacy/ungrouped drum. */
+  jobId?: string | null;
   onDone: (labPack: LabPack) => void;
   onCancel: () => void;
 }) {
-  const [jobNumber, setJobNumber] = useState(labPack?.jobNumber ?? "");
+  const [poNumber, setPoNumber] = useState(labPack?.jobNumber ?? "");
   const [drumNumber, setDrumNumber] = useState(labPack?.drumNumber != null ? String(labPack.drumNumber) : "");
   const [isNonHazardous, setIsNonHazardous] = useState(labPack?.isNonHazardous ?? false);
   const [dotShippingDescription, setDotShippingDescription] = useState(labPack?.dotShippingDescription ?? "");
@@ -62,48 +158,32 @@ export function LabPackFormFields({
   const [outerContainerSize, setOuterContainerSize] = useState(labPack?.outerContainerSize ?? "");
   const [headerOpen, setHeaderOpen] = useState(mode === "create");
 
-  const [generatorEpaId, setGeneratorEpaId] = useState(labPack?.generatorEpaId ?? "");
-  const [generatorName, setGeneratorName] = useState(labPack?.generatorName ?? "");
-  const [generatorAddress, setGeneratorAddress] = useState(labPack?.generatorAddress ?? "");
-  const fillGeneratorFromSite = (site: SiteSearchResultItem) => {
-    const addr = site.siteAddress;
-    setGeneratorEpaId(site.epaSiteId);
-    setGeneratorName(site.name);
-    setGeneratorAddress([addr?.address1, addr?.city, addr?.state?.code, addr?.zip].filter(Boolean).join(", "));
-  };
+  const generatorEpaId = labPack?.generatorEpaId ?? generator?.epaSiteId ?? "";
+  const generatorName = labPack?.generatorName ?? generator?.name ?? "";
+  const generatorAddress = labPack?.generatorAddress ?? generator?.address ?? "";
+  const effectiveJobId = mode === "create" ? (jobId ?? null) : (labPack?.jobId ?? null);
 
   const initialRows: LineItemRow[] =
-    labPack && labPack.lineItems.length > 0
-      ? labPack.lineItems.map((item) => ({
-          key: item.id,
-          lineNumber: item.lineNumber,
-          chemicalName: item.chemicalName,
-          quantity: item.quantity != null ? String(item.quantity) : "",
-          containerSize: item.containerSize,
-          physicalState: item.physicalState,
-          epaWasteCodesText: item.epaWasteCodes.join(", "),
-          sourceLocation: item.sourceLocation,
-          notes: item.notes,
-        }))
-      : [emptyRow(1)];
+    labPack?.lineItems.map((item) => ({
+      key: item.id,
+      lineNumber: item.lineNumber,
+      chemicalName: item.chemicalName,
+      quantity: item.quantity != null ? String(item.quantity) : "",
+      containerSize: item.containerSize,
+      physicalState: item.physicalState,
+      epaWasteCodesText: item.epaWasteCodes.join(", "),
+      sourceLocation: item.sourceLocation,
+      notes: item.notes,
+    })) ?? [];
   const [rows, setRows] = useState<LineItemRow[]>(initialRows);
-  const [focusKey, setFocusKey] = useState<string | null>(null);
-  const nameInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
-
-  useEffect(() => {
-    if (!focusKey) return;
-    nameInputRefs.current.get(focusKey)?.focus();
-    setFocusKey(null);
-  }, [focusKey]);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   const updateRow = (key: string, patch: Partial<LineItemRow>) => {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   };
 
-  const addRow = () => {
-    const next = emptyRow(rows.length + 1);
-    setRows((prev) => [...prev, next]);
-    setFocusKey(next.key);
+  const handleQuickAddSave = (chemicalName: string, epaWasteCodesText: string) => {
+    setRows((prev) => [...prev, { ...emptyRow(prev.length + 1), chemicalName, epaWasteCodesText }]);
   };
 
   const removeRow = (key: string) => {
@@ -142,7 +222,8 @@ export function LabPackFormFields({
     }
 
     const input: LabPackInput = {
-      jobNumber: jobNumber.trim(),
+      jobId: effectiveJobId,
+      jobNumber: poNumber.trim(),
       generatorEpaId,
       generatorName,
       generatorAddress,
@@ -186,6 +267,12 @@ export function LabPackFormFields({
         </button>
         {headerOpen && (
           <div className="flex flex-col gap-3 border-t border-gray-100 px-4 py-4">
+            {generatorEpaId && (
+              <div className="rounded-md bg-brand-tint px-3 py-2 text-sm text-brand-navy">
+                Generator: {generatorName} ({generatorEpaId})
+              </div>
+            )}
+
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -196,20 +283,13 @@ export function LabPackFormFields({
               Non-hazardous lab pack
             </label>
 
-            {!isNonHazardous && (
-              <div>
-                <p className="mb-1 text-sm font-medium text-brand-navy">Generator site</p>
-                <LockedGeneratorSelect onSelect={fillGeneratorFromSite} />
-                {generatorEpaId && (
-                  <p className="text-xs text-gray-500">
-                    {generatorName} ({generatorEpaId})
-                  </p>
-                )}
-              </div>
-            )}
-
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Input label="Job #" value={jobNumber} onChange={(e) => setJobNumber(e.target.value)} />
+              <Input
+                label="PO / work order #"
+                hint="The third party's own reference number, if any -- separate from this job's LP number."
+                value={poNumber}
+                onChange={(e) => setPoNumber(e.target.value)}
+              />
               <Input
                 label="Drum #"
                 inputMode="numeric"
@@ -291,172 +371,167 @@ export function LabPackFormFields({
         )}
       </div>
 
-      {/* Line items -- card layout on mobile, table at md:+. This is the
-          part used repeatedly while standing at a bench packing containers,
-          so it stays simple: one card/row per chemical. */}
+      {/* Line items -- card layout on mobile, table at md:+. New chemicals
+          come in one at a time via the quick-add modal below; the fields
+          here (qty/size/state/source/notes) stay inline-editable once
+          added. */}
       <div className="flex flex-col gap-3">
         <h3 className="text-sm font-semibold text-brand-navy">Chemicals in this drum</h3>
 
-        <div className="hidden md:block">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase text-gray-500">
-                <th className="pb-2">#</th>
-                <th className="pb-2">Chemical name</th>
-                <th className="pb-2">Qty</th>
-                <th className="pb-2">Container size</th>
-                <th className="pb-2">State</th>
-                <th className="pb-2">EPA waste code(s)</th>
-                <th className="pb-2">Source / plant</th>
-                <th className="pb-2"></th>
-              </tr>
-            </thead>
-            <tbody>
+        {rows.length === 0 && (
+          <p className="text-sm text-gray-500">No chemicals added yet -- click + Add chemical to start.</p>
+        )}
+
+        {rows.length > 0 && (
+          <>
+            <div className="hidden md:block">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase text-gray-500">
+                    <th className="pb-2">#</th>
+                    <th className="pb-2">Chemical name</th>
+                    <th className="pb-2">Qty</th>
+                    <th className="pb-2">Container size</th>
+                    <th className="pb-2">State</th>
+                    <th className="pb-2">EPA waste code(s)</th>
+                    <th className="pb-2">Source / plant</th>
+                    <th className="pb-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.key} className="border-t border-gray-100">
+                      <td className="py-2 pr-2 text-gray-500">{row.lineNumber}</td>
+                      <td className="py-2 pr-2">
+                        <input
+                          className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                          value={row.chemicalName}
+                          onChange={(e) => updateRow(row.key, { chemicalName: e.target.value })}
+                        />
+                      </td>
+                      <td className="py-2 pr-2">
+                        <input
+                          inputMode="numeric"
+                          className="w-16 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                          value={row.quantity}
+                          onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
+                        />
+                      </td>
+                      <td className="py-2 pr-2">
+                        <input
+                          className="w-24 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                          placeholder="4L"
+                          value={row.containerSize}
+                          onChange={(e) => updateRow(row.key, { containerSize: e.target.value })}
+                        />
+                      </td>
+                      <td className="py-2 pr-2">
+                        <select
+                          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                          value={row.physicalState ?? ""}
+                          onChange={(e) => updateRow(row.key, { physicalState: (e.target.value || null) as PhysicalState | null })}
+                        >
+                          <option value="">—</option>
+                          {PHYSICAL_STATE_OPTIONS.map((s) => (
+                            <option key={s.value} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="py-2 pr-2">
+                        <input
+                          className="w-32 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                          placeholder="D001, F003"
+                          value={row.epaWasteCodesText}
+                          onChange={(e) => updateRow(row.key, { epaWasteCodesText: e.target.value })}
+                        />
+                      </td>
+                      <td className="py-2 pr-2">
+                        <input
+                          className="w-28 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                          value={row.sourceLocation}
+                          onChange={(e) => updateRow(row.key, { sourceLocation: e.target.value })}
+                        />
+                      </td>
+                      <td className="py-2">
+                        <button
+                          type="button"
+                          onClick={() => removeRow(row.key)}
+                          className="text-xs text-red-600"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-col gap-3 md:hidden">
               {rows.map((row) => (
-                <tr key={row.key} className="border-t border-gray-100">
-                  <td className="py-2 pr-2 text-gray-500">{row.lineNumber}</td>
-                  <td className="py-2 pr-2">
-                    <input
-                      ref={(el) => {
-                        if (el) nameInputRefs.current.set(row.key, el);
-                        else nameInputRefs.current.delete(row.key);
-                      }}
-                      className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                      value={row.chemicalName}
-                      onChange={(e) => updateRow(row.key, { chemicalName: e.target.value })}
-                    />
-                  </td>
-                  <td className="py-2 pr-2">
+                <div key={row.key} className="rounded-lg border border-gray-200 bg-white p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-400">Item {row.lineNumber}</span>
+                    <button type="button" onClick={() => removeRow(row.key)} className="text-xs text-red-600">
+                      Remove
+                    </button>
+                  </div>
+                  <input
+                    placeholder="Chemical name"
+                    className="mb-2 w-full rounded-md border border-gray-300 px-3 py-2.5 text-base"
+                    value={row.chemicalName}
+                    onChange={(e) => updateRow(row.key, { chemicalName: e.target.value })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
                     <input
                       inputMode="numeric"
-                      className="w-16 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                      placeholder="Qty"
+                      className="rounded-md border border-gray-300 px-3 py-2.5 text-base"
                       value={row.quantity}
                       onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
                     />
-                  </td>
-                  <td className="py-2 pr-2">
                     <input
-                      className="w-24 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                      placeholder="4L"
+                      placeholder="Size (4L)"
+                      className="rounded-md border border-gray-300 px-3 py-2.5 text-base"
                       value={row.containerSize}
                       onChange={(e) => updateRow(row.key, { containerSize: e.target.value })}
                     />
-                  </td>
-                  <td className="py-2 pr-2">
                     <select
-                      className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                      className="rounded-md border border-gray-300 px-3 py-2.5 text-base"
                       value={row.physicalState ?? ""}
                       onChange={(e) => updateRow(row.key, { physicalState: (e.target.value || null) as PhysicalState | null })}
                     >
-                      <option value="">—</option>
+                      <option value="">State —</option>
                       {PHYSICAL_STATE_OPTIONS.map((s) => (
                         <option key={s.value} value={s.value}>
                           {s.label}
                         </option>
                       ))}
                     </select>
-                  </td>
-                  <td className="py-2 pr-2">
                     <input
-                      className="w-32 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                      placeholder="D001, F003"
+                      placeholder="Waste code(s)"
+                      className="rounded-md border border-gray-300 px-3 py-2.5 text-base"
                       value={row.epaWasteCodesText}
                       onChange={(e) => updateRow(row.key, { epaWasteCodesText: e.target.value })}
                     />
-                  </td>
-                  <td className="py-2 pr-2">
                     <input
-                      className="w-28 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                      placeholder="Source / plant"
+                      className="col-span-2 rounded-md border border-gray-300 px-3 py-2.5 text-base"
                       value={row.sourceLocation}
                       onChange={(e) => updateRow(row.key, { sourceLocation: e.target.value })}
                     />
-                  </td>
-                  <td className="py-2">
-                    <button
-                      type="button"
-                      onClick={() => removeRow(row.key)}
-                      disabled={rows.length === 1}
-                      className="text-xs text-red-600 disabled:opacity-30"
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-col gap-3 md:hidden">
-          {rows.map((row) => (
-            <div key={row.key} className="rounded-lg border border-gray-200 bg-white p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-400">Item {row.lineNumber}</span>
-                <button
-                  type="button"
-                  onClick={() => removeRow(row.key)}
-                  disabled={rows.length === 1}
-                  className="text-xs text-red-600 disabled:opacity-30"
-                >
-                  Remove
-                </button>
-              </div>
-              <input
-                ref={(el) => {
-                  if (el) nameInputRefs.current.set(row.key, el);
-                  else nameInputRefs.current.delete(row.key);
-                }}
-                placeholder="Chemical name"
-                className="mb-2 w-full rounded-md border border-gray-300 px-3 py-2.5 text-base"
-                value={row.chemicalName}
-                onChange={(e) => updateRow(row.key, { chemicalName: e.target.value })}
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  inputMode="numeric"
-                  placeholder="Qty"
-                  className="rounded-md border border-gray-300 px-3 py-2.5 text-base"
-                  value={row.quantity}
-                  onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
-                />
-                <input
-                  placeholder="Size (4L)"
-                  className="rounded-md border border-gray-300 px-3 py-2.5 text-base"
-                  value={row.containerSize}
-                  onChange={(e) => updateRow(row.key, { containerSize: e.target.value })}
-                />
-                <select
-                  className="rounded-md border border-gray-300 px-3 py-2.5 text-base"
-                  value={row.physicalState ?? ""}
-                  onChange={(e) => updateRow(row.key, { physicalState: (e.target.value || null) as PhysicalState | null })}
-                >
-                  <option value="">State —</option>
-                  {PHYSICAL_STATE_OPTIONS.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  placeholder="Waste code(s)"
-                  className="rounded-md border border-gray-300 px-3 py-2.5 text-base"
-                  value={row.epaWasteCodesText}
-                  onChange={(e) => updateRow(row.key, { epaWasteCodesText: e.target.value })}
-                />
-                <input
-                  placeholder="Source / plant"
-                  className="col-span-2 rounded-md border border-gray-300 px-3 py-2.5 text-base"
-                  value={row.sourceLocation}
-                  onChange={(e) => updateRow(row.key, { sourceLocation: e.target.value })}
-                />
-              </div>
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         <button
           type="button"
-          onClick={addRow}
+          onClick={() => setQuickAddOpen(true)}
           className="rounded-full border-2 border-brand-blue px-5 py-3 text-sm font-semibold text-brand-blue hover:bg-brand-tint"
         >
           + Add chemical
@@ -480,6 +555,8 @@ export function LabPackFormFields({
           Cancel
         </Button>
       </div>
+
+      {quickAddOpen && <ChemicalQuickAddModal onSave={handleQuickAddSave} onClose={() => setQuickAddOpen(false)} />}
     </div>
   );
 }

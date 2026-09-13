@@ -11,7 +11,8 @@ import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
 import type { SiteSearchResultItem, FederalWasteCode } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
-import type { LabPack } from "@/lib/labPack/types";
+import type { LabPack, LabPackJob } from "@/lib/labPack/types";
+import { listLabPacksForJobAction } from "@/app/actions/labPackActions";
 
 const row = { display: "flex", gap: "10px" };
 const field = { flex: 1, marginBottom: "12px" };
@@ -162,6 +163,22 @@ export function emptyWasteLine(id: number, prefill: boolean): WasteLineFormState
   };
 }
 
+/** Fields a /lab-packs drum is authoritative for, shared by the per-line
+ * "link a lab pack" picker (applyLabPack, updates one existing line) and
+ * the "load a lab pack job" bulk control (creates N new lines) below. */
+function labPackPrefill(pack: LabPack): Partial<WasteLineFormState> {
+  return {
+    dotHazardous: !pack.isNonHazardous,
+    properShippingName: pack.dotShippingDescription,
+    federalWasteCode: pack.wasteCodes.join(", "),
+    isLabPack: true,
+    labPackId: pack.id,
+    containerTypeCode: pack.outerContainerTypeCode,
+    containerNumber: "1",
+    wasteDescription: pack.isNonHazardous ? "Non-hazardous lab pack" : "",
+  };
+}
+
 /**
  * Generator and designated facility share the same form shape
  * (`HandlerFormState`) and the same fill logic — EPA's registered contact
@@ -234,6 +251,10 @@ export interface ManifestFieldsFormProps {
    * for the per-line "link a lab pack" picker below. Omit (or pass an
    * empty array) to hide that picker entirely. */
   labPacks?: LabPack[];
+  /** The current user's open lab-pack jobs with at least one unlinked drum,
+   * for the "load a whole job" bulk control above the waste-lines list.
+   * Omit (or pass an empty array) to hide that control entirely. */
+  labPackJobs?: LabPackJob[];
   /**
    * `"edit"` (default): every fieldset is editable, the owner's
    * `/manifests/new` behavior, unchanged.
@@ -299,6 +320,7 @@ export function ManifestFieldsForm({
   federalWasteCodesFn,
   wasteProfiles = [],
   labPacks = [],
+  labPackJobs = [],
   mode = "edit",
   generatorSelectSource,
 }: ManifestFieldsFormProps) {
@@ -406,16 +428,33 @@ export function ManifestFieldsForm({
    * structured fields aren't split back out automatically; review them via
    * the hazmat search above if they need to be exact. */
   const applyLabPack = (lineId: number, pack: LabPack) => {
-    updateWasteLine(lineId, {
-      dotHazardous: !pack.isNonHazardous,
-      properShippingName: pack.dotShippingDescription,
-      federalWasteCode: pack.wasteCodes.join(", "),
-      isLabPack: true,
-      labPackId: pack.id,
-      containerTypeCode: pack.outerContainerTypeCode,
-      containerNumber: "1",
-      wasteDescription: pack.isNonHazardous ? "Non-hazardous lab pack" : "",
-    });
+    updateWasteLine(lineId, labPackPrefill(pack));
+  };
+
+  const [selectedLabPackJobId, setSelectedLabPackJobId] = useState("");
+  const [loadingLabPackJob, setLoadingLabPackJob] = useState(false);
+
+  /** Bulk-loads every not-yet-linked drum in a lab pack job onto the
+   * manifest -- "add N lines the normal way, prefilled" rather than a new
+   * save path, so it reuses the exact same per-line labPackId hidden field
+   * and linkLabPackToManifestLineAction write-back the single-drum picker
+   * above already uses. Zero changes needed to buildManifestInput.ts or
+   * manifestActions.ts. */
+  const handleLoadLabPackJob = async () => {
+    if (!selectedLabPackJobId) return;
+    setLoadingLabPackJob(true);
+    const jobPacks = await listLabPacksForJobAction(selectedLabPackJobId);
+    setLoadingLabPackJob(false);
+    const unlinked = jobPacks.filter((p) => !p.epaMtn);
+    if (unlinked.length === 0) return;
+
+    const nextId = wasteLines.length ? Math.max(...wasteLines.map((l) => l.id)) + 1 : 0;
+    const newLines = unlinked.map((pack, i) => ({
+      ...emptyWasteLine(nextId + i, false),
+      ...labPackPrefill(pack),
+    }));
+    setWasteLines((lines) => [...lines, ...newLines]);
+    setSelectedLabPackJobId("");
   };
 
   const addContinuationPage = () => {
@@ -802,6 +841,47 @@ export function ManifestFieldsForm({
         </div>
         <StateWasteCodeNote state={facility.state} />
       </fieldset>
+      )}
+
+      {labPackJobs.length > 0 && (
+        <div style={{ marginBottom: "20px", padding: "12px", border: `1px dashed ${brand.blue}`, borderRadius: "6px" }}>
+          <label style={label}>
+            Load a lab pack job (optional) —{" "}
+            <Link href="/lab-packs" target="_blank" style={{ color: brand.blue, fontWeight: 400 }}>
+              manage lab pack jobs
+            </Link>
+          </label>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+            <select
+              value={selectedLabPackJobId}
+              onChange={(e) => setSelectedLabPackJobId(e.target.value)}
+              style={{ ...inputStyle, flex: 1, minWidth: "200px" }}
+            >
+              <option value="">— Select a job —</option>
+              {labPackJobs.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.jobNumber} — {j.jobName || "Untitled"} ({j.drumCount} drum{j.drumCount === 1 ? "" : "s"})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleLoadLabPackJob}
+              disabled={!selectedLabPackJobId || loadingLabPackJob}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "white",
+                color: brand.blue,
+                border: `1px solid ${brand.blue}`,
+                borderRadius: "4px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {loadingLabPackJob ? "Loading…" : "Load job"}
+            </button>
+          </div>
+        </div>
       )}
 
       {wasteLines.map((line, index) => (

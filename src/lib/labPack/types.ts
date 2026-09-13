@@ -1,5 +1,6 @@
 export type PhysicalState = "liquid" | "solid" | "gas";
 export type LabPackStatus = "draft" | "finalized";
+export type LabPackJobStatus = "open" | "ready" | "linked" | "archived";
 
 export interface LabPackLineItem {
   id: string;
@@ -26,6 +27,10 @@ export interface LabPackLineItemInput {
 
 export interface LabPack {
   id: string;
+  /** The lab_pack_jobs batch this drum belongs to, if any -- null for a
+   * non-hazardous one-off or a pre-phase-2 "legacy" drum. Distinct from
+   * jobNumber below, which is a free-text external reference. */
+  jobId: string | null;
   jobNumber: string;
   generatorEpaId: string;
   generatorName: string;
@@ -49,6 +54,7 @@ export interface LabPack {
 }
 
 export interface LabPackInput {
+  jobId: string | null;
   jobNumber: string;
   generatorEpaId: string;
   generatorName: string;
@@ -64,6 +70,34 @@ export interface LabPackInput {
   drumNumber: number | null;
   status: LabPackStatus;
   lineItems: LabPackLineItemInput[];
+}
+
+/** A batch of drums prepped for one generator, referenced by ManifestMate's
+ * own "LP-000001" number -- lets a third-party lab-pack service group work
+ * before any manifest/MTN exists, then bulk-load the whole batch onto a
+ * manifest once one does. */
+export interface LabPackJob {
+  id: string;
+  jobNumber: string;
+  jobName: string;
+  generatorEpaId: string;
+  generatorName: string;
+  generatorAddress: string;
+  status: LabPackJobStatus;
+  epaMtn: string | null;
+  /** Count of lab_packs rows currently linked to this job -- computed by
+   * the repository via an embedded count query, not a real column. */
+  drumCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LabPackJobInput {
+  jobName: string;
+  generatorEpaId: string;
+  generatorName: string;
+  generatorAddress: string;
+  status: LabPackJobStatus;
 }
 
 /** Outer container size options shown on the reference vendor form

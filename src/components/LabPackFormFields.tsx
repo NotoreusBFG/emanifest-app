@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createLabPackAction, updateLabPackAction } from "@/app/actions/labPackActions";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { ChemicalNameSearchField } from "@/components/ChemicalNameSearchField";
 import { CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { OUTER_CONTAINER_SIZE_OPTIONS, PHYSICAL_STATE_OPTIONS } from "@/lib/labPack/types";
 import type { LabPack, LabPackInput, LabPackLineItemInput, PhysicalState } from "@/lib/labPack/types";
@@ -66,6 +67,9 @@ function ChemicalQuickAddModal({
   const [fields, setFields] = useState<ChemicalQuickAddFields>(emptyQuickAddFields());
   const [error, setError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    nameInputRef.current?.focus();
+  }, []);
 
   const update = (patch: Partial<ChemicalQuickAddFields>) => setFields((f) => ({ ...f, ...patch }));
 
@@ -102,16 +106,12 @@ function ChemicalQuickAddModal({
             handleSave();
           }}
         >
-          <div>
-            <label className="mb-1 block text-sm font-medium text-brand-navy">Chemical name</label>
-            <input
-              ref={nameInputRef}
-              autoFocus
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
-              value={fields.chemicalName}
-              onChange={(e) => update({ chemicalName: e.target.value })}
-            />
-          </div>
+          <ChemicalNameSearchField
+            ref={nameInputRef}
+            value={fields.chemicalName}
+            onChange={(name) => update({ chemicalName: name })}
+            onSelectCodes={(codesText) => update({ epaWasteCodesText: codesText })}
+          />
           <Input
             label="EPA waste code(s)"
             placeholder="D001, F003"

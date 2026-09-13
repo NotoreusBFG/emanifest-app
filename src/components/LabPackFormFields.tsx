@@ -37,34 +37,46 @@ function emptyRow(lineNumber: number): LineItemRow {
   };
 }
 
+export interface ChemicalQuickAddFields {
+  chemicalName: string;
+  epaWasteCodesText: string;
+  quantity: string;
+  containerSize: string;
+  physicalState: PhysicalState | null;
+  sourceLocation: string;
+}
+
+function emptyQuickAddFields(): ChemicalQuickAddFields {
+  return { chemicalName: "", epaWasteCodesText: "", quantity: "", containerSize: "", physicalState: null, sourceLocation: "" };
+}
+
 /**
  * Quick-add modal for the "standing at a bench packing drums" workflow --
- * captures just the two essentials (name, waste codes) so entry is as fast
- * as possible, then stays open with the fields cleared and refocused for
- * the next chemical. Quantity/size/state/source/notes are still editable
- * inline in the list below once a chemical's been added, same as before.
+ * captures a whole line item in one shot, then stays open with the fields
+ * cleared and refocused for the next chemical. Fields stay editable inline
+ * in the list below afterward too, for a correction without reopening this.
  */
 function ChemicalQuickAddModal({
   onSave,
   onClose,
 }: {
-  onSave: (chemicalName: string, epaWasteCodesText: string) => void;
+  onSave: (fields: ChemicalQuickAddFields) => void;
   onClose: () => void;
 }) {
-  const [chemicalName, setChemicalName] = useState("");
-  const [epaWasteCodesText, setEpaWasteCodesText] = useState("");
+  const [fields, setFields] = useState<ChemicalQuickAddFields>(emptyQuickAddFields());
   const [error, setError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  const update = (patch: Partial<ChemicalQuickAddFields>) => setFields((f) => ({ ...f, ...patch }));
+
   const handleSave = () => {
-    const name = chemicalName.trim();
+    const name = fields.chemicalName.trim();
     if (!name) {
       setError("Enter a chemical name.");
       return;
     }
-    onSave(name, epaWasteCodesText);
-    setChemicalName("");
-    setEpaWasteCodesText("");
+    onSave({ ...fields, chemicalName: name });
+    setFields(emptyQuickAddFields());
     setError(null);
     nameInputRef.current?.focus();
   };
@@ -96,15 +108,49 @@ function ChemicalQuickAddModal({
               ref={nameInputRef}
               autoFocus
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
-              value={chemicalName}
-              onChange={(e) => setChemicalName(e.target.value)}
+              value={fields.chemicalName}
+              onChange={(e) => update({ chemicalName: e.target.value })}
             />
           </div>
           <Input
             label="EPA waste code(s)"
             placeholder="D001, F003"
-            value={epaWasteCodesText}
-            onChange={(e) => setEpaWasteCodesText(e.target.value)}
+            value={fields.epaWasteCodesText}
+            onChange={(e) => update({ epaWasteCodesText: e.target.value })}
+          />
+          <div className="grid grid-cols-3 gap-2">
+            <Input
+              label="Qty"
+              inputMode="numeric"
+              value={fields.quantity}
+              onChange={(e) => update({ quantity: e.target.value })}
+            />
+            <Input
+              label="Size"
+              placeholder="4L"
+              value={fields.containerSize}
+              onChange={(e) => update({ containerSize: e.target.value })}
+            />
+            <div>
+              <label className="mb-1 block text-sm font-medium text-brand-navy">State</label>
+              <select
+                className={selectStyle}
+                value={fields.physicalState ?? ""}
+                onChange={(e) => update({ physicalState: (e.target.value || null) as PhysicalState | null })}
+              >
+                <option value="">—</option>
+                {PHYSICAL_STATE_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <Input
+            label="Note"
+            value={fields.sourceLocation}
+            onChange={(e) => update({ sourceLocation: e.target.value })}
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -116,9 +162,6 @@ function ChemicalQuickAddModal({
               Close
             </Button>
           </div>
-          <p className="text-xs text-gray-500">
-            Quantity, container size, state, and source can be filled in on the list below.
-          </p>
         </form>
       </div>
     </div>
@@ -182,8 +225,8 @@ export function LabPackFormFields({
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   };
 
-  const handleQuickAddSave = (chemicalName: string, epaWasteCodesText: string) => {
-    setRows((prev) => [...prev, { ...emptyRow(prev.length + 1), chemicalName, epaWasteCodesText }]);
+  const handleQuickAddSave = (fields: ChemicalQuickAddFields) => {
+    setRows((prev) => [...prev, { ...emptyRow(prev.length + 1), ...fields }]);
   };
 
   const removeRow = (key: string) => {
@@ -394,7 +437,7 @@ export function LabPackFormFields({
                     <th className="pb-2">Container size</th>
                     <th className="pb-2">State</th>
                     <th className="pb-2">EPA waste code(s)</th>
-                    <th className="pb-2">Source / plant</th>
+                    <th className="pb-2">Note</th>
                     <th className="pb-2"></th>
                   </tr>
                 </thead>
@@ -517,7 +560,7 @@ export function LabPackFormFields({
                       onChange={(e) => updateRow(row.key, { epaWasteCodesText: e.target.value })}
                     />
                     <input
-                      placeholder="Source / plant"
+                      placeholder="Note"
                       className="col-span-2 rounded-md border border-gray-300 px-3 py-2.5 text-base"
                       value={row.sourceLocation}
                       onChange={(e) => updateRow(row.key, { sourceLocation: e.target.value })}

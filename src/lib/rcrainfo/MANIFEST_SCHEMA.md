@@ -526,25 +526,66 @@ against live preprod (not 404s), across 3 endpoints:
    no stray `UnderCorrection` version. The failed attempts did not corrupt
    either manifest.
 
+### Follow-up session, 2026-09-13 (continued) — more ruled out, still unresolved
+
+Picked back up same day to try to unblock this. Confirmed `correct` is a
+real, currently-supported, non-deprecated EPA service (not a legacy dead
+end) via their public issue tracker — `EM-3452 "Remove Patch Update and
+Patch Correct services"` explicitly says the *Patch* variant (a
+lighter-weight partial-correction API idea, `EM-2933`) was removed for lack
+of use, while the **full `correct` API is what that Patch proposal was
+explicitly modeled on** and stays intact. Other issues (`EM-1893`,
+`EM-3334`) describe real bugs in `correct` being fixed over time in
+production, confirming EPA's own team actively exercises this exact
+service.
+
+Ruled out two more specific hypotheses this session:
+- **`correctionInfo` on the request:** the master JSON schema
+  (`Services-Information/Schema/emanifest.json`) says `CorrectionInfo`
+  "shall not be provided for Save and Update" but conspicuously does NOT
+  repeat that exclusion for Correct (unlike the separate `CorrectionRequest`
+  definition, which explicitly excludes Save/Update/**Correct** all
+  three) — a real signal that `correct` might expect it as input. Tested
+  keeping `correctionInfo` exactly as returned by GET instead of
+  stripping it (fresh manifest `100097420ELC`): **same error, no
+  difference.**
+- **Async settling delay right after signing:** retried `correct` on
+  `100097420ELC` several real minutes later (not an artificial sleep) —
+  same error, so this isn't the manifest still "settling" server-side
+  after the final signature.
+- **HTTP method:** confirmed via `OPTIONS` probe — `Allow: OPTIONS,PUT`,
+  so `PUT` is right, this isn't another `update.md`-style docs-vs-reality
+  method mismatch.
+
+**Still unresolved, and now the most likely explanation:** the exact
+string `"Manifest version already exists in the system"` doesn't appear
+anywhere in EPA's own documentation, JSON schemas, or GitHub issue
+history — it isn't one of `correct.md`'s two documented pre-flight lock
+errors (`E_ManifestLockedAsyncSign`, `E_ManifestLockedEpaChangeBiller`).
+Given how much has been ruled out on our end, this now looks more like
+either a genuinely undocumented precondition or a live preprod-side bug
+than a payload-shape mistake — the kind of thing that needs a direct
+answer from EPA rather than more blind trial and error. Added to
+`private-notes/admin-notes/epa-emanifest-users-calls.md`'s open-questions
+list for the next Users Call, with the exact error text and everything
+ruled out, so it can be asked precisely instead of re-derived.
+
 ### Open questions for next session
 
-- Is "Manifest version already exists in the system" a known preprod-only
-  quirk (worth asking EPA about on the next Users Call), or are we still
-  missing a required field/shape difference between `correct` and
-  `update`? Try comparing against one of the `Reference/2021 User
-  Meetings/Scenario-*-emanifest-update-valid-*-example.json` fixtures in
-  EPA's own repo line-by-line, since those are real accepted payloads.
-  Also worth trying with `zip_file: null` explicitly vs. omitted, since
-  `emanifest-py`'s `correct_manifest()` treats a null attachment
-  differently in its multipart encoding than an absent key.
+- Get EPA's answer on "Manifest version already exists in the system"
+  from the Users Call (see admin-notes) before spending more live-testing
+  time on it — further guessing without their input has hit diminishing
+  returns this session.
+- If EPA says the payload is fine and this is a known preprod bug, worth
+  asking whether it also reproduces in prod, and whether there's a
+  workaround (e.g. a required field truly undocumented anywhere public).
 - Does our preprod API ID/Key pair actually carry "correction" permission
-  on the RCRAInfo side? Site permissions here are already known to be
-  granular per-module (create vs. sign, see
-  `project_manifestmate_create_vs_sign_permission` in Claude's memory) —
-  a missing correction-specific permission would plausibly still surface
-  as a generic `E_ManifestProcessingError` rather than a clean
-  `E_UserNotAuthorized`, given this API's track record of misleading
-  generic error text (e.g. the Tomcat 415s elsewhere in this doc).
+  on the RCRAInfo side? Weakened as a leading theory this session — a
+  missing-permission error is documented as a clean `E_SitePermissions`
+  (see `docs/Services/authentication.md`'s "Manifest Services User
+  Authorization" section), which doesn't match what we're actually
+  getting — but still worth confirming directly with EPA since it's cheap
+  to ask.
 - **Bottom line for the roadmap decision this doc exists to inform:** a
   read-only "Manifest History" view (who signed, when, version list) is
   buildable **today** with confirmed-working, real data — no blockers. A

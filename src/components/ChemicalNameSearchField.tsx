@@ -18,10 +18,31 @@ interface LocalEntry {
   name: string;
   codes: string[];
   note: string | null;
+  /** D001/D002/D003 codes this chemical VERY COMMONLY triggers by property
+   * (e.g. concentrated hydrochloric acid = D002) -- shown as a distinct
+   * "likely, verify your own waste" hint, never merged into `codes`
+   * (which gets written straight into the waste-codes field on selection)
+   * since these are never a guaranteed identity-based code the way F/K/P/U
+   * codes are. Only populated for the static list -- a user's own custom
+   * entry has no equivalent field in custom_waste_codes today. */
+  possibleCharacteristicCodes: string[];
 }
 
-function toLocalEntry(e: { shippingName: string; fCodes: string[]; uCodes: string[]; pCodes: string[]; dCodes: string[]; notes: string }): LocalEntry {
-  return { name: e.shippingName, codes: [...e.fCodes, ...e.uCodes, ...e.pCodes, ...e.dCodes], note: e.notes || null };
+function toLocalEntry(e: {
+  shippingName: string;
+  fCodes: string[];
+  uCodes: string[];
+  pCodes: string[];
+  dCodes: string[];
+  possibleCharacteristicCodes?: string[];
+  notes: string;
+}): LocalEntry {
+  return {
+    name: e.shippingName,
+    codes: [...e.fCodes, ...e.uCodes, ...e.pCodes, ...e.dCodes],
+    note: e.notes || null,
+    possibleCharacteristicCodes: e.possibleCharacteristicCodes ?? [],
+  };
 }
 
 function customToLocalEntry(e: CustomWasteCode): LocalEntry {
@@ -29,6 +50,7 @@ function customToLocalEntry(e: CustomWasteCode): LocalEntry {
     name: e.chemicalName,
     codes: [...e.fCodes, ...e.uCodes, ...e.pCodes, ...e.dCodes],
     note: e.notes || null,
+    possibleCharacteristicCodes: [],
   };
 }
 
@@ -42,6 +64,9 @@ interface ChemicalMatch {
    * see the render branches below. */
   note: string | null;
   source: "local" | "api-cited" | "api-unconfirmed";
+  /** See LocalEntry's field of the same name -- always empty for API-tier
+   * matches, since that data doesn't come with this signal today. */
+  possibleCharacteristicCodes: string[];
 }
 
 /**
@@ -124,6 +149,7 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
         codes: e.codes,
         note: e.note,
         source: "local" as const,
+        possibleCharacteristicCodes: e.possibleCharacteristicCodes,
       }));
   }, [trimmed, isCasQuery, allLocalEntries]);
 
@@ -150,6 +176,7 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
             codes: localEntry.codes,
             note: localEntry.note,
             source: "local" as const,
+            possibleCharacteristicCodes: localEntry.possibleCharacteristicCodes,
           };
         }
         if (m.explanation) {
@@ -159,6 +186,7 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
             codes: m.codes,
             note: m.explanation,
             source: "api-cited" as const,
+            possibleCharacteristicCodes: [],
           };
         }
         return {
@@ -167,6 +195,7 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
           codes: m.codes,
           note: "Only P/U-list codes confirmed -- verify F/K/D codes manually (40 CFR 261.31-.33).",
           source: "api-unconfirmed" as const,
+          possibleCharacteristicCodes: [],
         };
       })
     );
@@ -218,6 +247,11 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
               <div className="font-medium text-brand-navy">{m.name}</div>
               <div className="text-xs text-gray-500">{m.codes.length ? m.codes.join(", ") : "No RCRA codes"}</div>
               {m.note && <div className="mt-0.5 text-[11px] text-gray-500">{m.note}</div>}
+              {m.possibleCharacteristicCodes.length > 0 && (
+                <div className="mt-0.5 text-[11px] font-medium text-amber-700">
+                  Also commonly {m.possibleCharacteristicCodes.join("/")} by property (verify your actual waste — not automatic)
+                </div>
+              )}
             </button>
           ))}
 
@@ -233,6 +267,11 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
               {m.note && (
                 <div className={`mt-0.5 text-[11px] ${m.source === "api-unconfirmed" ? "text-amber-700" : "text-gray-500"}`}>
                   {m.note}
+                </div>
+              )}
+              {m.possibleCharacteristicCodes.length > 0 && (
+                <div className="mt-0.5 text-[11px] font-medium text-amber-700">
+                  Also commonly {m.possibleCharacteristicCodes.join("/")} by property (verify your actual waste — not automatic)
                 </div>
               )}
             </button>

@@ -25,6 +25,19 @@ export interface UnWasteCodeEntry {
    *  includes D001-D003, which are property/test-based, not identity-based -- see
    *  CHARACTERISTIC_CODE_NOTES below. */
   dCodes: string[];
+  /** D001/D002/D003 codes this specific chemical VERY COMMONLY triggers in
+   * its typical commercial/spent form (e.g. concentrated hydrochloric acid
+   * is essentially always D002 by definition of what "hydrochloric acid"
+   * means as a strong acid) -- but still property-based, not a guarantee
+   * for every possible dilution/formulation of this chemical. Kept
+   * separate from `dCodes` (which stays strictly identity-based per its
+   * own doc comment) so the UI can flag these as "likely, verify your
+   * actual waste" rather than presenting them with the same certainty as
+   * a real F/K/P/U-list code. Added 2026-09-13 -- most existing entries
+   * don't have this populated yet; only added where the correlation is
+   * well-known and strong (see 40 CFR 261.21/261.22 for the exact D001/
+   * D002 test criteria that ultimately govern, not this field). */
+  possibleCharacteristicCodes?: string[];
   notes: string;
 }
 
@@ -317,6 +330,7 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     uCodes: [],
     pCodes: [],
     dCodes: [],
+    possibleCharacteristicCodes: ["D002", "D003"],
     notes: "Not U/P-listed; possible D002/D003 by property only -- see D001-D003 tab.",
   },
   {
@@ -447,6 +461,7 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     uCodes: [],
     pCodes: [],
     dCodes: [],
+    possibleCharacteristicCodes: ["D001"],
     notes: "Not U/P-listed; possible D001 by property only -- see D001-D003 tab.",
   },
   {
@@ -487,6 +502,7 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     uCodes: [],
     pCodes: [],
     dCodes: [],
+    possibleCharacteristicCodes: ["D001"],
     notes: "Not U/P-listed; possible D001 by property only -- see D001-D003 tab.",
   },
   {
@@ -507,6 +523,7 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     uCodes: [],
     pCodes: [],
     dCodes: [],
+    possibleCharacteristicCodes: ["D001"],
     notes: "Not U/P-listed; possible D001 by property only -- see D001-D003 tab.",
   },
   {
@@ -558,6 +575,17 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     pCodes: [],
     dCodes: ["D029"],
     notes: "D029 TC (added 2026-09-13, D004-D043 audit); not separately U/P-listed.",
+  },
+  {
+    unNumber: "UN1490",
+    shippingName: "Potassium permanganate",
+    hazardClass: "5.1",
+    fCodes: [],
+    uCodes: [],
+    pCodes: [],
+    dCodes: [],
+    possibleCharacteristicCodes: ["D001"],
+    notes: "Not U/P-listed. D001 (ignitability), not D003 -- 40 CFR 261.21(a)(4) explicitly names \"permanganate\" as an example DOT oxidizer that meets the ignitability characteristic; confirmed against the raw regulation text, not assumed (added 2026-09-13, common-oxidizers pass).",
   },
   {
     unNumber: "UN1547",
@@ -710,6 +738,17 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     notes: "P028 acutely hazardous listed chemical.",
   },
   {
+    unNumber: "UN1789",
+    shippingName: "Hydrochloric acid",
+    hazardClass: "8",
+    fCodes: [],
+    uCodes: [],
+    pCodes: [],
+    dCodes: [],
+    possibleCharacteristicCodes: ["D002"],
+    notes: "Not U/P-listed; concentrated/spent hydrochloric acid is essentially always D002 by property (aqueous pH <= 2), but verify against your actual waste's measured pH -- see D001-D003 tab (added 2026-09-13, common-corrosives pass).",
+  },
+  {
     unNumber: "UN1790",
     shippingName: "Hydrofluoric acid",
     hazardClass: "8",
@@ -717,7 +756,8 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     uCodes: ["U134"],
     pCodes: [],
     dCodes: [],
-    notes: "U134 unused/off-spec product.",
+    possibleCharacteristicCodes: ["D002"],
+    notes: "U134 unused/off-spec product. Also possible D002 by property (aqueous pH <= 2) for a spent/discarded solution -- see D001-D003 tab (added 2026-09-13, common-corrosives pass).",
   },
   {
     unNumber: "UN1832",
@@ -727,6 +767,7 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     uCodes: [],
     pCodes: [],
     dCodes: [],
+    possibleCharacteristicCodes: ["D002"],
     notes: "Not U/P-listed; possible D002 by property only -- see D001-D003 tab.",
   },
   {
@@ -1028,6 +1069,17 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     pCodes: ["varies (e.g. P089 Parathion)"],
     dCodes: [],
     notes: "Generic DOT entry -- identify active ingredient.",
+  },
+  {
+    unNumber: "UN2789",
+    shippingName: "Acetic acid, glacial (or Acetic acid solution, >80% acid by mass)",
+    hazardClass: "8",
+    fCodes: [],
+    uCodes: [],
+    pCodes: [],
+    dCodes: [],
+    possibleCharacteristicCodes: ["D001", "D002"],
+    notes: "Not U/P-listed. TWO independent characteristics at this concentration: D002 by property (aqueous pH <= 2), AND D001 -- glacial acetic acid's flash point is ~39C (102F), below the 60C/140F threshold in 40 CFR 261.21(a)(1) (confirmed via multiple SDS sources, 2026-09-13; user-flagged, not self-discovered). A dilute solution (see UN2790 for <=80%/<50%/<10%-and-<50% bands) will have a higher flash point and likely won't meet D001, and may not meet D002 either -- verify against your actual waste's measured properties.",
   },
   {
     unNumber: "UN2809",

@@ -1,7 +1,7 @@
 "use server";
 
 import { searchSrsSubstances, type ChemicalSearchMatch } from "@/lib/hazmat/srsClient";
-import { searchPubchemRcraRequirements } from "@/lib/hazmat/pubchemClient";
+import { searchPubchemRcraRequirements, searchPubchemCharacteristicCodes } from "@/lib/hazmat/pubchemClient";
 
 export type ChemicalSearchState =
   | { success: true; matches: ChemicalSearchMatch[] }
@@ -13,37 +13,50 @@ export type ChemicalSearchState =
  * the raw-fetch clients, see srsClient.ts/pubchemClient.ts's caveats, off
  * the client bundle).
  *
- * Queries EPA's SRS and NLM's PubChem (HSDB-sourced RCRA data) in
- * parallel and merges results -- confirmed live 2026-09-13 that neither
- * source alone is sufficient: PubChem catches real F-list codes SRS's
- * own database is missing entirely (e.g. toluene F005, cited to 40 CFR
- * 261.31), while PubChem's HSDB coverage is much narrower than SRS's
- * (only a few thousand curated compounds, vs. SRS's much larger
- * registry) so most queries will only ever resolve via SRS.
+ * Queries EPA's SRS and NLM's PubChem (HSDB-sourced RCRA "RCRA
+ * Requirements" identity-based codes, PLUS Flash Point/pH literature
+ * values evaluated against the D001/D002 numeric thresholds -- see
+ * pubchemClient.ts's evaluateIgnitabilityAndCorrosivity) in parallel and
+ * merges results. Confirmed live 2026-09-13 that neither SRS nor
+ * PubChem's RCRA-Requirements section alone is sufficient: PubChem
+ * catches real F-list codes SRS's own database is missing entirely (e.g.
+ * toluene F005, cited to 40 CFR 261.31), while PubChem's HSDB coverage is
+ * much narrower than SRS's (only a few thousand curated compounds, vs.
+ * SRS's much larger registry) so most queries will only ever resolve via
+ * SRS. The D001/D002 property check is a separate PubChem query (Flash
+ * Point/pH sections exist independently of whether "RCRA Requirements"
+ * does) added 2026-09-13 at the user's explicit request to auto-fill
+ * these rather than only flag them -- see that function's doc comment
+ * for the conservative-parsing and "pure compound, not your actual
+ * waste" caveats that still apply even though this asserts the code.
  */
 export async function searchChemicalWasteCodesAction(query: string): Promise<ChemicalSearchState> {
   const trimmed = query.trim();
   if (!trimmed) return { success: true, matches: [] };
 
   try {
-    const [srsMatches, pubchemResult] = await Promise.all([
+    const [srsMatches, pubchemRcraResult, pubchemCharacteristicResult] = await Promise.all([
       searchSrsSubstances(trimmed).catch((): ChemicalSearchMatch[] => []),
       searchPubchemRcraRequirements(trimmed).catch(() => ({ codes: [], explanations: [] })),
+      searchPubchemCharacteristicCodes(trimmed).catch(() => ({ codes: [], explanations: [] })),
     ]);
+
+    const pubchemCodes = Array.from(new Set([...pubchemRcraResult.codes, ...pubchemCharacteristicResult.codes]));
+    const pubchemExplanation = [...pubchemRcraResult.explanations, ...pubchemCharacteristicResult.explanations].join(" ");
 
     if (srsMatches.length === 0) {
       // SRS didn't resolve this query at all (or errored) -- if PubChem
       // did, that's still a real, useful answer on its own.
-      if (pubchemResult.codes.length === 0) return { success: true, matches: [] };
+      if (pubchemCodes.length === 0) return { success: true, matches: [] };
       return {
         success: true,
         matches: [
           {
             name: trimmed,
             casNumber: null,
-            codes: pubchemResult.codes,
+            codes: pubchemCodes,
             hasUnconfirmedListing: false,
-            explanation: pubchemResult.explanations.join(" "),
+            explanation: pubchemExplanation,
           },
         ],
       };
@@ -55,11 +68,11 @@ export async function searchChemicalWasteCodesAction(query: string): Promise<Che
     // PubChem resolved to exactly one compound, so it only ever
     // corroborates the single best match, not every candidate.
     const merged = srsMatches.map((m, i) => {
-      if (i !== 0 || pubchemResult.codes.length === 0) return m;
+      if (i !== 0 || pubchemCodes.length === 0) return m;
       return {
         ...m,
-        codes: Array.from(new Set([...m.codes, ...pubchemResult.codes])),
-        explanation: pubchemResult.explanations.join(" "),
+        codes: Array.from(new Set([...m.codes, ...pubchemCodes])),
+        explanation: pubchemExplanation,
       };
     });
 

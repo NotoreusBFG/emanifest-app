@@ -5,6 +5,7 @@ import { createLabPackAction, updateLabPackAction } from "@/app/actions/labPackA
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { ChemicalNameSearchField } from "@/components/ChemicalNameSearchField";
+import { saveCustomWasteCodeAction } from "@/app/actions/customWasteCodeActions";
 import { CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { OUTER_CONTAINER_SIZE_OPTIONS, PHYSICAL_STATE_OPTIONS } from "@/lib/labPack/types";
 import type { LabPack, LabPackInput, LabPackLineItemInput, PhysicalState } from "@/lib/labPack/types";
@@ -66,12 +67,25 @@ function ChemicalQuickAddModal({
 }) {
   const [fields, setFields] = useState<ChemicalQuickAddFields>(emptyQuickAddFields());
   const [error, setError] = useState<string | null>(null);
+  const [savingToLibrary, setSavingToLibrary] = useState(false);
+  const [savedToLibrary, setSavedToLibrary] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     nameInputRef.current?.focus();
   }, []);
 
-  const update = (patch: Partial<ChemicalQuickAddFields>) => setFields((f) => ({ ...f, ...patch }));
+  const update = (patch: Partial<ChemicalQuickAddFields>) => {
+    setFields((f) => ({ ...f, ...patch }));
+    setSavedToLibrary(false);
+  };
+
+  const handleSaveToLibrary = async () => {
+    setSavingToLibrary(true);
+    const result = await saveCustomWasteCodeAction(fields.chemicalName, fields.epaWasteCodesText, fields.sourceLocation);
+    setSavingToLibrary(false);
+    setSavedToLibrary(result.success);
+    if (!result.success) setError(result.error);
+  };
 
   const handleSave = () => {
     const name = fields.chemicalName.trim();
@@ -82,6 +96,7 @@ function ChemicalQuickAddModal({
     onSave({ ...fields, chemicalName: name });
     setFields(emptyQuickAddFields());
     setError(null);
+    setSavedToLibrary(false);
     nameInputRef.current?.focus();
   };
 
@@ -118,6 +133,16 @@ function ChemicalQuickAddModal({
             value={fields.epaWasteCodesText}
             onChange={(e) => update({ epaWasteCodesText: e.target.value })}
           />
+          {fields.chemicalName.trim() && fields.epaWasteCodesText.trim() && (
+            <button
+              type="button"
+              onClick={handleSaveToLibrary}
+              disabled={savingToLibrary || savedToLibrary}
+              className="-mt-2 self-start text-xs font-medium text-brand-blue hover:underline disabled:no-underline disabled:text-gray-400"
+            >
+              {savedToLibrary ? "✓ Saved to your chemical list" : savingToLibrary ? "Saving…" : "+ Save to your chemical list"}
+            </button>
+          )}
           <div className="grid grid-cols-3 gap-2">
             <Input
               label="Qty"

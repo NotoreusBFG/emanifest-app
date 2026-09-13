@@ -64,6 +64,12 @@ export interface ChemicalSearchMatch {
    * with no confirmed code attached -- callers should flag this so a
    * user doesn't mistake "no code returned" for "nothing applies". */
   hasUnconfirmedListing: boolean;
+  /** Citation-backed explanation text merged in from PubChem's HSDB-
+   * sourced RCRA data (see pubchemClient.ts) by chemicalSearchActions.ts
+   * -- never set by this SRS client itself. Present means the codes here
+   * are corroborated by an actual regulatory citation, not just a bare
+   * P/U-list membership flag. */
+  explanation?: string | null;
 }
 
 function extractMatch(substance: SrsSubstance): ChemicalSearchMatch {

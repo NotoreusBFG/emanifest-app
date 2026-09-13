@@ -464,6 +464,94 @@ send the whole thing back via `updateManifest()`.
   values ignored. None of these blocked the update; they're just EPA
   telling us those specific sub-fields were no-ops.
 
+## Manifest Correction ⚠️ (read side confirmed, write side still blocked)
+
+Investigated 2026-09-13 to answer a real open question: does RCRAInfo's API
+actually expose the "Make Correction" / version-diff / manifest-history data
+EPA demoed live on the 2026-08-04 Users Call, or is that portal-only? **Not
+portal-only** — there's a full documented API surface, confirmed to exist
+against live preprod (not 404s), across 3 endpoints:
+
+- `PUT /emanifest/manifest/correct` — create/update a correction.
+  Documented in `docs/Services/Manifest/correct.md`. **Not implemented in
+  EPA's own `emanifest-js` reference client** (left as a commented-out
+  `// ToDo` stub) — only `emanifest-py` implements it
+  (`correct_manifest()`, same multipart-PUT shape as `save`/`update`).
+- `GET /emanifest/manifest/correction-details/{mtn}` — ✅ **CONFIRMED LIVE,
+  works exactly as documented.** Returns every version of a manifest
+  (Signed/Corrected/UnderCorrection) with `createdDate`, `updatedDate`,
+  `active`, and — critically — real signer name + EPA user ID
+  (`updatedBy: { firstName, lastName, userId }`). Tested against
+  `100091730ELC`: returned its one real `Signed` version with the actual
+  signer (confirmed same user who ran the original sign-chain test in this
+  repo). **This alone is enough to build the "Manifest History" popup EPA
+  demoed** (who created/last-edited + contact info) without needing the
+  write side to work at all.
+- `GET /emanifest/manifest/revert/{mtn}` — ✅ confirmed live, correctly
+  returns `E_NoVersionForUnderCorrectionStatus` when (as expected) no
+  correction is in progress.
+
+### Write side (`correct`) — blocked, not yet working
+
+1. First attempt (full GET response round-tripped, minor edit to
+   `additionalInfo.handlingInstructions`) failed with a real, useful
+   validation error: **`wastes[].discrepancyResidueInfo` is mandatory on
+   Correct even though it's absent from every `save`/`update` payload this
+   project has ever sent** (never surfaced before because this project has
+   never hit a validation path that required it). Shape confirmed from
+   EPA's own `emanifest-py` types: `{ wasteQuantity: bool, wasteType: bool,
+   discrepancyComments?: string, residue: bool, residueComments?: string }`.
+   For a non-discrepancy shipment: `{ wasteQuantity: false, wasteType:
+   false, residue: false }`.
+2. After adding that field, every subsequent attempt — including against a
+   **brand-new manifest created and fully signed in the same session**
+   (`100097419ELC`), never touched by `correct` before — fails immediately
+   with `E_ManifestProcessingError: "Manifest version already exists in the
+   system"`. This is **not actually true**: `correction-details` and
+   `revert` both confirm no `UnderCorrection` version exists on either test
+   MTN, and `getManifest()` still shows plain `status: "Signed"` on both.
+   So this is either (a) a real EPA-side bug/quirk in how `correct`
+   validates "does a version already exist," or (b) something still wrong
+   in how we're constructing the request that we haven't found yet.
+   Confirmed **not** caused by: Content-Type (multipart is required, same
+   as `update`; plain `application/json` gets a flat 415, matching the
+   `update` precedent); stripping GET-only fields per party
+   (`electronicSignaturesInfo`, `paperSignatureInfo`, `modified`,
+   `registered`, `gisPrimary`, `canEsign`, `limitedEsign`,
+   `hasRegisteredEmanifestUser`) before resubmitting — tried both with and
+   without stripping, same error either way; timing/async-lock right after
+   signing — retried after a real gap, same error.
+3. Both test manifests (`100091730ELC`, `100097419ELC`) were re-verified
+   clean afterward — still plain `Signed`, `correctionInfo.active: true`,
+   no stray `UnderCorrection` version. The failed attempts did not corrupt
+   either manifest.
+
+### Open questions for next session
+
+- Is "Manifest version already exists in the system" a known preprod-only
+  quirk (worth asking EPA about on the next Users Call), or are we still
+  missing a required field/shape difference between `correct` and
+  `update`? Try comparing against one of the `Reference/2021 User
+  Meetings/Scenario-*-emanifest-update-valid-*-example.json` fixtures in
+  EPA's own repo line-by-line, since those are real accepted payloads.
+  Also worth trying with `zip_file: null` explicitly vs. omitted, since
+  `emanifest-py`'s `correct_manifest()` treats a null attachment
+  differently in its multipart encoding than an absent key.
+- Does our preprod API ID/Key pair actually carry "correction" permission
+  on the RCRAInfo side? Site permissions here are already known to be
+  granular per-module (create vs. sign, see
+  `project_manifestmate_create_vs_sign_permission` in Claude's memory) —
+  a missing correction-specific permission would plausibly still surface
+  as a generic `E_ManifestProcessingError` rather than a clean
+  `E_UserNotAuthorized`, given this API's track record of misleading
+  generic error text (e.g. the Tomcat 415s elsewhere in this doc).
+- **Bottom line for the roadmap decision this doc exists to inform:** a
+  read-only "Manifest History" view (who signed, when, version list) is
+  buildable **today** with confirmed-working, real data — no blockers. A
+  full "Make Correction" editing UI is NOT buildable yet — the write
+  endpoint exists and isn't a dead end, but needs one more live-debugging
+  session to get past this error before any UI work on it is worthwhile.
+
 ## Container Type Codes (from EPA manifest instructions — ⚠️ partially live-tested)
 
 Source: EPA's official "Instructions for Completing the Uniform Hazardous
@@ -655,3 +743,17 @@ lookup endpoint — treat as reference, not verified, except where noted.
   single-code format (`"Invalid Field Format...value":"D001, D003, F002,
   F005"`) — fixed to split on commas into multiple `federalWasteCodes[]`
   entries, confirmed live with 3 codes on one line, zero errors.
+- **2026-09-13:** Live-tested the "Manifest Correction" API surface to
+  settle the long-open question of whether EPA's "Make Correction"/
+  version-history UI (demoed on the 2026-08-04 Users Call) has a real API
+  behind it. It does. `correction-details` and `revert` (both GET)
+  confirmed fully working live, including real signer/version history
+  data. `correct` (PUT) discovered a genuinely new mandatory field
+  (`wastes[].discrepancyResidueInfo`, never required by `save`/`update`)
+  but then hit a reproducible `"Manifest version already exists in the
+  system"` error on every attempt since, including against a freshly
+  created-and-signed manifest that had never been touched by `correct`
+  before — cause not yet isolated. See the new "Manifest Correction"
+  section above for the full writeup and open questions. Both test
+  manifests (`100091730ELC`, `100097419ELC`) confirmed undamaged by the
+  failed attempts.

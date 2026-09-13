@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createLabPackAction, updateLabPackAction } from "@/app/actions/labPackActions";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -8,6 +8,7 @@ import { ChemicalNameSearchField } from "@/components/ChemicalNameSearchField";
 import { saveCustomWasteCodeAction } from "@/app/actions/customWasteCodeActions";
 import { CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { OUTER_CONTAINER_SIZE_OPTIONS, PHYSICAL_STATE_OPTIONS } from "@/lib/labPack/types";
+import { checkLabPackCompliance } from "@/lib/labPack/complianceCheck";
 import type { LabPack, LabPackInput, LabPackLineItemInput, PhysicalState } from "@/lib/labPack/types";
 
 const selectStyle =
@@ -257,6 +258,17 @@ export function LabPackFormFields({
   const removeRow = (key: string) => {
     setRows((prev) => prev.filter((r) => r.key !== key).map((r, i) => ({ ...r, lineNumber: i + 1 })));
   };
+
+  const complianceWarnings = useMemo(
+    () =>
+      checkLabPackCompliance({
+        isNonHazardous,
+        dotShippingDescription,
+        wasteCodes: rows.flatMap((r) => r.epaWasteCodesText.split(",").map((c) => c.trim().toUpperCase()).filter(Boolean)),
+        lineItems: rows.filter((r) => r.chemicalName.trim() !== "").map((r) => ({ chemicalName: r.chemicalName })),
+      }),
+    [isNonHazardous, dotShippingDescription, rows]
+  );
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -605,6 +617,19 @@ export function LabPackFormFields({
           + Add chemical
         </button>
       </div>
+
+      {complianceWarnings.length > 0 && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900">
+          <p className="mb-1 font-semibold">
+            Compliance check -- review before shipping (not blocking, this drum can still be saved):
+          </p>
+          <ul className="list-disc space-y-1 pl-4">
+            {complianceWarnings.map((w) => (
+              <li key={w.id}>{w.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-md border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-xs text-gray-600">
         Packing certification: I authorize that the material packaged in this container, including all inventory

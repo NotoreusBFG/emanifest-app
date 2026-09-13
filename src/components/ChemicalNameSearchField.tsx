@@ -8,6 +8,15 @@ import { useClickOutside } from "@/lib/hooks/useClickOutside";
 const CAS_PATTERN = /^\d{2,7}-\d{2}-\d$/;
 const MIN_QUERY_LENGTH = 2;
 
+/** Exact (case-insensitive) name match only -- a fuzzy match here risks
+ * silently attaching one chemical's codes to a different one the API
+ * returned, which is worse than showing the API's own (less complete)
+ * answer. */
+function findLocalEntryByName(name: string) {
+  const target = name.trim().toLowerCase();
+  return UN_WASTE_CODES.find((e) => e.shippingName.toLowerCase() === target);
+}
+
 interface ChemicalMatch {
   key: string;
   name: string;
@@ -34,6 +43,17 @@ interface ChemicalMatch {
  *    name or CAS) for anything not in the local list. Only P-list/U-list
  *    codes are ever confirmed this way -- F/K/D codes are flagged as
  *    needing manual verification, never silently omitted or guessed.
+ *
+ * A CAS-number query always skips tier 1 (the local list has no CAS
+ * index) and goes straight to the API -- but once the API resolves a
+ * name, that name IS cross-checked against the local list before
+ * settling on a result. Without this, searching a CAS number for a
+ * chemical the local list already knows more about than SRS (e.g.
+ * toluene -- SRS's own database has no F-list entry for it at all, only
+ * U220; the local list correctly has both F005 and U220) would silently
+ * return the less complete answer just because the user searched by CAS
+ * instead of by name. Found live 2026-09-13 while explaining this
+ * feature -- not a hypothetical edge case.
  */
 export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
   value: string;
@@ -78,13 +98,27 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
       return;
     }
     setApiMatches(
-      result.matches.map((m, i) => ({
-        key: `${m.name}-${i}`,
-        name: m.name,
-        codes: m.codes,
-        note: "Only P/U-list codes confirmed -- verify F/K/D codes manually (40 CFR 261.31-.33).",
-        source: "api" as const,
-      }))
+      result.matches.map((m, i) => {
+        // Prefer the local list's fuller, hand-verified codes when the
+        // API resolves to a chemical it already knows -- see module doc.
+        const localEntry = findLocalEntryByName(m.name);
+        if (localEntry) {
+          return {
+            key: `${m.name}-${i}`,
+            name: localEntry.shippingName,
+            codes: [...localEntry.fCodes, ...localEntry.uCodes, ...localEntry.pCodes, ...localEntry.dCodes],
+            note: localEntry.notes || null,
+            source: "local" as const,
+          };
+        }
+        return {
+          key: `${m.name}-${i}`,
+          name: m.name,
+          codes: m.codes,
+          note: "Only P/U-list codes confirmed -- verify F/K/D codes manually (40 CFR 261.31-.33).",
+          source: "api" as const,
+        };
+      })
     );
   };
 
@@ -137,8 +171,12 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
               className="block w-full border-b border-gray-100 px-3 py-2 text-left text-sm last:border-b-0 hover:bg-brand-tint"
             >
               <div className="font-medium text-brand-navy">{m.name}</div>
-              <div className="text-xs text-gray-500">{m.codes.length ? m.codes.join(", ") : "No U/P-list code found"}</div>
-              <div className="mt-0.5 text-[11px] text-amber-700">{m.note}</div>
+              <div className="text-xs text-gray-500">{m.codes.length ? m.codes.join(", ") : "No RCRA codes found"}</div>
+              {m.note && (
+                <div className={`mt-0.5 text-[11px] ${m.source === "api" ? "text-amber-700" : "text-gray-500"}`}>
+                  {m.note}
+                </div>
+              )}
             </button>
           ))}
           {apiMatches?.length === 0 && <p className="px-3 py-2 text-sm text-gray-500">No EPA database match found.</p>}

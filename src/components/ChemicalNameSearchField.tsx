@@ -101,7 +101,13 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
   value: string;
   onChange: (name: string) => void;
   onSelectCodes: (codesText: string) => void;
-}>(function ChemicalNameSearchField({ value, onChange, onSelectCodes }, forwardedRef) {
+  /** When true, a selected chemical's F-listed codes are left out of the
+   * auto-filled waste-code text -- F codes are specifically for *spent*
+   * listed solvents (40 CFR 261.31), so they don't apply to unused/virgin
+   * material. D/U/P codes are unaffected (D-codes are property-based, not
+   * source-based; U/P codes are themselves the "unused product" codes). */
+  isUnusedMaterial?: boolean;
+}>(function ChemicalNameSearchField({ value, onChange, onSelectCodes, isUnusedMaterial = false }, forwardedRef) {
   const [isOpen, setIsOpen] = useState(false);
   const [apiMatches, setApiMatches] = useState<ChemicalMatch[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -140,8 +146,16 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
   const localMatches: ChemicalMatch[] = useMemo(() => {
     const q = trimmed.toLowerCase();
     if (isCasQuery || q.length < MIN_QUERY_LENGTH) return [];
+    // Word-set match, not a single substring -- catches queries like
+    // "glacial acetic acid" against a name like "Acetic acid, glacial (or
+    // ...)" where the words are the same but the order isn't. Every
+    // word in the query has to appear somewhere in the name.
+    const queryWords = q.split(/\s+/).filter(Boolean);
     return allLocalEntries
-      .filter((e) => e.name.toLowerCase().includes(q))
+      .filter((e) => {
+        const name = e.name.toLowerCase();
+        return queryWords.every((w) => name.includes(w));
+      })
       .slice(0, 8)
       .map((e) => ({
         key: e.name,
@@ -203,7 +217,19 @@ export const ChemicalNameSearchField = forwardRef<HTMLInputElement, {
 
   const handleSelect = (match: ChemicalMatch) => {
     onChange(match.name);
-    onSelectCodes(match.codes.join(", "));
+    // Auto-populate every code we have some basis for -- the confirmed
+    // F/U/P/D-list codes, plus the "very commonly triggers" D001-D003
+    // property-based hints (previously shown only as advisory text, never
+    // written into the field -- see possibleCharacteristicCodes' doc
+    // comment). The user is still responsible for verifying before
+    // shipping (see the hint text next to the field this fills). F codes
+    // are dropped when the material is flagged unused/virgin -- they only
+    // apply to spent listed solvents, not unused product.
+    const identityCodes = isUnusedMaterial
+      ? match.codes.filter((c) => !c.trim().toUpperCase().startsWith("F"))
+      : match.codes;
+    const merged = Array.from(new Set([...match.possibleCharacteristicCodes, ...identityCodes]));
+    onSelectCodes(merged.join(", "));
     setIsOpen(false);
   };
 

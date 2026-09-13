@@ -199,6 +199,9 @@ export function LabPackJobDetail({ jobId }: { jobId: string }) {
           <p className="mt-1 text-sm text-gray-600">
             Generator: {job.generatorName} ({job.generatorEpaId})
           </p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Created {new Date(job.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+          </p>
         </div>
         <button type="button" onClick={handleDeleteJob} className="text-sm font-medium text-red-600">
           Delete job
@@ -244,7 +247,9 @@ export function LabPackJobDetail({ jobId }: { jobId: string }) {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-brand-navy">Drum {p.drumNumber ?? "—"}</p>
+                    <p className="text-sm font-semibold text-brand-navy">
+                      {p.drumLabel ?? `Drum ${p.drumNumber ?? "—"}`}
+                    </p>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${drumStatusBadge(p.status)}`}>
                       {p.status}
                     </span>

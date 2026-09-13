@@ -105,7 +105,7 @@ export default async function LabPackDetailPage({ params }: { params: Promise<{ 
                 {labPack.epaMtn ? `${labPack.epaMtn} / Line ${labPack.manifestLineNumber}` : "Not yet linked to a manifest"}
               </td>
               <td className="py-1.5 align-top">
-                {labPack.drumNumber ?? "—"} / {labPack.outerContainerTypeCode} /{" "}
+                {labPack.drumLabel ?? labPack.drumNumber ?? "—"} / {labPack.outerContainerTypeCode} /{" "}
                 {labPack.outerContainerSize ? `${labPack.outerContainerSize} gal` : "—"}
               </td>
             </tr>

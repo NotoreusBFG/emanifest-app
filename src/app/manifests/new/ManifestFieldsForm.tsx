@@ -952,7 +952,7 @@ export function ManifestFieldsForm({
                 <option value="">— Select a lab pack —</option>
                 {labPacks.map((p) => (
                   <option key={p.id} value={p.id}>
-                    Drum {p.drumNumber ?? "?"} {p.jobNumber && `(Job ${p.jobNumber})`} —{" "}
+                    {p.drumLabel ?? `Drum ${p.drumNumber ?? "?"}`} {p.jobNumber && `(PO ${p.jobNumber})`} —{" "}
                     {p.isNonHazardous ? "Non-hazardous" : p.wasteCodes.join(", ") || "no codes yet"}
                   </option>
                 ))}

@@ -1,0 +1,1837 @@
+[
+  {
+    "name": "Acetone cyanohydrin, stabilized",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Acrolein, stabilized",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Adsorbed gas, toxic, n.o.s. Inhalation hazard zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, n.o.s. Inhalation hazard zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, n.o.s. Inhalation hazard zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, n.o.s. Inhalation hazard zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, corrosive, n.o.s. Inhalation hazard zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, corrosive, n.o.s. Inhalation hazard zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, corrosive, n.o.s. Inhalation hazard zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, corrosive, n.o.s. Inhalation hazard zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, flammable, n.o.s. Inhalation hazard zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, flammable, n.o.s. Inhalation hazard zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, flammable, n.o.s. Inhalation hazard zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, flammable, n.o.s. Inhalation hazard zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, flammable, corrosive, n.o.s. Inhalation hazard zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, flammable, corrosive, n.o.s. Inhalation hazard zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, flammable, corrosive, n.o.s. Inhalation hazard zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, flammable, corrosive, n.o.s. Inhalation hazard zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, oxidizing, n.o.s. Inhalation hazard zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, oxidizing, n.o.s. Inhalation hazard zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, oxidizing, n.o.s. Inhalation hazard zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, oxidizing, n.o.s. Inhalation hazard zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, oxidizing, corrosive, n.o.s. Inhalation hazard zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, oxidizing, corrosive, n.o.s. Inhalation hazard zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, oxidizing, corrosive, n.o.s. Inhalation hazard zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Adsorbed gas, toxic, oxidizing, corrosive, n.o.s. Inhalation hazard zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Alkaloids, liquid, n.o.s., or Alkaloid salts, liquid, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Alkaloids, solid, n.o.s. or Alkaloid salts, solid, n.o.s. poisonous",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Allyl alcohol",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Allyl chloroformate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Allylamine",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Aluminum phosphide pesticides",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ammonia, anhydrous",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Ammonia solution, relative density less than 0.880 at 15 degrees C in water, with more than 50 percent ammonia",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Arsenic acid, liquid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Arsenic compounds, liquid, n.o.s. inorganic, including arsenates, n.o.s.; arsenites, n.o.s.; arsenic sulfides, n.o.s.; and organic compounds of arsenic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Arsenic compounds, solid, n.o.s. inorganic, including arsenates, n.o.s.; arsenites, n.o.s.; arsenic sulfides, n.o.s.; and organic compounds of arsenic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Arsenic trichloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Arsenical pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Arsenical pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Arsenical pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Arsine",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Arsine, adsorbed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Articles containing toxic gas, n.o.s.",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Barium cyanide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Bipyridilium pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Bipyridilium pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Bipyridilium pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Boron trichloride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Boron trifluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Boron trifluoride, adsorbed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Bromine chloride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Bromobenzyl cyanides, liquid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Bromobenzyl cyanides, solid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Brucine",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "n-Butyl chloroformate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "tert-Butyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "n-Butyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Cadmium compounds",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Calcium cyanide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Carbamate pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Carbamate pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Carbamate pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Carbon monoxide, compressed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Carbon monoxide, refrigerated liquid (cryogenic liquid)",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Carbonyl fluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Carbonyl sulfide",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Chlorine",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Chlorine, adsorbed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Chlorine pentafluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Chlorine trifluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Chloroacetone, stabilized",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Chloroacetonitrile",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Chloroacetyl chloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "2-Chloroethanal",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Chloropicrin",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Chloropicrin and methyl bromide mixtures",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Chloropicrin and methyl chloride mixtures",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Chloropicrin mixtures, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Chloropivaloyl chloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Coal gas, compressed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Cobalt dihydroxide powder, containing not less than 10% respirable particles",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Compounds, tree killing, liquid or Compounds, weed killing, liquid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Compressed gas, toxic, corrosive, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, corrosive, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, corrosive, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, corrosive, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, flammable, corrosive, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, flammable, corrosive, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, flammable, corrosive, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, flammable, corrosive, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, flammable, n.o.s. Inhalation hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, flammable, n.o.s. Inhalation hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, flammable, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, flammable, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, oxdizing, corrosive, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, oxidizing, corrosive, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, oxidizing, corrosive, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, oxidizing, corrosive, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, oxidizing, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, oxidizing, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, oxidizing, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Compressed gas, toxic, oxidizing, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Copper based pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Copper based pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Copper based pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Coumarin derivative pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Coumarin derivative pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Coumarin derivative pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Crotonaldehyde or Crotonaldehyde, stabilized",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Cyanide solutions, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Cyanides, inorganic, solid, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Cyanogen",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Cyanogen bromide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Cyanogen chloride, stabilized",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Cyclohexyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Diborane",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "3,5-Dichloro-2,4,6-trifluoropyridine",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Dichlorodimethyl ether, symmetrical",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Dichlorosilane",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Diketene, stabilized",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Dimethyl sulfate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Dimethylhydrazine, symmetrical",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Dimethylhydrazine, unsymmetrical",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Dinitrogen tetroxide",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Diphenylamine chloroarsine",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Diphenylchloroarsine, liquid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Diphenylchloroarsine, solid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Disinfectants, liquid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Disinfectants, solid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Dyes, liquid, toxic, n.o.s. or Dye intermediates, liquid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Dyes, solid, toxic, n.o.s. or Dye intermediates, solid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Epibromohydrin",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ethyl chloroformate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ethyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ethyl phosphonothioic dichloride, anhydrous",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ethyl phosphonous dichloride, anhydrous pyrophoric liquid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ethyl phosphorodichloridate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ethyldichloroarsine",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ethylene chlorohydrin",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ethylene dibromide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Ethylene oxide and carbon dioxide mixture with more than 87 percent ethylene oxide",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Ethylene oxide or Ethylene oxide with nitrogen up to a total pressure of 1 MPa (10 bar) at 50 degrees C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Ethyleneimine, stabilized",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Fluorine, compressed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Fluoroacetic acid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Gas identification set",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Gas sample, non-pressurized, toxic, flammable, n.o.s., not refrigerated liquid",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Gas sample, non-pressurized, toxic, n.o.s., not refrigerated liquid",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Germane",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Germane, adsorbed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Hexachlorocyclopentadiene",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Hexaethyl tetraphosphate and compressed gas mixtures",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Hexafluoroacetone",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Hydrocyanic acid, aqueous solutions or Hydrogen cyanide, aqueous solutions with not more than 20 percent hydrogen cyanide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Hydrogen bromide, anhydrous",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Hydrogen chloride, anhydrous",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Hydrogen chloride, refrigerated liquid",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Hydrogen cyanide, solution in alcohol with not more than 45 percent hydrogen cyanide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Hydrogen cyanide, stabilized with less than 3 percent water",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Hydrogen cyanide, stabilized, with less than 3 percent water and absorbed in a porous inert material",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Hydrogen iodide, anhydrous",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Hydrogen selenide, adsorbed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Hydrogen selenide, anhydrous",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Hydrogen sulfide",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Insecticide gases, toxic, flammable, n.o.s. Inhalation hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Insecticide gases, toxic, flammable, n.o.s. Inhalation hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Insecticide gases, toxic, flammable, n.o.s. Inhalation hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Insecticide gases, toxic, flammable, n.o.s. Inhalation hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Insecticide gases, toxic, n.o.s.",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Iron pentacarbonyl",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Isobutyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Isopropyl chloroformate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Isopropyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Liquefied gas, toxic, corrosive, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, corrosive, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, corrosive, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, corrosive, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, flammable, corrosive, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas toxic, flammable, corrosive, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, flammable, corrosive, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, flammable, corrosive, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, flammable, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, flammable, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, flammable, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, flammable, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, oxidizing, corrosive, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, oxidizing, corrosive, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, oxidizing, corrosive, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, oxidizing, corrosive, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, oxidizing, n.o.s. Inhalation Hazard Zone A",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, oxidizing, n.o.s. Inhalation Hazard Zone B",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, oxidizing, n.o.s. Inhalation Hazard Zone C",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Liquefied gas, toxic, oxidizing, n.o.s. Inhalation Hazard Zone D",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Mercuric potassium cyanide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Mercury based pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Mercury based pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Mercury based pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Mercury compound, liquid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Mercury compound, solid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Metal carbonyls, liquid, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Metal carbonyls, solid, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methacrylonitrile, stabilized",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methanesulfonyl chloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methoxymethyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl bromide",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Methyl bromide and ethylene dibromide mixtures, liquid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl chloroacetate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl chloroformate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl chloromethyl ether",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "2-Methyl-2-heptanethiol",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl iodide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl isothiocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl mercaptan",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Methyl orthosilicate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl phosphonic dichloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl phosphonous dichloride, pyrophoric liquid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methyl vinyl ketone, stabilized",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methylchlorosilane",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Methyldichloroarsine",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Methylhydrazine",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Motor fuel anti-knock mixture, flammable",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Motor fuel anti-knock mixtures",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Nickel carbonyl",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Nicotine compounds, liquid, n.o.s. or Nicotine preparations, liquid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Nicotine compounds, solid, n.o.s. or Nicotine preparations, solid, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Nitric oxide, compressed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Nitric oxide and dinitrogen tetroxide mixtures or Nitric oxide and nitrogen dioxide mixtures",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Nitriles, liquid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Nitriles, solid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Nitriles, toxic, flammable, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Nitrogen trioxide",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Nitrosyl chloride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Oil gas, compressed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Organic phosphate, mixed with compressed gas or Organic phosphate compound, mixed with compressed gas or Organic phosphorus compound, mixed with compressed gas",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Organoarsenic compound, liquid, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organoarsenic compound, solid, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organochlorine pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organochlorine pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organochlorine pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organometallic compound, liquid, toxic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organometallic compound, solid, toxic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organophosphorus compound, toxic, flammable, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organophosphorus compound, liquid, toxic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organophosphorus compound, solid, toxic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organophosphorus pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organophosphorus pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organophosphorus pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organotin compounds, liquid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organotin compounds, solid, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organotin pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organotin pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Organotin pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Osmium tetroxide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Oxygen difluoride, compressed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Parathion and compressed gas mixture",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Perchloromethyl mercaptan",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Perchloryl fluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Pesticides, liquid, toxic, flammable, n.o.s. flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Pesticides, liquid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Pesticides, solid, toxic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phenoxyacetic acid derivative pesticide, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phenoxyacetic acid derivative pesticide, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phenoxyacetic acid derivative pesticide, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phenyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phenyl mercaptan",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phenyl urea pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phenylcarbylamine chloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phenylmercuric compounds, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phosgene",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Phosphine",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Phosphine, adsorbed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Phosphorus oxychloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Phosphorus Pentafluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Phosphorus pentafluoride, adsorbed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Phosphorus trichloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Potassium cyanide, solid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Potassium cyanide solution",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Potassium fluoroacetate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "n-Propyl chloroformate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "n-Propyl isocyanate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Pyrethroid pesticide, liquid toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Pyrethroid pesticide, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Pyrethroid pesticide, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Selenates or Selenites",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Selenium compound, liquid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Selenium compound, solid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Selenium hexafluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Silicon tetrafluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Silicon tetrafluoride, adsorbed",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Sodium cuprocyanide, solid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Sodium cuprocyanide, solution",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Sodium cyanide, solid",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Sodium cyanide solution",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Sodium fluoroacetate",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Stibine",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Strychnine or Strychnine salts",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Substituted nitrophenol pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Substituted nitrophenol pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Substituted nitrophenol pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Sulfur dioxide",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Sulfur tetrafluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Sulfuryl chloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Sulfuryl fluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Tear gas devices with more than 2 percent tear gas substances, by mass",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Tear gas substances, liquid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Tear gas substance, solid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Tellurium compound, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Tellurium hexafluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Tetranitromethane",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Thiocarbamate pesticide, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Thiocarbamate pesticide, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Thiocarbamate pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Thiophosgene",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Titanium tetrachloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, flammable, corrosive, n.o.s. with an LC50 lower than or equal to 200 ml/m3 and saturated vapor concentration greater than or equal to 500 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, flammable, corrosive, n.o.s. with an LC50 lower than or equal to 1000 ml/m3 and saturated vapor concentration greater than or equal to 10 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, n.o.s. with an LC50 lower than or equal to 200 ml/m3 and saturated vapor concentration greater than or equal to 500 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, n.o.s. with an LC50 lower than or equal to 1000 ml/m3 and saturated vapor concentration greater than or equal to 10 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, flammable, n.o.s. with an LC50 lower than or equal to 200 ml/m3 and saturated vapor concentration greater than or equal to 500 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, flammable, n.o.s. with an LC50 lower than or equal to 1000 ml/m3 and saturated vapor concentration greater than or equal to 10 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, water-reactive, n.o.s. with an LC50 lower than or equal to 200 ml/m3 and saturated vapor concentration greater than or equal to 500 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, water-reactive, n.o.s. with an LC50 lower than or equal to 1000 ml/m3 and saturated vapor concentration greater than or equal to 10 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, water-reactive, flammable, n.o.s. with an LC50 lower than or equal to 200 ml/m3 and saturated vapor concentration greater than or equal to 500 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, water-reactive, flammable, n.o.s. with an LC50 lower or equal to 1000 ml/m3 and saturated vapor concentration greater than or equal to 10 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, oxidizing, n.o.s. with an LC50 lower than or equal to 200 ml/m3 and saturated vapor concentration greater than or equal to 500 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, oxidizing, n.o.s. with an LC50 lower than or equal to 1000 ml/m3 and saturated vapor concentration greater than or equal to 10 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, corrosive, n.o.s. with an LC50 lower than or equal to 200 ml/m3 and saturated vapor concentration greater than or equal to 500 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic by inhalation liquid, corrosive, n.o.s. with an LC50 lower than or equal to 1000 ml/m3 and saturated vapor concentration greater than or equal to 10 LC50",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic liquid, corrosive, inorganic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic liquid, inorganic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic liquids, corrosive, organic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic liquids, flammable, organic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic, liquids, organic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic liquids, oxidizing, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic liquids, water-reactive, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic solid, corrosive, inorganic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic solid, flammable, inorganic, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic solid, inorganic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic solids, corrosive, organic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic solids, flammable, organic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic solids, organic, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic solids, oxidizing, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic solids, self-heating, n.o.s.",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxic solids, water-reactive, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxins, extracted from living sources, liquid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Toxins, extracted from living sources, solid, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Triazine pesticides, liquid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Triazine pesticides, liquid, toxic, flammable, flash point not less than 23 degrees C",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Triazine pesticides, solid, toxic",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Trifluoroacetyl chloride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Trifluorochloroethylene, stabilized or Refrigerant gas R 1113",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Trimethoxysilane",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Trimethylacetyl chloride",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Tungsten hexafluoride",
+    "hazardClass": "2.3",
+    "packingGroup": ""
+  },
+  {
+    "name": "Uranium hexafluoride, radioactive material, excepted package, less than 0.1 kg per package, non-fissile or fissile-excepted",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Vanadium compound, n.o.s",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  },
+  {
+    "name": "Zinc cyanide",
+    "hazardClass": "6.1",
+    "packingGroup": "I"
+  }
+]

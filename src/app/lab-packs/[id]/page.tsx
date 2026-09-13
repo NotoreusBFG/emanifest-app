@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLabPack } from "@/services/labPackRepository";
 import { resolveEffectiveUserId } from "@/services/teamRepository";
+import { checkLabPackCompliance } from "@/lib/labPack/complianceCheck";
 import { PrintButton } from "./PrintButton";
 
 /**
@@ -23,6 +24,13 @@ export default async function LabPackDetailPage({ params }: { params: Promise<{ 
   const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
   const labPack = await getLabPack(supabase, effectiveUserId, id);
   if (!labPack) notFound();
+
+  const complianceWarnings = checkLabPackCompliance({
+    isNonHazardous: labPack.isNonHazardous,
+    dotShippingDescription: labPack.dotShippingDescription,
+    wasteCodes: labPack.wasteCodes,
+    lineItems: labPack.lineItems.map((li) => ({ chemicalName: li.chemicalName })),
+  });
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -131,6 +139,17 @@ export default async function LabPackDetailPage({ params }: { params: Promise<{ 
             ))}
           </tbody>
         </table>
+
+        {complianceWarnings.length > 0 && (
+          <div className="no-print mt-5 rounded-md border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900">
+            <p className="mb-1 font-semibold">Compliance check -- review before shipping:</p>
+            <ul className="list-disc space-y-1 pl-4">
+              {complianceWarnings.map((w) => (
+                <li key={w.id}>{w.message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="mt-5 border-t border-gray-200 pt-3 text-[11px] text-gray-600">
           <p className="mb-2">

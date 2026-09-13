@@ -15,6 +15,7 @@ import { HazmatSearchField } from "@/app/manifests/new/HazmatSearchField";
 import { UNIT_CODES, CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
 import { getMyAccountTypeAction } from "@/app/actions/accountActions";
+import { lookupErgNumberAction } from "@/app/actions/ergActions";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { HazmatEntry } from "@/lib/hazmat/types";
 
@@ -131,6 +132,34 @@ export function WasteProfileFormFields({
   const [hazardClass, setHazardClass] = useState(defaults.hazardClass ?? "");
   const [packingGroup, setPackingGroup] = useState(defaults.packingGroup ?? "");
   const [idNumberCode, setIdNumberCode] = useState(defaults.idNumberCode ?? "");
+
+  const [ergEnabled, setErgEnabled] = useState(defaults.ergEnabled ?? false);
+  const [ergNumber, setErgNumber] = useState(defaults.ergNumber ?? "");
+  const [ergNote, setErgNote] = useState<string | null>(null);
+  const [ergLookupPending, setErgLookupPending] = useState(false);
+
+  const handleErgToggle = async (checked: boolean) => {
+    setErgEnabled(checked);
+    if (!checked) {
+      setErgNote(null);
+      return;
+    }
+    if (!idNumberCode) {
+      setErgNote("Enter a DOT ID number above first, then re-check this box.");
+      return;
+    }
+    setErgLookupPending(true);
+    setErgNote(null);
+    const result = await lookupErgNumberAction(idNumberCode, properShippingName);
+    setErgLookupPending(false);
+    if (result.confidence === "none") {
+      setErgNumber("");
+      setErgNote(`No ERG guide found for ${idNumberCode} — enter it manually.`);
+    } else {
+      setErgNumber(result.guideNumber);
+      setErgNote(result.confidence === "ambiguous" ? "Auto-detected, please verify — this UN number has more than one guide." : null);
+    }
+  };
 
   const [shipmentFrequency, setShipmentFrequency] = useState<ShipmentFrequency | "">(
     defaults.shipmentFrequency ?? ""
@@ -386,6 +415,38 @@ export function WasteProfileFormFields({
               <FieldFlag field="federalWasteCode" flags={wizardFlags} />
             </div>
           </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm text-brand-navy">
+              <input
+                type="checkbox"
+                checked={ergEnabled}
+                onChange={(e) => handleErgToggle(e.target.checked)}
+              />
+              ERG (Emergency Response Guidebook) number
+              <FieldFlag field="ergNumber" flags={wizardFlags} />
+            </label>
+            {ergEnabled && (
+              <div className="mt-1.5 flex items-center gap-3">
+                <input type="hidden" name="ergEnabled" value="on" />
+                <Input
+                  id="ergNumber"
+                  name="ergNumber"
+                  label="Guide number"
+                  value={ergLookupPending ? "Looking up…" : ergNumber}
+                  onChange={(e) => setErgNumber(e.target.value)}
+                  disabled={ergLookupPending}
+                />
+                {ergNote && <p className="text-xs text-amber-600">{ergNote}</p>}
+              </div>
+            )}
+            {ergEnabled && (
+              <p className="mt-1 text-xs text-gray-500">
+                Added to the end of the shipping description on any manifest waste line this profile fills in
+                (e.g. &quot;..., PG II, ERG {ergNumber || "128"}&quot;).
+              </p>
+            )}
+          </div>
+
           {federalWasteCode.trim().length > 0 && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>

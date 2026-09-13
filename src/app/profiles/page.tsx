@@ -142,6 +142,7 @@ export default function WasteProfilesPage() {
                     {p.hazardClass && ` · Class ${p.hazardClass}`}
                     {p.idNumberCode && ` · ${p.idNumberCode}`}
                     {p.federalWasteCode && ` · ${p.federalWasteCode}`}
+                    {p.ergEnabled && p.ergNumber && ` · ERG ${p.ergNumber}`}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
                     Generator: {p.generatorEpaId ? `${p.generatorName || "—"} (${p.generatorEpaId})` : "not set (legacy profile)"}

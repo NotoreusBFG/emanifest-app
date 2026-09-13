@@ -183,6 +183,10 @@ export default function NewManifestPage() {
         packingGroup: w.packingGroup ?? "",
         idNumberCode: w.idNumberCode ?? "",
         federalWasteCode: (w.federalWasteCodes ?? []).join(", "),
+        // Not recoverable from an already-composed printedDotInformation
+        // string on a loaded manifest -- only set when applying a profile.
+        ergEnabled: false,
+        ergNumber: "",
         wastewaterCategory: "nonwastewater",
         isLabPack: false,
         labPackId: null,

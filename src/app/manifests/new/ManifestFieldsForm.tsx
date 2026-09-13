@@ -118,6 +118,12 @@ export interface WasteLineFormState {
   packingGroup: string;
   idNumberCode: string;
   federalWasteCode: string;
+  /** Set from the loaded waste profile's ERG toggle -- when true, ergNumber
+   * is appended to the end of the printed DOT shipping description (see
+   * buildWasteLinesFromFormData). ManifestMate-only, driven entirely by the
+   * profile; not independently editable on the manifest line itself. */
+  ergEnabled: boolean;
+  ergNumber: string;
   /** ManifestMate-only -- RCRAInfo's schema has no such field. Captured
    * here so an LDR notice filed later for this manifest (40 CFR 268.40)
    * doesn't have to guess. Only meaningful once a federal waste code is
@@ -151,6 +157,8 @@ export function emptyWasteLine(id: number, prefill: boolean): WasteLineFormState
     packingGroup: prefill ? "II" : "",
     idNumberCode: prefill ? "UN1993" : "",
     federalWasteCode: prefill ? "D001" : "",
+    ergEnabled: false,
+    ergNumber: "",
     wastewaterCategory: "nonwastewater",
     isLabPack: false,
     labPackId: null,
@@ -409,6 +417,8 @@ export function ManifestFieldsForm({
       packingGroup: profile.packingGroup,
       idNumberCode: profile.idNumberCode,
       federalWasteCode: profile.federalWasteCode,
+      ergEnabled: profile.ergEnabled,
+      ergNumber: profile.ergNumber,
       wastewaterCategory: profile.wastewaterCategory,
       isLabPack: profile.isLabPack,
       wasteDescription: profile.wasteDescription,
@@ -1050,6 +1060,18 @@ export function ManifestFieldsForm({
                     style={{ ...inputStyle, backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
                   />
                 </div>
+                {line.ergEnabled && (
+                  <div style={field}>
+                    <input type="hidden" name={`ergEnabled_${line.id}`} value="on" />
+                    <label style={label}>ERG guide # (from profile — printed at the end of the shipping description)</label>
+                    <input
+                      name={`ergNumber_${line.id}`}
+                      value={line.ergNumber}
+                      readOnly
+                      style={{ ...inputStyle, backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
+                    />
+                  </div>
+                )}
                 <div style={field}>
                   <label style={label}>
                     Federal waste codes (optional) —{" "}

@@ -112,12 +112,14 @@ export function buildWasteLinesFromFormData(formData: FormData): BuildWasteLines
       // permits the ID number either immediately before or after the
       // shipping description; this composes it in that order rather
       // than relying on the user to type the whole string correctly.
+      const ergNumber = w("ergEnabled") && w("ergNumber") ? w("ergNumber") : null;
       const printedDotInformation = [
         idNumberCode || null,
         rq ? "RQ" : null,
         shippingName,
         w("hazardClass") || null,
         w("packingGroup") ? `PG ${w("packingGroup")}` : null,
+        ergNumber ? `ERG ${ergNumber}` : null,
       ]
         .filter(Boolean)
         .join(", ");

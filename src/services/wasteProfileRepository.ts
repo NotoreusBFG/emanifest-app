@@ -25,6 +25,11 @@ export interface WasteProfile {
   wastewaterCategory: WastewaterCategory;
   isLabPack: boolean;
   wasteDescription: string;
+  // Emergency Response Guidebook: when on, ergNumber is appended to the end
+  // of the printed DOT shipping description on any manifest waste line
+  // populated from this profile (e.g. "..., PG II, ERG 128").
+  ergEnabled: boolean;
+  ergNumber: string;
   defaultUnitCode: string;
   defaultContainerTypeCode: string;
   disposalFacilityName: string;
@@ -66,6 +71,8 @@ export interface WasteProfileInput {
   wastewaterCategory: WastewaterCategory;
   isLabPack: boolean;
   wasteDescription: string;
+  ergEnabled: boolean;
+  ergNumber: string;
   defaultUnitCode: string;
   defaultContainerTypeCode: string;
   disposalFacilityName: string;
@@ -103,6 +110,8 @@ function mapRow(row: Record<string, unknown>): WasteProfile {
     wastewaterCategory: row.wastewater_category as WastewaterCategory,
     isLabPack: !!row.is_lab_pack,
     wasteDescription: (row.waste_description as string) ?? "",
+    ergEnabled: !!row.erg_enabled,
+    ergNumber: (row.erg_number as string) ?? "",
     defaultUnitCode: (row.default_unit_code as string) ?? "",
     defaultContainerTypeCode: (row.default_container_type_code as string) ?? "",
     disposalFacilityName: (row.disposal_facility_name as string) ?? "",
@@ -141,6 +150,8 @@ function toRow(input: WasteProfileInput) {
     wastewater_category: input.wastewaterCategory,
     is_lab_pack: input.isLabPack,
     waste_description: input.wasteDescription,
+    erg_enabled: input.ergEnabled,
+    erg_number: input.ergNumber,
     default_unit_code: input.defaultUnitCode,
     default_container_type_code: input.defaultContainerTypeCode,
     disposal_facility_name: input.disposalFacilityName,

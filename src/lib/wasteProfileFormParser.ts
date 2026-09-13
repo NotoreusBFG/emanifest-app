@@ -78,6 +78,8 @@ export function parseWasteProfileFormData(formData: FormData): WasteProfileInput
     wastewaterCategory: ((formData.get("wastewaterCategory") as string) || "nonwastewater") as WastewaterCategory,
     isLabPack: formData.get("isLabPack") === "on",
     wasteDescription,
+    ergEnabled: formData.get("ergEnabled") === "on",
+    ergNumber: ((formData.get("ergNumber") as string) ?? "").trim(),
     defaultUnitCode: ((formData.get("defaultUnitCode") as string) ?? "").trim(),
     defaultContainerTypeCode: ((formData.get("defaultContainerTypeCode") as string) ?? "").trim(),
     disposalFacilityName: ((formData.get("disposalFacilityName") as string) ?? "").trim(),

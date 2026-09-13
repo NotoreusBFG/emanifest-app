@@ -1078,8 +1078,8 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     uCodes: [],
     pCodes: [],
     dCodes: [],
-    possibleCharacteristicCodes: ["D002"],
-    notes: "Not U/P-listed; glacial/concentrated acetic acid is essentially always D002 by property (aqueous pH <= 2), but a dilute solution (see UN2790 for <=80%/<50%/<10%-and-<50% bands) may not meet the test -- verify against your actual waste's measured pH (added 2026-09-13, common-corrosives pass).",
+    possibleCharacteristicCodes: ["D001", "D002"],
+    notes: "Not U/P-listed. TWO independent characteristics at this concentration: D002 by property (aqueous pH <= 2), AND D001 -- glacial acetic acid's flash point is ~39C (102F), below the 60C/140F threshold in 40 CFR 261.21(a)(1) (confirmed via multiple SDS sources, 2026-09-13; user-flagged, not self-discovered). A dilute solution (see UN2790 for <=80%/<50%/<10%-and-<50% bands) will have a higher flash point and likely won't meet D001, and may not meet D002 either -- verify against your actual waste's measured properties.",
   },
   {
     unNumber: "UN2809",

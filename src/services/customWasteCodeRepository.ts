@@ -111,6 +111,75 @@ export async function listCustomWasteCodesForUser(supabase: SupabaseClient, user
   return (data ?? []).map(mapRow);
 }
 
+/** Best-effort cache write for an EPA/PubChem search result -- called
+ * automatically after every live API search (see chemicalSearchActions.ts)
+ * so the same chemical name never re-hits EPA/PubChem for this user again.
+ * Unlike upsertCustomWasteCode (used by the explicit "+ Save to your
+ * chemical list" button), this never overwrites an existing row: if the
+ * user already has an entry for this name -- whether from a prior search
+ * or their own hand-curated edit -- silently skips the write rather than
+ * clobbering it with a fresh, unreviewed API result. */
+export async function cacheSearchResultIfMissing(
+  supabase: SupabaseClient,
+  userId: string,
+  input: CustomWasteCodeInput
+): Promise<void> {
+  try {
+    const { data: existing } = await supabase
+      .from("custom_waste_codes")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("chemical_name_key", input.chemicalName.trim().toLowerCase())
+      .maybeSingle();
+    if (existing) return;
+
+    await supabase.from("custom_waste_codes").insert({
+      user_id: userId,
+      chemical_name: input.chemicalName,
+      f_codes: input.fCodes,
+      u_codes: input.uCodes,
+      p_codes: input.pCodes,
+      d_codes: input.dCodes,
+      notes: input.notes,
+    });
+  } catch (error) {
+    console.error("cacheSearchResultIfMissing failed (non-fatal):", error);
+  }
+}
+
+/** Updates an existing entry's codes/notes in place by id -- unlike
+ * upsertCustomWasteCode, never touches chemical_name, so it can't create a
+ * second row under a new chemical_name_key. Used by the chemical library
+ * page's Edit action; renaming a chemical isn't supported (delete + re-add
+ * via quick-add instead). */
+export async function updateCustomWasteCodeById(
+  supabase: SupabaseClient,
+  userId: string,
+  id: string,
+  input: Omit<CustomWasteCodeInput, "chemicalName">
+): Promise<{ success: true; entry: CustomWasteCode } | { success: false; error: string }> {
+  const { data, error } = await supabase
+    .from("custom_waste_codes")
+    .update({
+      f_codes: input.fCodes,
+      u_codes: input.uCodes,
+      p_codes: input.pCodes,
+      d_codes: input.dCodes,
+      notes: input.notes,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+
+  if (error) {
+    console.error("updateCustomWasteCodeById failed:", describePostgrestError(error));
+    return { success: false, error: error.message };
+  }
+  return { success: true, entry: mapRow(data) };
+}
+
 export async function deleteCustomWasteCode(
   supabase: SupabaseClient,
   userId: string,

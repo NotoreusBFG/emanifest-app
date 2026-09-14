@@ -2,6 +2,9 @@
 
 import { searchSrsSubstances, type ChemicalSearchMatch } from "@/lib/hazmat/srsClient";
 import { searchPubchemRcraRequirements, searchPubchemCharacteristicCodes } from "@/lib/hazmat/pubchemClient";
+import { createClient } from "@/lib/supabase/server";
+import { resolveEffectiveUserId } from "@/services/teamRepository";
+import { cacheSearchResultIfMissing, parseWasteCodesText } from "@/services/customWasteCodeRepository";
 
 export type ChemicalSearchState =
   | { success: true; matches: ChemicalSearchMatch[] }
@@ -44,39 +47,59 @@ export async function searchChemicalWasteCodesAction(query: string): Promise<Che
     const pubchemCodes = Array.from(new Set([...pubchemRcraResult.codes, ...pubchemCharacteristicResult.codes]));
     const pubchemExplanation = [...pubchemRcraResult.explanations, ...pubchemCharacteristicResult.explanations].join(" ");
 
+    let matches: ChemicalSearchMatch[];
     if (srsMatches.length === 0) {
       // SRS didn't resolve this query at all (or errored) -- if PubChem
       // did, that's still a real, useful answer on its own.
       if (pubchemCodes.length === 0) return { success: true, matches: [] };
-      return {
-        success: true,
-        matches: [
-          {
-            name: trimmed,
-            casNumber: null,
-            codes: pubchemCodes,
-            hasUnconfirmedListing: false,
-            explanation: pubchemExplanation,
-          },
-        ],
-      };
+      matches = [
+        {
+          name: trimmed,
+          casNumber: null,
+          codes: pubchemCodes,
+          hasUnconfirmedListing: false,
+          explanation: pubchemExplanation,
+        },
+      ];
+    } else {
+      // Merge PubChem's codes/explanation into the first (closest-name)
+      // SRS match only -- SRS can return multiple candidates for a loose
+      // name query (e.g. "Acetone" also returning "Acenaphthylene"), and
+      // PubChem resolved to exactly one compound, so it only ever
+      // corroborates the single best match, not every candidate.
+      matches = srsMatches.map((m, i) => {
+        if (i !== 0 || pubchemCodes.length === 0) return m;
+        return {
+          ...m,
+          codes: Array.from(new Set([...m.codes, ...pubchemCodes])),
+          explanation: pubchemExplanation,
+        };
+      });
     }
 
-    // Merge PubChem's codes/explanation into the first (closest-name)
-    // SRS match only -- SRS can return multiple candidates for a loose
-    // name query (e.g. "Acetone" also returning "Acenaphthylene"), and
-    // PubChem resolved to exactly one compound, so it only ever
-    // corroborates the single best match, not every candidate.
-    const merged = srsMatches.map((m, i) => {
-      if (i !== 0 || pubchemCodes.length === 0) return m;
-      return {
-        ...m,
-        codes: Array.from(new Set([...m.codes, ...pubchemCodes])),
-        explanation: pubchemExplanation,
-      };
-    });
+    // Cache the single best (first) match into the user's own library so
+    // this exact query never has to hit EPA/PubChem again -- see
+    // cacheSearchResultIfMissing's doc comment for why only the top match
+    // (never SRS's secondary loose candidates) and why it never overwrites
+    // an existing row. Best-effort: an unauthenticated caller or a caching
+    // failure never fails the search itself.
+    const best = matches[0];
+    if (best && best.codes.length > 0) {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+        await cacheSearchResultIfMissing(supabase, effectiveUserId, {
+          chemicalName: best.name,
+          ...parseWasteCodesText(best.codes.join(", ")),
+          notes: best.explanation ?? "",
+        });
+      }
+    }
 
-    return { success: true, matches: merged };
+    return { success: true, matches };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "EPA lookup failed." };
   }

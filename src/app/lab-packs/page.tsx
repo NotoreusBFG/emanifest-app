@@ -91,6 +91,12 @@ function JobsForGenerator({ generator }: { generator: SelectedLabPackGenerator }
 
   return (
     <>
+      <div className="mb-4">
+        <Button href="/lab-packs/chemical-library" className="px-5 py-2.5 text-sm">
+          Your chemical library
+        </Button>
+      </div>
+
       <Card className="p-6">
         <p className="mb-3 text-sm font-semibold text-brand-navy">Start a new job</p>
         <div className="flex flex-wrap items-end gap-3">

@@ -6,6 +6,7 @@ import {
   upsertCustomWasteCode,
   listCustomWasteCodesForUser,
   deleteCustomWasteCode,
+  updateCustomWasteCodeById,
   parseWasteCodesText,
   type CustomWasteCode,
 } from "@/services/customWasteCodeRepository";
@@ -54,6 +55,28 @@ export async function listCustomWasteCodesAction(): Promise<CustomWasteCode[]> {
   if (!user) return [];
   const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
   return listCustomWasteCodesForUser(supabase, effectiveUserId);
+}
+
+export async function updateCustomWasteCodeAction(
+  id: string,
+  wasteCodesText: string,
+  notes: string
+): Promise<CustomWasteCodeActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not logged in." };
+
+  const effectiveUserId = await resolveEffectiveUserId(supabase, user.id);
+  const result = await updateCustomWasteCodeById(supabase, effectiveUserId, id, {
+    ...parseWasteCodesText(wasteCodesText),
+    notes: notes.trim(),
+  });
+  if (!result.success) return { success: false, error: result.error };
+
+  revalidatePath("/lab-packs");
+  return { success: true, entry: result.entry };
 }
 
 export async function deleteCustomWasteCodeAction(id: string): Promise<{ success: boolean; error?: string }> {

@@ -1,4 +1,4 @@
-import { Fragment, useState, type Dispatch, type SetStateAction } from "react";
+import { Fragment, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { brand } from "@/lib/brandColors";
 import { inputStyle } from "@/lib/formStyles";
@@ -12,7 +12,9 @@ import type { SiteSearchResultItem, FederalWasteCode } from "@/lib/rcrainfo/type
 import type { HazmatEntry } from "@/lib/hazmat/types";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
 import type { LabPack, LabPackJob } from "@/lib/labPack/types";
+import type { LabelPrint } from "@/services/labelPrintRepository";
 import { listLabPacksForJobAction } from "@/app/actions/labPackActions";
+import { getLabelPrintAction } from "@/app/actions/labelActions";
 
 const row = { display: "flex", gap: "10px" };
 const field = { flex: 1, marginBottom: "12px" };
@@ -187,6 +189,24 @@ function labPackPrefill(pack: LabPack): Partial<WasteLineFormState> {
   };
 }
 
+/** Maps a scanned drum label (a print-time snapshot of a waste profile,
+ * see labelPrintRepository.ts) onto a NEW waste line -- same shape mapping
+ * as applyWasteProfile below, minus the fields a label doesn't carry
+ * (ERG, wastewater category, default unit/container codes), which fall
+ * back to emptyWasteLine's own defaults. */
+function labelPrintPrefill(label: LabelPrint): Partial<WasteLineFormState> {
+  return {
+    dotHazardous: label.dotHazardous,
+    isRcraWaste: label.isRcraWaste,
+    properShippingName: label.properShippingName,
+    hazardClass: label.hazardClass,
+    packingGroup: label.packingGroup,
+    idNumberCode: label.idNumberCode,
+    federalWasteCode: label.federalWasteCode,
+    wasteDescription: label.wasteDescription,
+  };
+}
+
 /**
  * Generator and designated facility share the same form shape
  * (`HandlerFormState`) and the same fill logic — EPA's registered contact
@@ -263,6 +283,13 @@ export interface ManifestFieldsFormProps {
    * for the "load a whole job" bulk control above the waste-lines list.
    * Omit (or pass an empty array) to hide that control entirely. */
   labPackJobs?: LabPackJob[];
+  /** Loads every unlinked drum in a lab pack job for the "load a whole
+   * job" bulk control. Defaults to the owner's own `listLabPacksForJobAction`
+   * (unchanged behavior). The waste-line-edit delegate passes a
+   * client-side filter over its already-fetched `labPacks` list instead,
+   * since that anonymous context has no logged-in session for the default
+   * action to resolve. */
+  onLoadLabPackJob?: (jobId: string) => Promise<LabPack[]>;
   /**
    * `"edit"` (default): every fieldset is editable, the owner's
    * `/manifests/new` behavior, unchanged.
@@ -326,6 +353,7 @@ export function ManifestFieldsForm({
   setHandlingInstructions,
   defaultEmergencyPhone,
   federalWasteCodesFn,
+  onLoadLabPackJob,
   wasteProfiles = [],
   labPacks = [],
   labPackJobs = [],
@@ -453,7 +481,7 @@ export function ManifestFieldsForm({
   const handleLoadLabPackJob = async () => {
     if (!selectedLabPackJobId) return;
     setLoadingLabPackJob(true);
-    const jobPacks = await listLabPacksForJobAction(selectedLabPackJobId);
+    const jobPacks = await (onLoadLabPackJob ?? listLabPacksForJobAction)(selectedLabPackJobId);
     setLoadingLabPackJob(false);
     const unlinked = jobPacks.filter((p) => !p.epaMtn);
     if (unlinked.length === 0) return;
@@ -465,6 +493,102 @@ export function ManifestFieldsForm({
     }));
     setWasteLines((lines) => [...lines, ...newLines]);
     setSelectedLabPackJobId("");
+  };
+
+  // Scan a printed drum label's QR code (which points at /labels/{id}, a
+  // fully public page -- label_prints_select_public policy, `for select
+  // using (true)`) and append it as a new waste line. First camera-based
+  // input anywhere in this app -- everything else here reuses established
+  // patterns.
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanRafRef = useRef<number | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanLoading, setScanLoading] = useState(false);
+
+  const stopScan = () => {
+    if (scanRafRef.current !== null) cancelAnimationFrame(scanRafRef.current);
+    scanRafRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setScanning(false);
+  };
+
+  // Cleanup on unmount, in case the delegate navigates away mid-scan.
+  useEffect(() => stopScan, []);
+
+  const handleScannedLabelUrl = async (rawValue: string) => {
+    const match = rawValue.match(/\/labels\/([^/?#]+)/);
+    if (!match) {
+      setScanError("That QR code doesn't look like a ManifestMate drum label.");
+      return;
+    }
+    stopScan();
+    setScanLoading(true);
+    const label = await getLabelPrintAction(match[1]);
+    setScanLoading(false);
+
+    if (!label) {
+      setScanError("This label wasn't found — it may have been removed.");
+      return;
+    }
+
+    const facilityEpaId = facility.epaSiteId.trim().toUpperCase();
+    const labelEpaId = label.disposalFacilityEpaId.trim().toUpperCase();
+    if (!facilityEpaId || facilityEpaId !== labelEpaId) {
+      setScanError(
+        `This label is approved for ${label.disposalFacilityName || "an unnamed facility"} (${label.disposalFacilityEpaId}), not the designated facility on this manifest${facility.epaSiteId ? ` (${facility.epaSiteId})` : ""}.`
+      );
+      return;
+    }
+
+    setScanError(null);
+    const nextId = wasteLines.length ? Math.max(...wasteLines.map((l) => l.id)) + 1 : 0;
+    setWasteLines((lines) => [...lines, { ...emptyWasteLine(nextId, false), ...labelPrintPrefill(label) }]);
+  };
+
+  const startScan = async () => {
+    setScanError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
+      setScanning(true);
+      // Wait a tick for the video element to mount (setScanning above
+      // triggers the conditional render below).
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      });
+
+      const jsQR = (await import("jsqr")).default;
+      const tick = () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            if (code) {
+              handleScannedLabelUrl(code.data);
+              return;
+            }
+          }
+        }
+        scanRafRef.current = requestAnimationFrame(tick);
+      };
+      scanRafRef.current = requestAnimationFrame(tick);
+    } catch {
+      setScanError("Couldn't access the camera — check your browser's camera permission for this site.");
+      setScanning(false);
+    }
   };
 
   const addContinuationPage = () => {
@@ -852,6 +976,55 @@ export function ManifestFieldsForm({
         <StateWasteCodeNote state={facility.state} />
       </fieldset>
       )}
+
+      <div style={{ marginBottom: "20px", padding: "12px", border: `1px dashed ${brand.blue}`, borderRadius: "6px" }}>
+        <label style={label}>Scan a drum&apos;s QR code (optional)</label>
+        <p style={{ fontSize: "12px", color: "#888", margin: "0 0 8px" }}>
+          Scans the QR code on a printed drum label and adds a new waste line prefilled from it.
+        </p>
+        {!scanning ? (
+          <button
+            type="button"
+            onClick={startScan}
+            disabled={scanLoading}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "white",
+              color: brand.blue,
+              border: `1px solid ${brand.blue}`,
+              borderRadius: "4px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {scanLoading ? "Looking up label…" : "📷 Scan a drum's QR code"}
+          </button>
+        ) : (
+          <div>
+            <video ref={videoRef} muted playsInline style={{ width: "100%", maxWidth: "360px", borderRadius: "6px" }} />
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+            <div>
+              <button
+                type="button"
+                onClick={stopScan}
+                style={{
+                  marginTop: "8px",
+                  padding: "8px 16px",
+                  backgroundColor: "white",
+                  color: "#c00",
+                  border: "1px solid #c00",
+                  borderRadius: "4px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        {scanError && <p style={{ color: "#c00", fontSize: "13px", margin: "8px 0 0" }}>{scanError}</p>}
+      </div>
 
       {labPackJobs.length > 0 && (
         <div style={{ marginBottom: "20px", padding: "12px", border: `1px dashed ${brand.blue}`, borderRadius: "6px" }}>

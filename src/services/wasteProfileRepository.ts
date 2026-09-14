@@ -90,7 +90,10 @@ export interface WasteProfileInput {
   isToxic: boolean;
 }
 
-function mapRow(row: Record<string, unknown>): WasteProfile {
+/** Exported so wasteLineEditRepository.ts can map the identical row shape
+ * returned by list_waste_profiles_for_waste_line_token (a SECURITY DEFINER
+ * RPC selecting `wp.*`) without duplicating this field list. */
+export function mapRow(row: Record<string, unknown>): WasteProfile {
   return {
     id: row.id as string,
     mmProfileNumber: row.mm_profile_number as string,

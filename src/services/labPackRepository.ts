@@ -26,7 +26,10 @@ function mapLineItemRow(row: Record<string, unknown>): LabPackLineItem {
   };
 }
 
-function mapRow(row: Record<string, unknown>, lineItems: LabPackLineItem[]): LabPack {
+/** Exported so wasteLineEditRepository.ts can map the identical row shape
+ * returned by list_lab_packs_for_waste_line_token (a SECURITY DEFINER RPC
+ * selecting `lp.*`, no line items) without duplicating this field list. */
+export function mapRow(row: Record<string, unknown>, lineItems: LabPackLineItem[]): LabPack {
   return {
     id: row.id as string,
     jobId: (row.job_id as string | null) ?? null,

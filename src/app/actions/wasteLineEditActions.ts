@@ -23,8 +23,16 @@ import {
   getOwnerCredentialsForWasteLineToken,
   recordManifestEditConsent,
   recordGeneratorSignViaWasteLineToken,
+  listWasteProfilesForWasteLineToken,
+  listLabPacksForWasteLineToken,
+  listLabPackJobsForWasteLineToken,
+  linkLabPackToManifestLineForWasteLineToken,
+  upsertWasteLineMetadataForWasteLineToken,
+  releaseWasteLineEditTokenAfterPeek,
   type WasteLineEditSession,
 } from "@/services/wasteLineEditRepository";
+import type { WasteProfile } from "@/services/wasteProfileRepository";
+import type { LabPack, LabPackJob } from "@/lib/labPack/types";
 
 function clientFor(credentials: { apiId: string; apiKey: string }) {
   return new RcrainfoClient({
@@ -179,6 +187,96 @@ export async function getFederalWasteCodesForWasteLineTokenAction(): Promise<Was
   }
 }
 
+export type UnlockWasteLineEditPickerDataState =
+  | {
+      success: true;
+      profiles: WasteProfile[];
+      labPacks: LabPack[];
+      labPackJobs: LabPackJob[];
+      /** The manifest's REAL designated-facility EPA ID, live-fetched here
+       * — the delegate's client-side `facility` state otherwise only ever
+       * has the display-snapshot NAME (never the EPA ID, see
+       * EditWasteLinesForm.tsx's `mode="wasteLinesOnly"` render), which
+       * would make every facility-mismatch check below (profile picker,
+       * lab pack picker, QR scan) compare against an empty string and
+       * always fail. */
+      designatedFacilityEpaId: string;
+    }
+  | { success: false; error: string };
+
+/**
+ * Anonymous-facing: lets the delegate "unlock" the owner's saved waste
+ * profiles and lab pack drums/jobs by proving they know the manifest's
+ * MMIN, WITHOUT doing the real EPA update yet — that still only happens on
+ * the separate final submitWasteLineEditAction call below, which
+ * independently re-claims and re-verifies the MMIN from scratch.
+ *
+ * Reuses the exact same claim -> verify MMIN sequence
+ * submitWasteLineEditAction uses. On a WRONG code: released via the
+ * existing (penalized) releaseWasteLineEditToken, identical behavior to
+ * today. On a CORRECT code: fetches the three lists, then releases via
+ * releaseWasteLineEditTokenAfterPeek (no penalty) so the token is left
+ * exactly as it was for the real final submit to claim again later.
+ */
+export async function unlockWasteLineEditPickerDataAction(
+  token: string,
+  mmin: string
+): Promise<UnlockWasteLineEditPickerDataState> {
+  const supabase = await createClient();
+
+  const claimed = await claimWasteLineEditToken(supabase, token);
+  if (!claimed) {
+    return { success: false, error: "This link is no longer valid — it may be expired or already used." };
+  }
+
+  const actualMmin = await getManifestMminForWasteLineToken(supabase, claimed.tokenId);
+  if (actualMmin === null) {
+    await releaseWasteLineEditToken(supabase, claimed.tokenId);
+    return {
+      success: false,
+      error: "This manifest hasn't been assigned a signing code yet — ask the owner to reopen it once, then try again.",
+    };
+  }
+  if (!timingSafeCompareCode(mmin.trim(), actualMmin)) {
+    await releaseWasteLineEditToken(supabase, claimed.tokenId);
+    return { success: false, error: "Incorrect code — check with whoever sent you this link and try again." };
+  }
+
+  try {
+    const credentials = await getOwnerCredentialsForWasteLineToken(supabase, claimed.tokenId);
+    if (!credentials) {
+      await releaseWasteLineEditTokenAfterPeek(supabase, claimed.tokenId);
+      return { success: false, error: "This link is no longer valid." };
+    }
+
+    const [profiles, labPacks, labPackJobs, manifest] = await Promise.all([
+      listWasteProfilesForWasteLineToken(supabase, claimed.tokenId),
+      listLabPacksForWasteLineToken(supabase, claimed.tokenId),
+      listLabPackJobsForWasteLineToken(supabase, claimed.tokenId),
+      clientFor(credentials).getManifest(claimed.epaMtn),
+    ]);
+
+    await releaseWasteLineEditTokenAfterPeek(supabase, claimed.tokenId);
+
+    return {
+      success: true,
+      profiles,
+      labPacks,
+      labPackJobs,
+      designatedFacilityEpaId: manifest.designatedFacility.epaSiteId,
+    };
+  } catch (err) {
+    // Leaves the token claimed rather than releasing it here — an EPA
+    // lookup failure mid-unlock is transient/environmental, not a wrong
+    // code, so it shouldn't count against failed_attempt_count either way.
+    // The delegate can just retry Unlock; claimWasteLineEditToken's own
+    // `used_at is null` guard means a stuck claimed row would otherwise
+    // block that retry, so release without penalty here too.
+    await releaseWasteLineEditTokenAfterPeek(supabase, claimed.tokenId);
+    return { success: false, error: formatRcrainfoError(err) };
+  }
+}
+
 export type SubmitWasteLineEditState =
   | { success: true; wasteLineCount: number; signed: boolean; signError?: string }
   | { success: false; error: string }
@@ -318,6 +416,29 @@ export async function submitWasteLineEditAction(
     // reflects this without needing a separate manual lookup — same call
     // every other manifest-changing action (create, sign) already makes.
     await recordManifestLocally(supabase, claimed.ownerUserId, manifest);
+
+    // Same wastewater-category/lab-pack-link write-back
+    // createManifestAction already does on the owner's own create path —
+    // wasteResult.wasteLineMetadata is computed by buildWasteLinesFromFormData
+    // regardless of caller, just unused here until now. Uses the
+    // token-scoped RPCs (migration 2026092206) since this Supabase client
+    // has no logged-in session to satisfy manifest_waste_line_metadata/
+    // lab_packs' `auth.uid() = user_id` RLS directly.
+    await upsertWasteLineMetadataForWasteLineToken(
+      supabase,
+      claimed.tokenId,
+      wasteResult.wasteLineMetadata.map((l) => ({
+        lineNumber: l.lineNumber,
+        wastewaterCategory: l.wastewaterCategory,
+        isLabPack: l.isLabPack,
+        labPackId: l.labPackId,
+      }))
+    );
+    await Promise.all(
+      wasteResult.wasteLineMetadata
+        .filter((l) => l.labPackId)
+        .map((l) => linkLabPackToManifestLineForWasteLineToken(supabase, claimed.tokenId, l.labPackId!, l.lineNumber))
+    );
 
     // Waste lines are now GENUINELY saved regardless of anything below —
     // this outer function must not throw/release the token past this

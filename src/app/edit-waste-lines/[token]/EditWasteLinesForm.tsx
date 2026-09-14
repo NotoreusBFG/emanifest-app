@@ -4,6 +4,7 @@ import { useActionState, useCallback, useState } from "react";
 import {
   submitWasteLineEditAction,
   getFederalWasteCodesForWasteLineTokenAction,
+  unlockWasteLineEditPickerDataAction,
   type SubmitWasteLineEditState,
 } from "@/app/actions/wasteLineEditActions";
 import type { WasteLineEditSession } from "@/services/wasteLineEditRepository";
@@ -16,6 +17,8 @@ import {
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { certificationTextFor } from "@/lib/rcrainfo/certificationText";
 import { CertificationDisplay } from "@/components/CertificationDisplay";
+import type { WasteProfile } from "@/services/wasteProfileRepository";
+import type { LabPack, LabPackJob } from "@/lib/labPack/types";
 
 /**
  * No-account waste-line-only editor for a delegate. Generator/transporter/
@@ -42,6 +45,46 @@ export function EditWasteLinesForm({ token, session }: { token: string; session:
   const [signAcknowledged, setSignAcknowledged] = useState(false);
   const certification = certificationTextFor("Generator");
   const generatorName = session.generatorName ?? "the generator";
+
+  // "Unlock" step: proves the delegate knows the MMIN, without doing the
+  // real EPA update yet, so the owner's saved waste profiles/lab packs can
+  // be shown for picking — same MMIN gate as final submit, just earlier.
+  // Also carries the manifest's REAL designated-facility EPA ID (this
+  // page's `facility` state otherwise only ever has the display-snapshot
+  // NAME), needed for the profile/lab-pack/QR-scan facility-mismatch
+  // checks in ManifestFieldsForm to work at all.
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
+  const [profiles, setProfiles] = useState<WasteProfile[]>([]);
+  const [labPacks, setLabPacks] = useState<LabPack[]>([]);
+  const [labPackJobs, setLabPackJobs] = useState<LabPackJob[]>([]);
+  const [designatedFacilityEpaId, setDesignatedFacilityEpaId] = useState("");
+
+  const handleUnlock = async () => {
+    setUnlocking(true);
+    setUnlockError(null);
+    const result = await unlockWasteLineEditPickerDataAction(token, mmin);
+    setUnlocking(false);
+    if (!result.success) {
+      setUnlockError(result.error);
+      return;
+    }
+    setProfiles(result.profiles);
+    setLabPacks(result.labPacks);
+    setLabPackJobs(result.labPackJobs);
+    setDesignatedFacilityEpaId(result.designatedFacilityEpaId);
+    setUnlocked(true);
+  };
+
+  // The job bulk-loader normally calls listLabPacksForJobAction (owner-only,
+  // session-based) — this anonymous context has no session for that, but
+  // Unlock already fetched every one of the owner's unlinked drums, so just
+  // filter that list client-side instead of a new server round trip.
+  const loadLabPacksForJob = useCallback(
+    async (jobId: string) => labPacks.filter((p) => p.jobId === jobId),
+    [labPacks]
+  );
 
   const boundAction = useCallback(
     (prevState: SubmitWasteLineEditState, formData: FormData) => submitWasteLineEditAction(token, prevState, formData),
@@ -109,11 +152,61 @@ export function EditWasteLinesForm({ token, session }: { token: string; session:
         </div>
       )}
 
-      <form action={formAction}>
+      <div
+        style={{
+          marginTop: "16px",
+          padding: "12px",
+          border: `1px dashed ${unlocked ? "#2a8a4a" : "#888"}`,
+          borderRadius: "6px",
+          background: unlocked ? "#f0fbf3" : undefined,
+        }}
+      >
+        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+          4-digit signing code (required)
+        </label>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            name="mmin"
+            form="edit-waste-lines-form"
+            value={mmin}
+            onChange={(e) => {
+              setMmin(e.target.value);
+              setUnlocked(false);
+            }}
+            inputMode="numeric"
+            maxLength={4}
+            style={{ ...inputStyle, maxWidth: "120px" }}
+          />
+          <button
+            type="button"
+            onClick={handleUnlock}
+            disabled={unlocking || !mmin.trim()}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "white",
+              color: unlocked ? "#2a8a4a" : "#0a4b78",
+              border: `1px solid ${unlocked ? "#2a8a4a" : "#0a4b78"}`,
+              borderRadius: "4px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            {unlocking ? "Checking…" : unlocked ? "✅ Unlocked" : "Unlock my saved profiles & lab packs"}
+          </button>
+        </div>
+        <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
+          Ask whoever sent you this link for this manifest&apos;s 4-digit signing code (MMIN). Unlocking
+          lets you pick from the owner&apos;s saved waste profiles and lab pack drums below instead of typing
+          everything by hand — optional, you can still fill in every field manually without it.
+        </p>
+        {unlockError && <p style={{ color: "red", fontSize: "13px", marginTop: "4px" }}>❌ {unlockError}</p>}
+      </div>
+
+      <form id="edit-waste-lines-form" action={formAction}>
         <ManifestFieldsForm
           generator={{ ...BLANK_HANDLER, name: session.generatorName ?? "" }}
           setGenerator={() => {}}
-          facility={{ ...BLANK_HANDLER, name: session.designatedFacilityName ?? "" }}
+          facility={{ ...BLANK_HANDLER, name: session.designatedFacilityName ?? "", epaSiteId: designatedFacilityEpaId }}
           setFacility={() => {}}
           transporters={[]}
           setTransporters={() => {}}
@@ -125,6 +218,10 @@ export function EditWasteLinesForm({ token, session }: { token: string; session:
           setHandlingInstructions={() => {}}
           defaultEmergencyPhone=""
           federalWasteCodesFn={federalWasteCodesFn}
+          wasteProfiles={profiles}
+          labPacks={labPacks}
+          labPackJobs={labPackJobs}
+          onLoadLabPackJob={loadLabPacksForJob}
           mode="wasteLinesOnly"
         />
 
@@ -159,23 +256,6 @@ export function EditWasteLinesForm({ token, session }: { token: string; session:
             </label>
           </>
         )}
-
-        <div style={{ marginTop: "10px" }}>
-          <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
-            4-digit signing code (required)
-          </label>
-          <input
-            name="mmin"
-            value={mmin}
-            onChange={(e) => setMmin(e.target.value)}
-            inputMode="numeric"
-            maxLength={4}
-            style={inputStyle}
-          />
-          <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
-            Ask whoever sent you this link for this manifest&apos;s 4-digit signing code (MMIN).
-          </p>
-        </div>
 
         <button
           type="submit"

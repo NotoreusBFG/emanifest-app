@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decrypt } from "@/lib/cryptoUtils";
+import { mapRow as mapWasteProfileRow, type WasteProfile } from "@/services/wasteProfileRepository";
+import { mapRow as mapLabPackRow } from "@/services/labPackRepository";
+import type { LabPack, LabPackJob } from "@/lib/labPack/types";
 
 export interface WasteLineEditSession {
   epaMtn: string;
@@ -196,4 +199,99 @@ export async function recordGeneratorSignViaWasteLineToken(
     p_mmin_verified: params.mminVerified,
   });
   if (error) console.error("recordGeneratorSignViaWasteLineToken FAILED — audit trail gap:", error.message);
+}
+
+/** All of the owner's saved waste profiles -- only callable on an
+ * ALREADY-CLAIMED token, same trust boundary as getOwnerCredentialsForWasteLineToken. */
+export async function listWasteProfilesForWasteLineToken(
+  supabase: SupabaseClient,
+  tokenId: string
+): Promise<WasteProfile[]> {
+  const { data, error } = await supabase.rpc("list_waste_profiles_for_waste_line_token", {
+    p_token_id: tokenId,
+  });
+  if (error) {
+    console.error("listWasteProfilesForWasteLineToken failed:", error.message);
+    return [];
+  }
+  return (data ?? []).map(mapWasteProfileRow);
+}
+
+/** The owner's unlinked lab pack drums -- same `epa_mtn is null` filter
+ * /manifests/new/page.tsx applies client-side. */
+export async function listLabPacksForWasteLineToken(supabase: SupabaseClient, tokenId: string): Promise<LabPack[]> {
+  const { data, error } = await supabase.rpc("list_lab_packs_for_waste_line_token", { p_token_id: tokenId });
+  if (error) {
+    console.error("listLabPacksForWasteLineToken failed:", error.message);
+    return [];
+  }
+  return (data ?? []).map((row: Record<string, unknown>) => mapLabPackRow(row, []));
+}
+
+/** The owner's open (not yet linked) lab pack jobs, with a computed drum count. */
+export async function listLabPackJobsForWasteLineToken(
+  supabase: SupabaseClient,
+  tokenId: string
+): Promise<LabPackJob[]> {
+  const { data, error } = await supabase.rpc("list_lab_pack_jobs_for_waste_line_token", { p_token_id: tokenId });
+  if (error) {
+    console.error("listLabPackJobsForWasteLineToken failed:", error.message);
+    return [];
+  }
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    jobNumber: row.job_number as string,
+    jobName: (row.job_name as string) ?? "",
+    generatorEpaId: (row.generator_epa_id as string) ?? "",
+    generatorName: (row.generator_name as string) ?? "",
+    generatorAddress: (row.generator_address as string) ?? "",
+    status: row.status as LabPackJob["status"],
+    epaMtn: (row.epa_mtn as string | null) ?? null,
+    drumCount: Number(row.drum_count ?? 0),
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  }));
+}
+
+/** Marks a lab pack drum as loaded onto a specific manifest line -- same
+ * write linkLabPackToManifestLine does, scoped through the claimed token. */
+export async function linkLabPackToManifestLineForWasteLineToken(
+  supabase: SupabaseClient,
+  tokenId: string,
+  labPackId: string,
+  lineNumber: number
+): Promise<void> {
+  const { error } = await supabase.rpc("link_lab_pack_to_manifest_line_for_waste_line_token", {
+    p_token_id: tokenId,
+    p_lab_pack_id: labPackId,
+    p_line_number: lineNumber,
+  });
+  if (error) console.error("linkLabPackToManifestLineForWasteLineToken failed (non-fatal):", error.message);
+}
+
+/** Same upsert upsertWasteLineMetadata does, scoped through the claimed token. */
+export async function upsertWasteLineMetadataForWasteLineToken(
+  supabase: SupabaseClient,
+  tokenId: string,
+  lines: { lineNumber: number; wastewaterCategory: string; isLabPack: boolean; labPackId: string | null }[]
+): Promise<void> {
+  if (lines.length === 0) return;
+  const { error } = await supabase.rpc("upsert_waste_line_metadata_for_waste_line_token", {
+    p_token_id: tokenId,
+    p_lines: lines.map((l) => ({
+      line_number: l.lineNumber,
+      wastewater_category: l.wastewaterCategory,
+      is_lab_pack: l.isLabPack,
+      lab_pack_id: l.labPackId,
+    })),
+  });
+  if (error) console.error("upsertWasteLineMetadataForWasteLineToken failed (non-fatal):", error.message);
+}
+
+/** Un-claims a token after a successful "peek" (Unlock step) WITHOUT
+ * incrementing failed_attempt_count -- see the migration's comment for why
+ * reusing releaseWasteLineEditToken here would be wrong. */
+export async function releaseWasteLineEditTokenAfterPeek(supabase: SupabaseClient, tokenId: string): Promise<void> {
+  const { error } = await supabase.rpc("release_waste_line_edit_token_after_peek", { p_token_id: tokenId });
+  if (error) console.error("releaseWasteLineEditTokenAfterPeek failed:", error.message);
 }

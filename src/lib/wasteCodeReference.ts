@@ -170,7 +170,8 @@ export const UN_WASTE_CODES: UnWasteCodeEntry[] = [
     uCodes: ["U154"],
     pCodes: [],
     dCodes: [],
-    notes: "F003 spent solvent; U154 unused product.",
+    possibleCharacteristicCodes: ["D001"],
+    notes: "F003 spent solvent; U154 unused product. D001 -- methanol's flash point (~11-12C/52-54F) is well below the 60C/140F threshold in 40 CFR 261.21(a)(1), true for virtually any concentration encountered as waste.",
   },
   {
     unNumber: "UN1245",

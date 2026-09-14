@@ -45,6 +45,12 @@ export interface LabPack {
   outerContainerTypeCode: string;
   outerContainerSize: string;
   drumNumber: number | null;
+  /** Friendly per-job drum identifier, e.g. "LP-000003-001" -- the parent
+   * job's own jobNumber plus this drum's sequence, zero-padded to 3
+   * digits. Computed server-side from a join, not a stored column; null
+   * for a legacy/ungrouped drum (no jobId) or before a drum number has
+   * been assigned. */
+  drumLabel: string | null;
   epaMtn: string | null;
   manifestLineNumber: number | null;
   status: LabPackStatus;

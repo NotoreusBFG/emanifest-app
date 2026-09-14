@@ -30,6 +30,15 @@ function mapLineItemRow(row: Record<string, unknown>): LabPackLineItem {
  * returned by list_lab_packs_for_waste_line_token (a SECURITY DEFINER RPC
  * selecting `lp.*`, no line items) without duplicating this field list. */
 export function mapRow(row: Record<string, unknown>, lineItems: LabPackLineItem[]): LabPack {
+  const drumNumber = (row.drum_number as number | null) ?? null;
+  // Embedded via the `lab_pack_jobs(job_number)` join on read queries --
+  // null for a row fetched without that join, or a legacy/ungrouped drum
+  // with no job_id.
+  const parentJob = row.lab_pack_jobs as { job_number: string } | null | undefined;
+  const drumLabel =
+    parentJob?.job_number && drumNumber != null
+      ? `${parentJob.job_number}-${String(drumNumber).padStart(3, "0")}`
+      : null;
   return {
     id: row.id as string,
     jobId: (row.job_id as string | null) ?? null,
@@ -46,7 +55,8 @@ export function mapRow(row: Record<string, unknown>, lineItems: LabPackLineItem[
     totalWeight: (row.total_weight as number | null) ?? null,
     outerContainerTypeCode: (row.outer_container_type_code as string) ?? "DM",
     outerContainerSize: (row.outer_container_size as string) ?? "",
-    drumNumber: (row.drum_number as number | null) ?? null,
+    drumNumber,
+    drumLabel,
     epaMtn: (row.epa_mtn as string | null) ?? null,
     manifestLineNumber: (row.manifest_line_number as number | null) ?? null,
     status: (row.status as LabPackStatus) ?? "draft",
@@ -130,14 +140,43 @@ async function replaceLineItems(
   return { success: true };
 }
 
+/** Next drum # within a job, scoped by job_id -- 1 for the job's first
+ * drum, then max(existing)+1. Always recomputed server-side on create
+ * (see createLabPack) rather than trusted from the client, so a stale
+ * form value or a concurrent add can't produce a duplicate. */
+async function getNextDrumNumber(supabase: SupabaseClient, jobId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("lab_packs")
+    .select("drum_number")
+    .eq("job_id", jobId)
+    .order("drum_number", { ascending: false, nullsFirst: false })
+    .limit(1);
+
+  if (error) {
+    console.error("getNextDrumNumber failed:", describePostgrestError(error));
+    return 1;
+  }
+  const highest = data?.[0]?.drum_number as number | null | undefined;
+  return highest != null ? highest + 1 : 1;
+}
+
 export async function createLabPack(
   supabase: SupabaseClient,
   userId: string,
   input: LabPackInput
 ): Promise<{ success: true; labPack: LabPack } | { success: false; error: string }> {
+  const row = toRow(input);
+  // A job-scoped drum always gets an auto-assigned number -- the "Drum #"
+  // field is hidden from the create form for this case (see
+  // LabPackFormFields), and duplicateLabPack's explicit `drumNumber: null`
+  // relies on this too when copying a drum into another job.
+  if (input.jobId) {
+    row.drum_number = await getNextDrumNumber(supabase, input.jobId);
+  }
+
   const { data, error } = await supabase
     .from("lab_packs")
-    .insert({ user_id: userId, ...toRow(input) })
+    .insert({ user_id: userId, ...row })
     .select("*")
     .single();
 
@@ -179,8 +218,17 @@ export async function updateLabPack(
   return { success: true, labPack };
 }
 
+// Embeds the parent job's own "LP-000001" number for computing drumLabel
+// (mapRow) -- null for a legacy/ungrouped drum with no job_id.
+const LAB_PACK_SELECT_WITH_JOB_NUMBER = "*, lab_pack_jobs(job_number)";
+
 export async function getLabPack(supabase: SupabaseClient, userId: string, id: string): Promise<LabPack | null> {
-  const { data, error } = await supabase.from("lab_packs").select("*").eq("id", id).eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase
+    .from("lab_packs")
+    .select(LAB_PACK_SELECT_WITH_JOB_NUMBER)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
 
   if (error) {
     console.error("getLabPack failed:", describePostgrestError(error));
@@ -207,7 +255,7 @@ export async function getLabPack(supabase: SupabaseClient, userId: string, id: s
 export async function listLabPacksForUser(supabase: SupabaseClient, userId: string): Promise<LabPack[]> {
   const { data, error } = await supabase
     .from("lab_packs")
-    .select("*")
+    .select(LAB_PACK_SELECT_WITH_JOB_NUMBER)
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -377,7 +425,7 @@ export async function deleteLabPackJob(
 export async function listLabPacksForJob(supabase: SupabaseClient, userId: string, jobId: string): Promise<LabPack[]> {
   const { data, error } = await supabase
     .from("lab_packs")
-    .select("*")
+    .select(LAB_PACK_SELECT_WITH_JOB_NUMBER)
     .eq("user_id", userId)
     .eq("job_id", jobId)
     .order("created_at", { ascending: false });

@@ -5,6 +5,8 @@ import { createLabPackAction, updateLabPackAction } from "@/app/actions/labPackA
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { ChemicalNameSearchField } from "@/components/ChemicalNameSearchField";
+import { HazmatSearchField } from "@/app/manifests/new/HazmatSearchField";
+import type { HazmatEntry } from "@/lib/hazmat/types";
 import { saveCustomWasteCodeAction } from "@/app/actions/customWasteCodeActions";
 import { CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { OUTER_CONTAINER_SIZE_OPTIONS, PHYSICAL_STATE_OPTIONS } from "@/lib/labPack/types";
@@ -67,6 +69,7 @@ function ChemicalQuickAddModal({
   onClose: () => void;
 }) {
   const [fields, setFields] = useState<ChemicalQuickAddFields>(emptyQuickAddFields());
+  const [isUnusedMaterial, setIsUnusedMaterial] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingToLibrary, setSavingToLibrary] = useState(false);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
@@ -96,6 +99,7 @@ function ChemicalQuickAddModal({
     }
     onSave({ ...fields, chemicalName: name });
     setFields(emptyQuickAddFields());
+    setIsUnusedMaterial(false);
     setError(null);
     setSavedToLibrary(false);
     nameInputRef.current?.focus();
@@ -127,10 +131,21 @@ function ChemicalQuickAddModal({
             value={fields.chemicalName}
             onChange={(name) => update({ chemicalName: name })}
             onSelectCodes={(codesText) => update({ epaWasteCodesText: codesText })}
+            isUnusedMaterial={isUnusedMaterial}
           />
+          <label className="-mb-1 flex items-center gap-2 text-xs text-gray-700">
+            <input
+              type="checkbox"
+              checked={isUnusedMaterial}
+              onChange={(e) => setIsUnusedMaterial(e.target.checked)}
+              className="h-4 w-4"
+            />
+            Unused / virgin material (not a spent solvent) — excludes F-listed codes
+          </label>
           <Input
             label="EPA waste code(s)"
             placeholder="D001, F003"
+            hint="Auto-filled from our knowledge base when you pick a chemical above -- always double-check before shipping."
             value={fields.epaWasteCodesText}
             onChange={(e) => update({ epaWasteCodesText: e.target.value })}
           />
@@ -231,6 +246,17 @@ export function LabPackFormFields({
   const generatorName = labPack?.generatorName ?? generator?.name ?? "";
   const generatorAddress = labPack?.generatorAddress ?? generator?.address ?? "";
   const effectiveJobId = mode === "create" ? (jobId ?? null) : (labPack?.jobId ?? null);
+  // A brand-new drum under a job gets its number auto-assigned server-side
+  // (see createLabPack/getNextDrumNumber) -- no manual entry for that case.
+  // Editing an existing drum, or creating a legacy/jobless one, keeps the
+  // manual field since there's no job sequence to auto-derive from.
+  const drumNumberIsAutoAssigned = mode === "create" && effectiveJobId != null;
+
+  const fillDotShippingDescription = (entry: HazmatEntry) => {
+    const parts = [entry.idNumbers, entry.properShippingName, entry.hazardClass];
+    if (entry.packingGroup) parts.push(`PG ${entry.packingGroup}`);
+    setDotShippingDescription(parts.filter(Boolean).join(", "));
+  };
 
   const initialRows: LineItemRow[] =
     labPack?.lineItems.map((item) => ({
@@ -370,16 +396,29 @@ export function LabPackFormFields({
                 value={poNumber}
                 onChange={(e) => setPoNumber(e.target.value)}
               />
-              <Input
-                label="Drum #"
-                inputMode="numeric"
-                value={drumNumber}
-                onChange={(e) => setDrumNumber(e.target.value)}
-              />
+              {drumNumberIsAutoAssigned ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-brand-navy">Drum #</label>
+                  <p className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+                    Auto-assigned when saved
+                  </p>
+                </div>
+              ) : (
+                <Input
+                  label="Drum #"
+                  inputMode="numeric"
+                  value={drumNumber}
+                  onChange={(e) => setDrumNumber(e.target.value)}
+                />
+              )}
             </div>
 
             {!isNonHazardous && (
               <>
+                <HazmatSearchField
+                  placeholder="Search DOT hazardous materials table by shipping name or ID number…"
+                  onSelect={fillDotShippingDescription}
+                />
                 <Input
                   label="DOT shipping description"
                   hint="Proper shipping name + hazard class(es) + packing group for this whole drum, e.g. UN1993, Flammable liquids, n.o.s., 3, PG II"

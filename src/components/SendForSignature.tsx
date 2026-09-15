@@ -14,7 +14,7 @@ import {
   hasPendingTransporterInviteAction,
 } from "@/app/actions/transporterRegistrationActions";
 
-type Panel = "share" | "generator" | "transporter" | "wasteLines" | null;
+type Panel = "share" | "generator" | "transporter" | "wasteLines" | "scan" | null;
 
 /**
  * Single "Send for signature" entry point, replacing the previous
@@ -103,6 +103,13 @@ export function SendForSignature({ mtn }: { mtn: string }) {
         </button>
         <button
           type="button"
+          onClick={() => setPanel(panel === "scan" ? null : "scan")}
+          style={panel === "scan" ? primaryToggleStyle : outlineButtonStyle}
+        >
+          📷 Text to scan
+        </button>
+        <button
+          type="button"
           onClick={() => {
             setOpen(false);
             setPanel(null);
@@ -119,6 +126,7 @@ export function SendForSignature({ mtn }: { mtn: string }) {
       {panel === "generator" && <InviteGeneratorPanel mtn={mtn} />}
       {panel === "transporter" && <InviteTransporterPanel mtn={mtn} />}
       {panel === "wasteLines" && <AddWasteLinesPanel mtn={mtn} />}
+      {panel === "scan" && <TextToScanPanel mtn={mtn} />}
     </div>
   );
 }
@@ -313,6 +321,58 @@ function AddWasteLinesPanel({ mtn }: { mtn: string }) {
       <div style={{ marginTop: "8px" }}>
         <SendRow sending={sending} onSend={handleSend} label="Send" />
       </div>
+      <ResultDisplay result={result} />
+    </div>
+  );
+}
+
+/**
+ * Accountless, one-time invite scoped to scanning — same underlying
+ * mechanism as AddWasteLinesPanel (a waste-line-edit token, MMIN-gated,
+ * landing on /edit-waste-lines/[token], which already has the "Scan a
+ * drum's QR code" button), just a phone-only entry point with scan-focused
+ * copy for a recipient who's only ever going to point a camera at drum
+ * labels, not type anything in by hand. Deliberately never grants sign
+ * authority (createWasteLineEditLinkAction's allowSign is always false
+ * here) — same phone-only pattern as InviteTransporterPanel's driver invite.
+ */
+function TextToScanPanel({ mtn }: { mtn: string }) {
+  const [phone, setPhone] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ success: boolean; message: string; link?: string } | null>(null);
+
+  const handleSend = async () => {
+    if (!phone.trim()) {
+      setResult({ success: false, message: "Enter the scanner's phone number first." });
+      return;
+    }
+    setSending(true);
+    setResult(null);
+    const state = await createWasteLineEditLinkAction(mtn, phone.trim(), null, false, "scan");
+    setSending(false);
+    if (state.success) {
+      setResult({
+        success: true,
+        message: state.smsSent
+          ? "Text sent."
+          : `Link created, but the text couldn't be sent (${state.smsError ?? "unknown reason"}) — share this link manually:`,
+        link: state.smsSent ? undefined : state.link,
+      });
+    } else {
+      setResult({ success: false, message: state.error });
+    }
+  };
+
+  return (
+    <div style={{ marginTop: "10px", borderTop: `1px solid ${brand.tint}`, paddingTop: "10px" }}>
+      <p style={{ fontSize: "12px", color: "#666", margin: "0 0 8px" }}>
+        Sends a link to scan drum labels and add them as waste lines on this manifest, using{" "}
+        <strong>your</strong> RCRAInfo credentials — no account needed on their end. Give them this
+        manifest&apos;s MMIN (shown on its dashboard card) separately — it&apos;s not included in the
+        text.
+      </p>
+      <FieldRow label="Scanner's phone number" value={phone} onChange={setPhone} placeholder="555 555 5555" type="tel" />
+      <SendRow sending={sending} onSend={handleSend} label="Send" />
       <ResultDisplay result={result} />
     </div>
   );

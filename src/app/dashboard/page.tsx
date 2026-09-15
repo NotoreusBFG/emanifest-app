@@ -101,7 +101,12 @@ export default async function DashboardPage({
             </p>
           )}
         </div>
-        <Button href="/manifests/new">+ New manifest</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" href="/scan">
+            📷 Scan drums → add lines
+          </Button>
+          <Button href="/manifests/new">+ New manifest</Button>
+        </div>
       </div>
 
       <SiteFilterLinks basePath="/dashboard" sites={siteOptions} current={siteFilter} />
@@ -226,6 +231,15 @@ export default async function DashboardPage({
                   </div>
                   <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span>Updated {new Date(m.updated_at).toLocaleString()}</span>
+                    {!m.generator_signed_at && (
+                      <Link
+                        href={`/scan?mtn=${encodeURIComponent(m.epa_mtn)}`}
+                        className="whitespace-nowrap rounded border px-3 py-1.5 font-semibold hover:bg-brand-tint"
+                        style={{ borderColor: brand.blue, color: brand.blue }}
+                      >
+                        📷 Scan drums
+                      </Link>
+                    )}
                     <SendForSignature mtn={m.epa_mtn} />
                   </div>
                 </div>

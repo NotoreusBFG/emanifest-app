@@ -196,6 +196,7 @@ export default function NewManifestPage() {
         containerNumber: String(w.containerNumber),
         containerTypeCode: w.containerTypeCode,
         specialInstructions: "",
+        scanGroupKey: null,
       }))
     );
   };

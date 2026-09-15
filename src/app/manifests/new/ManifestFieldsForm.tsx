@@ -146,6 +146,12 @@ export interface WasteLineFormState {
   containerTypeCode: string;
   /** Prints into Box 14 (Special Handling Instructions), tagged by line number. */
   specialInstructions: string;
+  /** ManifestMate-only, not submitted to EPA. Set to a scanned drum label's
+   * wasteProfileId (or its own id, for a freeform label with no saved
+   * profile) so a second scan of the same waste can find and increment
+   * this line's containerNumber instead of adding a duplicate line — see
+   * handleScannedLabelUrl below. Null for every line not created by a scan. */
+  scanGroupKey: string | null;
 }
 
 export function emptyWasteLine(id: number, prefill: boolean): WasteLineFormState {
@@ -170,6 +176,7 @@ export function emptyWasteLine(id: number, prefill: boolean): WasteLineFormState
     containerNumber: prefill ? "1" : "",
     containerTypeCode: prefill ? "DM" : "",
     specialInstructions: "",
+    scanGroupKey: null,
   };
 }
 
@@ -507,6 +514,7 @@ export function ManifestFieldsForm({
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
 
   const stopScan = () => {
     if (scanRafRef.current !== null) cancelAnimationFrame(scanRafRef.current);
@@ -545,12 +553,31 @@ export function ManifestFieldsForm({
     }
 
     setScanError(null);
-    const nextId = wasteLines.length ? Math.max(...wasteLines.map((l) => l.id)) + 1 : 0;
-    setWasteLines((lines) => [...lines, { ...emptyWasteLine(nextId, false), ...labelPrintPrefill(label) }]);
+    // A saved waste profile's id uniquely identifies "the same waste" across
+    // scans; a freeform label (no saved profile) falls back to its own id,
+    // so re-scanning the SAME physical label still aggregates, but two
+    // different freeform labels never accidentally merge.
+    const groupKey = label.wasteProfileId ?? label.id;
+    const existing = wasteLines.find((l) => l.scanGroupKey === groupKey);
+    if (existing) {
+      const count = (parseInt(existing.containerNumber, 10) || 1) + 1;
+      setWasteLines((lines) =>
+        lines.map((l) => (l.id === existing.id ? { ...l, containerNumber: String(count) } : l))
+      );
+      setScanMessage(`${label.wasteDescription || label.properShippingName} — now ${count} container(s).`);
+    } else {
+      const nextId = wasteLines.length ? Math.max(...wasteLines.map((l) => l.id)) + 1 : 0;
+      setWasteLines((lines) => [
+        ...lines,
+        { ...emptyWasteLine(nextId, false), ...labelPrintPrefill(label), containerNumber: "1", scanGroupKey: groupKey },
+      ]);
+      setScanMessage(`Added ${label.wasteDescription || label.properShippingName || "waste line"} (1 container).`);
+    }
   };
 
   const startScan = async () => {
     setScanError(null);
+    setScanMessage(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
@@ -980,7 +1007,8 @@ export function ManifestFieldsForm({
       <div style={{ marginBottom: "20px", padding: "12px", border: `1px dashed ${brand.blue}`, borderRadius: "6px" }}>
         <label style={label}>Scan a drum&apos;s QR code (optional)</label>
         <p style={{ fontSize: "12px", color: "#888", margin: "0 0 8px" }}>
-          Scans the QR code on a printed drum label and adds a new waste line prefilled from it.
+          Scans the QR code on a printed drum label. The first drum of a waste adds a new line;
+          scanning another drum of the same waste just increases that line&apos;s container count.
         </p>
         {!scanning ? (
           <button
@@ -1024,6 +1052,7 @@ export function ManifestFieldsForm({
           </div>
         )}
         {scanError && <p style={{ color: "#c00", fontSize: "13px", margin: "8px 0 0" }}>{scanError}</p>}
+        {scanMessage && <p style={{ color: "#2a8a4a", fontSize: "13px", margin: "8px 0 0" }}>✅ {scanMessage}</p>}
       </div>
 
       {labPackJobs.length > 0 && (

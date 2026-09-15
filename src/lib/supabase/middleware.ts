@@ -42,6 +42,7 @@ export async function updateSession(request: NextRequest) {
     "/bol",
     "/transporters",
     "/transporter-dashboard",
+    "/scan",
   ];
   const isProtected = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 

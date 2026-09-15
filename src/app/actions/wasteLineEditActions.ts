@@ -57,7 +57,13 @@ export async function createWasteLineEditLinkAction(
   mtn: string,
   recipientPhone: string | null,
   recipientEmail: string | null,
-  allowSign: boolean
+  allowSign: boolean,
+  /** "scan" frames the SMS/email around scanning drum labels (the "Text to
+   * scan" entry point) instead of the generic "add waste line details"
+   * copy — same token, same /edit-waste-lines/[token] page (it already has
+   * the QR scan button), just different wording for a recipient who's only
+   * ever going to scan, not type anything in by hand. */
+  messageVariant: "general" | "scan" = "general"
 ): Promise<CreateWasteLineEditLinkState> {
   if (!recipientPhone && !recipientEmail) {
     return { success: false, error: "Enter a phone number and/or an email address." };
@@ -85,9 +91,10 @@ export async function createWasteLineEditLinkAction(
 
     const origin = await currentOrigin();
     const link = `${origin}/edit-waste-lines/${token}`;
+    const action = messageVariant === "scan" ? "scan drum labels for" : "add waste line details to";
     const message = allowSign
-      ? `ManifestMate: you've been asked to add waste line details AND sign manifest ${manifest.manifestTrackingNumber} as the generator — ${link}`
-      : `ManifestMate: you've been asked to add waste line details to manifest ${manifest.manifestTrackingNumber} — ${link}`;
+      ? `ManifestMate: you've been asked to ${action} manifest ${manifest.manifestTrackingNumber} AND sign it as the generator — ${link}`
+      : `ManifestMate: you've been asked to ${action} manifest ${manifest.manifestTrackingNumber} — ${link}`;
 
     let smsSent = false;
     let emailSent = false;
@@ -108,7 +115,11 @@ export async function createWasteLineEditLinkAction(
 
     if (recipientEmail) {
       try {
-        await sendEmail(recipientEmail, `Add waste line details to manifest ${manifest.manifestTrackingNumber}`, message);
+        const subject =
+          messageVariant === "scan"
+            ? `Scan drum labels for manifest ${manifest.manifestTrackingNumber}`
+            : `Add waste line details to manifest ${manifest.manifestTrackingNumber}`;
+        await sendEmail(recipientEmail, subject, message);
         emailSent = true;
       } catch (err) {
         if (!(err instanceof EmailNotConfiguredError)) {

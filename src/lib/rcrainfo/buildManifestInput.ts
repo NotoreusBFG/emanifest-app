@@ -36,7 +36,18 @@ export interface BuildWasteLinesResult {
  * from when this lived inline in createManifestAction — same validation
  * messages, same DOT-string field order (49 CFR 172.202(b)).
  */
-export function buildWasteLinesFromFormData(formData: FormData): BuildWasteLinesResult {
+export function buildWasteLinesFromFormData(
+  formData: FormData,
+  options?: {
+    /** Lets a caller save zero waste lines -- only the owner's own "Save as
+     * draft" create path passes this (see buildNewManifestInputFromFormData
+     * below), for the "get an MTN now, add waste lines later" workflow.
+     * Every other caller (Save & sign, the delegate edit-token submit, the
+     * scan-and-upload tool) leaves this unset, since those are all
+     * "finalize the waste lines" steps where an empty manifest is wrong. */
+    allowEmpty?: boolean;
+  }
+): BuildWasteLinesResult {
   const wasteLineIds = (formData.get("wasteLineIds") as string).split(",").filter(Boolean);
   const wastes: WasteLine[] = [];
   const lineErrors: string[] = [];
@@ -155,7 +166,7 @@ export function buildWasteLinesFromFormData(formData: FormData): BuildWasteLines
   if (lineErrors.length > 0) {
     return { wastes, wasteLineMetadata, lineInstructionNotes, error: lineErrors.join(" ") };
   }
-  if (wastes.length === 0) {
+  if (wastes.length === 0 && !options?.allowEmpty) {
     return { wastes, wasteLineMetadata, lineInstructionNotes, error: "Add at least one waste line with a description." };
   }
   return { wastes, wasteLineMetadata, lineInstructionNotes };
@@ -267,7 +278,13 @@ export function buildNewManifestInputFromFormData(formData: FormData): BuildMani
     order: index + 1,
   }));
 
-  const wasteResult = buildWasteLinesFromFormData(formData);
+  // "Save as draft" may deliberately have zero waste lines -- the
+  // "get an MTN now, add the waste lines later" workflow (see
+  // /edit-waste-lines/[token] and /scan). "Save & sign" always requires at
+  // least one, same as every other finalize-style caller of
+  // buildWasteLinesFromFormData.
+  const intent = formData.get("intent") === "sign" ? "sign" : "draft";
+  const wasteResult = buildWasteLinesFromFormData(formData, { allowEmpty: intent === "draft" });
   if (wasteResult.error) {
     return { input, wasteLineMetadata: wasteResult.wasteLineMetadata, error: wasteResult.error };
   }

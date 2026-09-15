@@ -295,3 +295,33 @@ export async function releaseWasteLineEditTokenAfterPeek(supabase: SupabaseClien
   const { error } = await supabase.rpc("release_waste_line_edit_token_after_peek", { p_token_id: tokenId });
   if (error) console.error("releaseWasteLineEditTokenAfterPeek failed:", error.message);
 }
+
+export interface MirroredManifestSummary {
+  generatorName: string | null;
+  designatedFacilityName: string | null;
+  designatedFacilityEpaSiteId: string | null;
+}
+
+/** The manifest's designated-facility EPA ID from the local mirror
+ * (recordManifestLocally), not a live RCRAInfo call -- see
+ * 2026092207_get_mirrored_manifest_for_waste_line_token.sql's comment for
+ * why this is safe (a manifest's designated facility never changes after
+ * creation). Returns null if the manifest was never locally mirrored
+ * (shouldn't happen for anything created through this app). */
+export async function getMirroredManifestForWasteLineToken(
+  supabase: SupabaseClient,
+  tokenId: string
+): Promise<MirroredManifestSummary | null> {
+  const { data, error } = await supabase.rpc("get_mirrored_manifest_for_waste_line_token", { p_token_id: tokenId });
+  if (error) {
+    console.error("getMirroredManifestForWasteLineToken failed:", error.message);
+    return null;
+  }
+  const row = data?.[0] as Record<string, unknown> | undefined;
+  if (!row) return null;
+  return {
+    generatorName: (row.generator_name as string | null) ?? null,
+    designatedFacilityName: (row.designated_facility_name as string | null) ?? null,
+    designatedFacilityEpaSiteId: (row.designated_facility_epa_site_id as string | null) ?? null,
+  };
+}

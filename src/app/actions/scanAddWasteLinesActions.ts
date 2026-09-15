@@ -2,26 +2,34 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getRcrainfoClientForUser } from "@/services/manifestService";
-import { recordManifestLocally } from "@/services/manifestRepository";
+import {
+  recordManifestLocally,
+  getMirroredManifestForDisplay,
+  type MirroredManifestForDisplay,
+} from "@/services/manifestRepository";
 import { upsertWasteLineMetadata } from "@/services/wasteLineMetadataRepository";
 import { linkLabPackToManifestLine } from "@/services/labPackRepository";
 import { buildWasteLinesFromFormData } from "@/lib/rcrainfo/buildManifestInput";
 import { formatRcrainfoError } from "@/lib/rcrainfo/formatError";
 import { collectManifestOperationWarnings } from "@/lib/rcrainfo/types";
-import type { Manifest } from "@/lib/rcrainfo/types";
 
 export type LoadManifestForScanState =
-  | { success: true; manifest: Manifest }
+  | { success: true; manifest: MirroredManifestForDisplay }
   | { success: false; error: string };
 
 /**
  * Owner-only load step for the "scan drums, add waste lines" tool
- * (`/scan`) — deliberately uses getRcrainfoClientForUser, NOT
- * getRcrainfoClientForAction, so a Quick-Sign delegate (lookup/sign only)
- * can't use this to rewrite waste lines. That capability already exists,
- * scoped much more narrowly, via the MMIN-gated /edit-waste-lines/[token]
- * flow (see wasteLineEditActions.ts) — this tool is for the manifest's own
- * owner, doing the scanning themselves before handing it off for review/sign.
+ * (`/scan`) — reads the already-mirrored generator/transporter/facility
+ * data (getMirroredManifestForDisplay) instead of a live RCRAInfo
+ * getManifest() call, so opening/reloading this page doesn't cost an EPA
+ * API call. None of those three handlers change after a manifest is
+ * created, so the mirror is a safe substitute here — the actual upload
+ * step (submitScanWasteLinesAction) still live-refetches right before
+ * writing, since that's the one place freshness genuinely matters.
+ *
+ * Deliberately requires the manifest to already be in THIS owner's local
+ * mirror (not a live EPA lookup by MTN alone) — same access boundary
+ * getRcrainfoClientForUser would have enforced, just checked locally now.
  */
 export async function loadManifestForScanAction(mtn: string): Promise<LoadManifestForScanState> {
   const trimmed = mtn.trim();
@@ -33,13 +41,14 @@ export async function loadManifestForScanAction(mtn: string): Promise<LoadManife
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not logged in." };
 
-  try {
-    const client = await getRcrainfoClientForUser(supabase, user.id);
-    const manifest = await client.getManifest(trimmed);
-    return { success: true, manifest };
-  } catch (err) {
-    return { success: false, error: formatRcrainfoError(err) };
+  const manifest = await getMirroredManifestForDisplay(supabase, user.id, trimmed);
+  if (!manifest) {
+    return {
+      success: false,
+      error: "Manifest not found in your local records — look it up once on the Dashboard first, then try again here.",
+    };
   }
+  return { success: true, manifest };
 }
 
 export type SubmitScanWasteLinesState =

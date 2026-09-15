@@ -29,6 +29,7 @@ import {
   linkLabPackToManifestLineForWasteLineToken,
   upsertWasteLineMetadataForWasteLineToken,
   releaseWasteLineEditTokenAfterPeek,
+  getMirroredManifestForWasteLineToken,
   type WasteLineEditSession,
 } from "@/services/wasteLineEditRepository";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
@@ -260,27 +261,42 @@ export async function unlockWasteLineEditPickerDataAction(
       return { success: false, error: "This link is no longer valid." };
     }
 
-    const [profiles, labPacks, labPackJobs, manifest] = await Promise.all([
+    // Reads the manifest's designated-facility EPA ID from the local
+    // mirror (recordManifestLocally) instead of a live RCRAInfo
+    // getManifest() call — a manifest's designated facility never changes
+    // after creation, so the mirror is a safe substitute for a value that
+    // previously cost a real EPA API call on every Unlock click, even ones
+    // that only wanted to scan a QR code. See
+    // 2026092207_get_mirrored_manifest_for_waste_line_token.sql.
+    const [profiles, labPacks, labPackJobs, mirrored] = await Promise.all([
       listWasteProfilesForWasteLineToken(supabase, claimed.tokenId),
       listLabPacksForWasteLineToken(supabase, claimed.tokenId),
       listLabPackJobsForWasteLineToken(supabase, claimed.tokenId),
-      clientFor(credentials).getManifest(claimed.epaMtn),
+      getMirroredManifestForWasteLineToken(supabase, claimed.tokenId),
     ]);
 
     await releaseWasteLineEditTokenAfterPeek(supabase, claimed.tokenId);
+
+    if (!mirrored?.designatedFacilityEpaSiteId) {
+      return {
+        success: false,
+        error:
+          "Couldn't find this manifest's facility in ManifestMate's local records — ask the owner to look it up once, then try again.",
+      };
+    }
 
     return {
       success: true,
       profiles,
       labPacks,
       labPackJobs,
-      designatedFacilityEpaId: manifest.designatedFacility.epaSiteId,
+      designatedFacilityEpaId: mirrored.designatedFacilityEpaSiteId,
     };
   } catch (err) {
-    // Leaves the token claimed rather than releasing it here — an EPA
-    // lookup failure mid-unlock is transient/environmental, not a wrong
-    // code, so it shouldn't count against failed_attempt_count either way.
-    // The delegate can just retry Unlock; claimWasteLineEditToken's own
+    // Leaves the token claimed rather than releasing it here — a failure
+    // mid-unlock is transient/environmental, not a wrong code, so it
+    // shouldn't count against failed_attempt_count either way. The
+    // delegate can just retry Unlock; claimWasteLineEditToken's own
     // `used_at is null` guard means a stuck claimed row would otherwise
     // block that retry, so release without penalty here too.
     await releaseWasteLineEditTokenAfterPeek(supabase, claimed.tokenId);

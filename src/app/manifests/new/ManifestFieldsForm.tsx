@@ -423,10 +423,17 @@ export function ManifestFieldsForm({
     const facilityEpaId = facility.epaSiteId.trim().toUpperCase();
     const profileEpaId = profile.disposalFacilityEpaId.trim().toUpperCase();
 
-    if (!facilityEpaId || facilityEpaId !== profileEpaId) {
+    if (!facilityEpaId) {
       setProfileMismatchError((m) => ({
         ...m,
-        [lineId]: `This profile is approved for ${profile.disposalFacilityName || "an unnamed facility"} (${profile.disposalFacilityEpaId}), not the designated facility on this manifest${facility.epaSiteId ? ` (${facility.epaSiteId})` : ""}. Set the matching designated facility first, or choose a different profile.`,
+        [lineId]: "This manifest's designated facility isn't known here yet — unlock first (or ask the owner to confirm the facility) before applying a profile.",
+      }));
+      return;
+    }
+    if (facilityEpaId !== profileEpaId) {
+      setProfileMismatchError((m) => ({
+        ...m,
+        [lineId]: `This profile is approved for ${profile.disposalFacilityName || "an unnamed facility"} (${profile.disposalFacilityEpaId}), not the designated facility on this manifest (${facility.epaSiteId}). Set the matching designated facility first, or choose a different profile.`,
       }));
       return;
     }
@@ -545,9 +552,15 @@ export function ManifestFieldsForm({
 
     const facilityEpaId = facility.epaSiteId.trim().toUpperCase();
     const labelEpaId = label.disposalFacilityEpaId.trim().toUpperCase();
-    if (!facilityEpaId || facilityEpaId !== labelEpaId) {
+    if (!facilityEpaId) {
       setScanError(
-        `This label is approved for ${label.disposalFacilityName || "an unnamed facility"} (${label.disposalFacilityEpaId}), not the designated facility on this manifest${facility.epaSiteId ? ` (${facility.epaSiteId})` : ""}.`
+        "This manifest's designated facility isn't known here yet — unlock first (or ask the owner to confirm the facility) before scanning."
+      );
+      return;
+    }
+    if (facilityEpaId !== labelEpaId) {
+      setScanError(
+        `This label is approved for ${label.disposalFacilityName || "an unnamed facility"} (${label.disposalFacilityEpaId}), not the designated facility on this manifest (${facility.epaSiteId}).`
       );
       return;
     }

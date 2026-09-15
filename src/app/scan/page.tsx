@@ -21,7 +21,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { brand } from "@/lib/brandColors";
-import type { Manifest } from "@/lib/rcrainfo/types";
+import type { MirroredManifestForDisplay } from "@/services/manifestRepository";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
 import type { LabPack, LabPackJob } from "@/lib/labPack/types";
 
@@ -46,7 +46,7 @@ export default function ScanAddWasteLinesPage() {
 
 function ScanAddWasteLinesPageInner() {
   const [mtn, setMtn] = useState("");
-  const [manifest, setManifest] = useState<Manifest | null>(null);
+  const [manifest, setManifest] = useState<MirroredManifestForDisplay | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -122,7 +122,7 @@ function ScanAddWasteLinesPageInner() {
   );
 }
 
-function ScanWasteLinesForm({ mtn, manifest }: { mtn: string; manifest: Manifest }) {
+function ScanWasteLinesForm({ mtn, manifest }: { mtn: string; manifest: MirroredManifestForDisplay }) {
   const [wasteLines, setWasteLines] = useState<WasteLineFormState[]>([
     emptyWasteLine(0, false),
     emptyWasteLine(1, false),

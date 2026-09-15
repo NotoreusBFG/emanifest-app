@@ -290,6 +290,66 @@ export async function listRecentManifestsForUser(
   }));
 }
 
+export interface MirroredManifestForDisplay {
+  manifestTrackingNumber: string;
+  generator: { name: string; epaSiteId: string };
+  designatedFacility: { name: string; epaSiteId: string };
+  transporters: { name: string; epaSiteId: string; order: number }[];
+}
+
+/**
+ * Reads the already-mirrored generator/transporter/designated-facility
+ * display data for one manifest (recordManifestLocally +
+ * syncManifestTransporters) instead of a live RCRAInfo getManifest() call.
+ * Used for the OWNER-facing "load a manifest to scan drums into" step
+ * (/scan) — none of these three handlers change after a manifest is
+ * created, so the mirror is a safe substitute for a display-only load. The
+ * actual upload step still live-refetches right before writing waste
+ * lines, since that's the one place freshness genuinely matters.
+ */
+export async function getMirroredManifestForDisplay(
+  supabase: SupabaseClient,
+  userId: string,
+  mtn: string
+): Promise<MirroredManifestForDisplay | null> {
+  const { data: manifestRow, error } = await supabase
+    .from("manifests")
+    .select("id, epa_mtn, generator_name, generator_epa_site_id, designated_facility_name, designated_facility_epa_site_id")
+    .eq("user_id", userId)
+    .eq("epa_mtn", mtn)
+    .maybeSingle();
+
+  if (error) {
+    console.error("getMirroredManifestForDisplay failed:", describePostgrestError(error));
+    return null;
+  }
+  if (!manifestRow) return null;
+
+  const { data: transporterRows, error: transportersError } = await supabase
+    .from("manifest_transporters")
+    .select("transporter_name, transporter_epa_site_id, transporter_order")
+    .eq("manifest_id", manifestRow.id)
+    .order("transporter_order", { ascending: true });
+
+  if (transportersError) {
+    console.error("getMirroredManifestForDisplay (transporters) failed:", describePostgrestError(transportersError));
+  }
+
+  return {
+    manifestTrackingNumber: manifestRow.epa_mtn,
+    generator: { name: manifestRow.generator_name ?? "", epaSiteId: manifestRow.generator_epa_site_id ?? "" },
+    designatedFacility: {
+      name: manifestRow.designated_facility_name ?? "",
+      epaSiteId: manifestRow.designated_facility_epa_site_id ?? "",
+    },
+    transporters: (transporterRows ?? []).map((t) => ({
+      name: t.transporter_name ?? "",
+      epaSiteId: t.transporter_epa_site_id,
+      order: t.transporter_order,
+    })),
+  };
+}
+
 export interface ManifestDocumentRecord {
   id: string;
   filename: string;

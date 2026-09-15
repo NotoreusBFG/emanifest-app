@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { Fragment, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { brand } from "@/lib/brandColors";
 import { inputStyle } from "@/lib/formStyles";
@@ -14,7 +14,7 @@ import type { WasteProfile } from "@/services/wasteProfileRepository";
 import type { LabPack, LabPackJob } from "@/lib/labPack/types";
 import type { LabelPrint } from "@/services/labelPrintRepository";
 import { listLabPacksForJobAction } from "@/app/actions/labPackActions";
-import { getLabelPrintAction } from "@/app/actions/labelActions";
+import { useQrLabelScanner } from "@/lib/useQrLabelScanner";
 
 const row = { display: "flex", gap: "10px" };
 const field = { flex: 1, marginBottom: "12px" };
@@ -511,61 +511,11 @@ export function ManifestFieldsForm({
 
   // Scan a printed drum label's QR code (which points at /labels/{id}, a
   // fully public page -- label_prints_select_public policy, `for select
-  // using (true)`) and append it as a new waste line. First camera-based
-  // input anywhere in this app -- everything else here reuses established
-  // patterns.
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanRafRef = useRef<number | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [scanLoading, setScanLoading] = useState(false);
+  // using (true)`) and append it as a new waste line. Camera/jsqr/label-
+  // lookup mechanics live in useQrLabelScanner, shared with the compact
+  // scan-only delegate page (/edit-waste-lines/[token]'s ScanWasteLinesForm).
   const [scanMessage, setScanMessage] = useState<string | null>(null);
-
-  const stopScan = () => {
-    if (scanRafRef.current !== null) cancelAnimationFrame(scanRafRef.current);
-    scanRafRef.current = null;
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setScanning(false);
-  };
-
-  // Cleanup on unmount, in case the delegate navigates away mid-scan.
-  useEffect(() => stopScan, []);
-
-  const handleScannedLabelUrl = async (rawValue: string) => {
-    const match = rawValue.match(/\/labels\/([^/?#]+)/);
-    if (!match) {
-      setScanError("That QR code doesn't look like a ManifestMate drum label.");
-      return;
-    }
-    stopScan();
-    setScanLoading(true);
-    const label = await getLabelPrintAction(match[1]);
-    setScanLoading(false);
-
-    if (!label) {
-      setScanError("This label wasn't found — it may have been removed.");
-      return;
-    }
-
-    const facilityEpaId = facility.epaSiteId.trim().toUpperCase();
-    const labelEpaId = label.disposalFacilityEpaId.trim().toUpperCase();
-    if (!facilityEpaId) {
-      setScanError(
-        "This manifest's designated facility isn't known here yet — unlock first (or ask the owner to confirm the facility) before scanning."
-      );
-      return;
-    }
-    if (facilityEpaId !== labelEpaId) {
-      setScanError(
-        `This label is approved for ${label.disposalFacilityName || "an unnamed facility"} (${label.disposalFacilityEpaId}), not the designated facility on this manifest (${facility.epaSiteId}).`
-      );
-      return;
-    }
-
-    setScanError(null);
+  const onLabelResolved = (label: LabelPrint) => {
     // A saved waste profile's id uniquely identifies "the same waste" across
     // scans; a freeform label (no saved profile) falls back to its own id,
     // so re-scanning the SAME physical label still aggregates, but two
@@ -587,48 +537,13 @@ export function ManifestFieldsForm({
       setScanMessage(`Added ${label.wasteDescription || label.properShippingName || "waste line"} (1 container).`);
     }
   };
-
-  const startScan = async () => {
-    setScanError(null);
+  const { scanning, scanError, scanLoading, videoRef, canvasRef, startScan, stopScan } = useQrLabelScanner(
+    facility.epaSiteId,
+    onLabelResolved
+  );
+  const startScanAndClearMessage = () => {
     setScanMessage(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      streamRef.current = stream;
-      setScanning(true);
-      // Wait a tick for the video element to mount (setScanning above
-      // triggers the conditional render below).
-      requestAnimationFrame(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
-        }
-      });
-
-      const jsQR = (await import("jsqr")).default;
-      const tick = () => {
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-            if (code) {
-              handleScannedLabelUrl(code.data);
-              return;
-            }
-          }
-        }
-        scanRafRef.current = requestAnimationFrame(tick);
-      };
-      scanRafRef.current = requestAnimationFrame(tick);
-    } catch {
-      setScanError("Couldn't access the camera — check your browser's camera permission for this site.");
-      setScanning(false);
-    }
+    startScan();
   };
 
   const addContinuationPage = () => {
@@ -1026,7 +941,7 @@ export function ManifestFieldsForm({
         {!scanning ? (
           <button
             type="button"
-            onClick={startScan}
+            onClick={startScanAndClearMessage}
             disabled={scanLoading}
             style={{
               padding: "8px 16px",

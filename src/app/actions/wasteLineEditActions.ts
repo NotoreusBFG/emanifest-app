@@ -88,6 +88,7 @@ export async function createWasteLineEditLinkAction(
       designatedFacilityName: manifest.designatedFacility.name || manifest.designatedFacility.epaSiteId,
       ownerNotifyEmail: user.email ?? null,
       allowSign,
+      via: messageVariant === "scan" ? "scan" : "manual",
     });
 
     const origin = await currentOrigin();

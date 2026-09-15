@@ -8,9 +8,17 @@ export interface WasteLineEditSession {
   epaMtn: string;
   generatorName: string | null;
   designatedFacilityName: string | null;
+  /** From the local `manifests` mirror, not a live RCRAInfo call — lets
+   * the compact scan-only page (via === "scan") start scanning right away
+   * without a separate Unlock step. Null if the manifest was somehow never
+   * locally mirrored. */
+  designatedFacilityEpaSiteId: string | null;
   expiresAt: string;
   /** Whether this link also grants Generator-role signing power — safe to expose pre-claim (a flag, not sensitive), so the delegate page can warn upfront. */
   allowSign: boolean;
+  /** "scan" renders the compact scan-only page; "manual" renders the full
+   * desktop-style waste-line-edit form. See 2026092208's migration comment. */
+  via: "manual" | "scan";
 }
 
 /** Anonymous-facing read of the display snapshot — never claims/burns the token. See get_waste_line_edit_session's comment for why. */
@@ -26,8 +34,10 @@ export async function getWasteLineEditSession(
     epaMtn: row.epa_mtn,
     generatorName: row.generator_name,
     designatedFacilityName: row.designated_facility_name,
+    designatedFacilityEpaSiteId: row.designated_facility_epa_site_id,
     expiresAt: row.expires_at,
     allowSign: row.allow_sign,
+    via: row.via === "scan" ? "scan" : "manual",
   };
 }
 
@@ -109,6 +119,11 @@ export async function createWasteLineEditToken(
     designatedFacilityName: string | null;
     ownerNotifyEmail: string | null;
     allowSign: boolean;
+    /** "scan" renders the compact scan-only page instead of the full
+     * desktop-style waste-line-edit form — see 2026092208's migration
+     * comment. Defaults to "manual" (the existing "Add waste lines" invite
+     * behavior) when omitted. */
+    via?: "manual" | "scan";
   }
 ): Promise<string> {
   const { data, error } = await supabase.rpc("create_waste_line_edit_token", {
@@ -119,6 +134,7 @@ export async function createWasteLineEditToken(
     p_designated_facility_name: params.designatedFacilityName,
     p_owner_notify_email: params.ownerNotifyEmail,
     p_allow_sign: params.allowSign,
+    p_via: params.via ?? "manual",
   });
   if (error) throw new Error(error.message);
   const token = data?.[0]?.token;

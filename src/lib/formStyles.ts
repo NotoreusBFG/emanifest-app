@@ -12,6 +12,11 @@ export const inputStyle = {
   borderRadius: "4px",
   border: "1px solid #ccc",
   boxSizing: "border-box" as const,
+  // Without an explicit color, some mobile browsers (seen on the phone-
+  // number field of the accountless invite panels) render typed input text
+  // in a light, hard-to-read grey instead of the OS default black.
+  color: "#000",
+  fontWeight: 600,
 };
 
 export function primaryButtonStyle(isPending: boolean) {

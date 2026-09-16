@@ -198,7 +198,7 @@ export function ScanWasteLinesForm({ token, session }: { token: string; session:
         <input type="hidden" name="wasteLineIds" value={lines.map((l) => l.id).join(",")} />
         {lines.map((line) => (
           <span key={line.id}>
-            <input type="hidden" name={`dotHazardous_${line.id}`} value="on" />
+            {line.dotHazardous && <input type="hidden" name={`dotHazardous_${line.id}`} value="on" />}
             <input type="hidden" name={`properShippingName_${line.id}`} value={line.properShippingName} />
             <input type="hidden" name={`wasteDescription_${line.id}`} value={line.wasteDescription} />
             <input type="hidden" name={`quantity_${line.id}`} value={line.quantity} />

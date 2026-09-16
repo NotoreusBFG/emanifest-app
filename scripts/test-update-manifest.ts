@@ -21,7 +21,7 @@ async function main() {
   const updated: Manifest = {
     ...current,
     additionalInfo: { handlingInstructions: TEST_INSTRUCTIONS },
-    wastes: current.wastes.map((w) => ({
+    wastes: (current.wastes ?? []).map((w) => ({
       ...w,
       quantity: { ...w.quantity, containerNumber: 1, containerType: { code: "DM" } },
     })),

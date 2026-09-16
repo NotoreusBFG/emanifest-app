@@ -53,7 +53,7 @@ interface LineDraft {
 export function PrintLabelsFromManifestPanel({ manifest }: { manifest: Manifest }) {
   const [drafts, setDrafts] = useState<Record<number, LineDraft>>(() =>
     Object.fromEntries(
-      manifest.wastes.map((line) => [
+      (manifest.wastes ?? []).map((line) => [
         line.lineNumber,
         { copies: Math.max(1, line.quantity.containerNumber || 1), accumulationStartDate: todayIso() },
       ])
@@ -65,7 +65,7 @@ export function PrintLabelsFromManifestPanel({ manifest }: { manifest: Manifest 
   const updateDraft = (lineNumber: number, patch: Partial<LineDraft>) =>
     setDrafts((d) => ({ ...d, [lineNumber]: { ...d[lineNumber], ...patch } }));
 
-  if (manifest.wastes.length === 0) return null;
+  if ((manifest.wastes ?? []).length === 0) return null;
 
   const handleGenerate = async () => {
     setIsPending(true);
@@ -77,7 +77,7 @@ export function PrintLabelsFromManifestPanel({ manifest }: { manifest: Manifest 
       generatorEpaId: manifest.generator.epaSiteId,
       disposalFacilityName: manifest.designatedFacility.name,
       disposalFacilityEpaId: manifest.designatedFacility.epaSiteId,
-      lines: manifest.wastes.map((line) => ({
+      lines: (manifest.wastes ?? []).map((line) => ({
         // properShippingName/hazardClass/packingGroup left blank on
         // purpose -- see lineDescription's comment, that detail isn't
         // recoverable separately once a line is saved.
@@ -107,7 +107,7 @@ export function PrintLabelsFromManifestPanel({ manifest }: { manifest: Manifest 
     <div style={{ margin: "16px 0", padding: "12px 14px", background: brand.tint, borderRadius: "6px", fontSize: "14px" }}>
       <p style={{ margin: "0 0 8px", fontWeight: 600, color: brand.navy }}>Print container labels</p>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {manifest.wastes.map((line) => {
+        {(manifest.wastes ?? []).map((line) => {
           const draft = drafts[line.lineNumber];
           return (
             <div

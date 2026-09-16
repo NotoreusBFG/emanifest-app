@@ -342,7 +342,7 @@ function LabPackLinkedWasteLines({ manifest }: { manifest: Manifest }) {
 
   return (
     <ul>
-      {manifest.wastes.map((w) => (
+      {(manifest.wastes ?? []).map((w) => (
         <li key={w.lineNumber}>
           Line {w.lineNumber}: {w.dotInformation?.printedDotInformation ?? w.wasteDescription} —{" "}
           {w.quantity.quantity} {w.quantity.unitOfMeasurement.description ?? w.quantity.unitOfMeasurement.code}
@@ -400,7 +400,7 @@ function LdrStatus({ manifest }: { manifest: Manifest }) {
 
   const wasteLines: LdrWasteLineEntry[] = (() => {
     const codes = new Set<string>();
-    for (const w of manifest.wastes) {
+    for (const w of manifest.wastes ?? []) {
       for (const c of w.hazardousWaste?.federalWasteCodes ?? []) codes.add(c.code);
     }
     // Only epaHazardousWasteNumbers actually matters here (this feeds

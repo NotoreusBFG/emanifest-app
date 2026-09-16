@@ -414,7 +414,7 @@ export interface NewManifestInput {
 }
 
 /** Full manifest record shape as returned by GET /emanifest/manifest/{mtn}. Loosely typed — see note above. */
-export interface Manifest extends Omit<NewManifestInput, "status"> {
+export interface Manifest extends Omit<NewManifestInput, "status" | "wastes"> {
   // A fetched manifest's status ranges over the full lifecycle
   // (ManifestStatus) — NewManifestInput.status is deliberately narrower
   // ("NotAssigned" | "Pending" | "Scheduled"), the only values valid to
@@ -422,6 +422,13 @@ export interface Manifest extends Omit<NewManifestInput, "status"> {
   // silently mistyping every fetched manifest's actual status.
   status: ManifestStatus;
   manifestTrackingNumber: string;
+  // NewManifestInput.wastes is required (a save/update payload always sends
+  // an array, even []) — but a live GET response for a zero-waste-line
+  // manifest (e.g. the delegate workflow's owner-creates-then-delegate-adds
+  // pattern) omits the field entirely rather than returning []. CONFIRMED
+  // live 2026-09-16 (MTN 100098108ELC crashed GeneratorManifestResults'
+  // .wastes.map() before this was made optional there too).
+  wastes?: WasteLine[];
   createdDate?: string;
   updatedDate?: string;
   shippedDate?: string;

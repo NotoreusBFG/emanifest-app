@@ -282,7 +282,7 @@ function ManifestWasteLineTable({ results, epaSiteId }: { results: ManifestBatch
   const groups: ManifestGroup[] = results.flatMap((r) => {
     if (!r.success || !r.manifest) return [];
     const mtn = r.manifest.manifestTrackingNumber;
-    const lines: WasteLineRow[] = r.manifest.wastes.map((w) => {
+    const lines: WasteLineRow[] = (r.manifest.wastes ?? []).map((w) => {
       const wasteCodes = [
         ...(w.hazardousWaste?.federalWasteCodes ?? []),
         ...(w.hazardousWaste?.generatorWasteCodes ?? []),

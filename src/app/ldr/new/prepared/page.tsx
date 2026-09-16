@@ -153,7 +153,7 @@ function NewLdrNoticePageInner() {
 
         const newEntries: WasteLineEntryState[] = [];
         let nextId = 0;
-        for (const w of m.wastes) {
+        for (const w of m.wastes ?? []) {
           const codes = (w.hazardousWaste?.federalWasteCodes ?? []).map((c) => c.code);
           if (codes.length === 0) continue;
           const meta = metadataByLine[w.lineNumber];

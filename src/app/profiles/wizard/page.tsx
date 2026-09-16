@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
+import { BackButton } from "@/components/BackButton";
 import { WasteProfileFormFields } from "@/components/WasteProfileFormFields";
 import { extractWasteProfileDocumentAction, saveWizardWasteProfileAction } from "@/app/actions/wizardActions";
 import { toFormFieldsProps, type WizardExtractedProfile } from "@/lib/ai/wizardExtraction";
@@ -82,9 +83,11 @@ export default function ManifestMateWizardPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-10">
-      <Link href="/profiles" className="text-sm font-medium text-brand-blue hover:underline">
-        ← Back to Waste profiles
-      </Link>
+      <BackButton
+        fallbackHref="/profiles"
+        label="← Back to Waste profiles"
+        className="text-sm font-medium hover:underline"
+      />
       <div className="mt-2 flex items-center gap-3">
         <Image src="/manifestmate-wizard-icon.png" alt="" width={60} height={60} />
         <h1 className="text-2xl font-bold text-brand-navy">ManifestMate Wizard</h1>

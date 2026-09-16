@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 import {
   listCustomWasteCodesAction,
   deleteCustomWasteCodeAction,
@@ -154,9 +154,7 @@ export default function ChemicalLibraryPage() {
             EPA/PubChem lookup.
           </p>
         </div>
-        <Link href="/lab-packs" className="whitespace-nowrap text-sm font-medium text-brand-blue hover:underline">
-          ← Back to lab packs
-        </Link>
+        <BackButton fallbackHref="/lab-packs" label="← Back to lab packs" className="whitespace-nowrap text-sm font-medium hover:underline" />
       </div>
 
       <AddChemicalForm onAdded={refresh} />

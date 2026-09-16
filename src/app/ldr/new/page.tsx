@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { brand } from "@/lib/brandColors";
+import { BackButton } from "@/components/BackButton";
 
 const cardStyle = {
   flex: "1 1 280px",
@@ -30,9 +31,7 @@ export default async function NewLdrChoicePage({
   return (
     <div style={{ maxWidth: "760px", margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
       <p>
-        <Link href="/ldr" style={{ color: brand.blue }}>
-          ← Back to LDR notices
-        </Link>
+        <BackButton fallbackHref="/ldr" label="← Back to LDR notices" />
       </p>
       <h1 style={{ color: brand.navy }}>File an LDR notice</h1>
       <p style={{ color: "#666" }}>40 CFR 268.7(a) — how do you want to record this notice?</p>

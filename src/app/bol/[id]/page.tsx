@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getBillOfLadingAction } from "@/app/actions/billOfLadingActions";
 import { BolPrintLabelsPanel } from "../BolPrintLabelsPanel";
 import { BolPreviewPanel } from "../BolPreviewPanel";
+import { BackButton } from "@/components/BackButton";
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-");
@@ -20,7 +21,7 @@ export default async function BillOfLadingDetailPage({ params }: { params: Promi
     return (
       <div style={{ maxWidth: "600px", margin: "40px auto", fontFamily: "sans-serif" }}>
         <p style={{ color: "red" }}>❌ {result.error}</p>
-        <Link href="/bol" style={{ color: "#0058b8" }}>← Bill of Lading</Link>
+        <BackButton fallbackHref="/bol" label="← Bill of Lading" />
       </div>
     );
   }
@@ -30,7 +31,7 @@ export default async function BillOfLadingDetailPage({ params }: { params: Promi
   return (
     <div style={{ maxWidth: "700px", margin: "40px auto", fontFamily: "sans-serif" }}>
       <p style={{ display: "flex", justifyContent: "space-between" }}>
-        <Link href="/bol" style={{ color: "#0058b8" }}>← Bill of Lading</Link>
+        <BackButton fallbackHref="/bol" label="← Bill of Lading" />
         <Link href="/bol/new" style={{ color: "#0058b8" }}>+ Create new</Link>
       </p>
       <h1 style={{ color: "#0a2246", fontSize: "28px" }}>{bol.bolNumber}</h1>

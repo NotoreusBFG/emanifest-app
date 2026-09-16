@@ -21,6 +21,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { brand } from "@/lib/brandColors";
+import { BackButton } from "@/components/BackButton";
 import type { MirroredManifestForDisplay } from "@/services/manifestRepository";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
 import type { LabPack, LabPackJob } from "@/lib/labPack/types";
@@ -114,9 +115,7 @@ function ScanAddWasteLinesPageInner() {
       {manifest && <ScanWasteLinesForm mtn={manifest.manifestTrackingNumber} manifest={manifest} />}
 
       <p className="mt-6 text-xs text-gray-500">
-        <Link href="/dashboard" className="text-brand-blue hover:underline">
-          ← Back to dashboard
-        </Link>
+        <BackButton fallbackHref="/dashboard" label="← Back to dashboard" className="hover:underline" />
       </p>
     </div>
   );

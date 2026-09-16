@@ -7,7 +7,8 @@ import { lookupBillOfLadingByNumberAction, listRecentBillsOfLadingAction } from 
 import type { RecentBillOfLading } from "@/services/billOfLadingRepository";
 import { SiteFilterButtons } from "@/components/SiteFilterButtons";
 import { brand } from "@/lib/brandColors";
-import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
+import { inputStyle, primaryButtonStyle, primaryLinkButtonStyle } from "@/lib/formStyles";
+import { BackButton } from "@/components/BackButton";
 
 /** Lookup hub for bills of lading -- same shape as /manifests (search by
  * number + a recent list), but against our own bills_of_lading table
@@ -40,8 +41,8 @@ export default function BillOfLadingLookupPage() {
   return (
     <div style={{ maxWidth: "600px", margin: "40px auto", fontFamily: "sans-serif" }}>
       <p style={{ display: "flex", justifyContent: "space-between" }}>
-        <Link href="/settings" style={{ color: brand.blue }}>← Settings</Link>
-        <Link href="/bol/new" style={{ color: brand.blue }}>+ Create new</Link>
+        <BackButton fallbackHref="/dashboard" />
+        <Link href="/bol/new" style={primaryLinkButtonStyle}>+ Make a BOL</Link>
       </p>
       <h1 style={{ color: brand.navy }}>Bill of Lading</h1>
       <p style={{ color: "#666" }}>

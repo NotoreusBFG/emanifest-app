@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLdrNoticeById } from "@/services/ldrRepository";
@@ -7,6 +6,7 @@ import type { SiteDetails } from "@/lib/rcrainfo/types";
 import { LDR_MANAGEMENT_OPTIONS } from "@/lib/ldr/certificationText";
 import { LDR_DISCLAIMER } from "@/lib/ldr/disclaimer";
 import { brand } from "@/lib/brandColors";
+import { BackButton } from "@/components/BackButton";
 import { PrintButton } from "./PrintButton";
 import { AttachmentsSection } from "./AttachmentsSection";
 import { AttachMtnForm } from "./AttachMtnForm";
@@ -53,9 +53,7 @@ export default async function LdrNoticeDetailPage({ params }: { params: Promise<
       <style>{`@media print { .no-print { display: none !important; } body { background: white !important; } }`}</style>
 
       <p className="no-print">
-        <Link href="/ldr" style={{ color: brand.blue }}>
-          ← Back to LDR notices
-        </Link>
+        <BackButton fallbackHref="/ldr" label="← Back to LDR notices" />
       </p>
 
       <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>

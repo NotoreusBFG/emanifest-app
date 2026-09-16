@@ -12,6 +12,7 @@ import {
   duplicateLabPackAction,
 } from "@/app/actions/labPackActions";
 import type { LabPack, LabPackJob } from "@/lib/labPack/types";
+import { BackButton } from "@/components/BackButton";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { LabPackFormFields } from "@/components/LabPackFormFields";
@@ -171,9 +172,7 @@ export function LabPackJobDetail({ jobId }: { jobId: string }) {
     return (
       <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
         <p className="text-sm text-red-600">Job not found.</p>
-        <Link href="/lab-packs" className="text-sm font-medium text-brand-blue">
-          ← Back to lab packs
-        </Link>
+        <BackButton fallbackHref="/lab-packs" label="← Back to lab packs" className="text-sm font-medium" />
       </div>
     );
   }
@@ -182,9 +181,7 @@ export function LabPackJobDetail({ jobId }: { jobId: string }) {
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
-      <Link href="/lab-packs" className="text-sm font-medium text-brand-blue hover:underline">
-        ← All jobs
-      </Link>
+      <BackButton fallbackHref="/lab-packs" label="← All jobs" className="text-sm font-medium hover:underline" />
 
       <div className="mb-6 mt-3 flex flex-wrap items-start justify-between gap-3">
         <div>

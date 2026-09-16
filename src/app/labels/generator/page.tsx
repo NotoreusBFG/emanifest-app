@@ -10,6 +10,7 @@ import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
 import type { SiteSearchResultItem } from "@/lib/rcrainfo/types";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
 import { brand, brandGradient } from "@/lib/brandColors";
+import { BackButton } from "@/components/BackButton";
 
 interface ResolvedGenerator {
   epaSiteId: string;
@@ -92,7 +93,7 @@ export default function LabelsByGeneratorPage() {
   return (
     <div style={{ maxWidth: "700px", margin: "40px auto", fontFamily: "sans-serif" }}>
       <p>
-        <Link href="/profiles" style={{ color: brand.blue }}>← Waste profiles</Link>
+        <BackButton fallbackHref="/profiles" label="← Waste profiles" />
       </p>
       <h1 style={{ color: brand.navy }}>Print labels for a generator</h1>
       <p style={{ color: "#666" }}>

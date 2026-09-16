@@ -7,6 +7,7 @@ import { listWasteProfilesForUserAction } from "@/app/actions/wasteProfileAction
 import { UNIT_CODES, CONTAINER_TYPE_CODES } from "@/lib/rcrainfo/manifestCodes";
 import { brand } from "@/lib/brandColors";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
+import { BackButton } from "@/components/BackButton";
 import type { WasteProfile } from "@/services/wasteProfileRepository";
 import type { BillOfLading } from "@/services/billOfLadingRepository";
 import { BolPrintLabelsPanel } from "../BolPrintLabelsPanel";
@@ -261,7 +262,7 @@ export default function NewBillOfLadingPage() {
     return (
       <div style={{ maxWidth: "700px", margin: "40px auto", fontFamily: "sans-serif" }}>
         <p>
-          <Link href="/bol" style={{ color: brand.blue }}>← Bill of Lading</Link>
+          <BackButton fallbackHref="/bol" label="← Bill of Lading" />
         </p>
         <div style={{ border: "1px solid #cde9cd", borderRadius: "6px", padding: "12px", marginBottom: "10px" }}>
           <p style={{ color: "green", margin: 0 }}>
@@ -296,7 +297,7 @@ export default function NewBillOfLadingPage() {
   return (
     <div style={{ maxWidth: "700px", margin: "40px auto", fontFamily: "sans-serif" }}>
       <p style={{ display: "flex", justifyContent: "space-between" }}>
-        <Link href="/bol" style={{ color: brand.blue }}>← Bill of Lading</Link>
+        <BackButton fallbackHref="/bol" label="← Bill of Lading" />
       </p>
       <h1 style={{ color: brand.navy }}>Create a bill of lading</h1>
       <p style={{ color: "#666" }}>

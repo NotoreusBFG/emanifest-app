@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 
 export const metadata: Metadata = {
   title: "Manifest Signer Training (Draft) — ManifestMate",
@@ -34,9 +35,7 @@ export default function TrainingDraftPage() {
       <main className="flex-1">
         <section className="px-6 py-16 sm:px-12 sm:py-20 bg-brand-tint">
           <div className="mx-auto max-w-3xl">
-            <Link href="/dashboard" className="text-sm font-medium text-brand-blue hover:underline">
-              ← Dashboard
-            </Link>
+            <BackButton fallbackHref="/dashboard" label="← Dashboard" className="text-sm font-medium hover:underline" />
             <h1 className="mt-4 text-4xl sm:text-5xl font-bold text-brand-navy leading-tight">
               Manifest Signer Training
             </h1>

@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/manifestActions";
 import { brand, brandGradient } from "@/lib/brandColors";
 import { primaryButtonStyle } from "@/lib/formStyles";
+import { BackButton } from "@/components/BackButton";
 import {
   ManifestFieldsForm,
   fillHandlerFromSite,
@@ -230,7 +231,7 @@ export default function NewManifestPage() {
   return (
     <div style={{ maxWidth: "700px", margin: "40px auto", fontFamily: "sans-serif" }}>
       <p style={{ display: "flex", justifyContent: "space-between" }}>
-        <Link href="/manifests" style={{ color: brand.blue }}>← Look up a manifest</Link>
+        <BackButton fallbackHref="/manifests" label="← Look up a manifest" />
         <Link href="/profiles" style={{ color: brand.blue }}>Manage waste profiles →</Link>
       </p>
       <h1 style={{ color: brand.navy }}>Create a new manifest</h1>

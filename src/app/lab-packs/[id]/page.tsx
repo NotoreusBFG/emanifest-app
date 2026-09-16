@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackButton } from "@/components/BackButton";
 import { createClient } from "@/lib/supabase/server";
 import { getLabPack } from "@/services/labPackRepository";
 import { resolveEffectiveUserId } from "@/services/teamRepository";
@@ -37,9 +37,7 @@ export default async function LabPackDetailPage({ params }: { params: Promise<{ 
       <style>{`@media print { .no-print { display: none !important; } body { background: white !important; } }`}</style>
 
       <p className="no-print mb-2">
-        <Link href="/lab-packs" className="text-brand-blue">
-          ← Back to lab packs
-        </Link>
+        <BackButton fallbackHref="/lab-packs" label="← Back to lab packs" />
       </p>
 
       <div className="no-print mb-3 flex items-center justify-between">

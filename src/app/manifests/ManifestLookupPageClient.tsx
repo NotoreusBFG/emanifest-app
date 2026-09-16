@@ -15,8 +15,9 @@ import {
 import type { RecentManifestSearch } from "@/services/manifestRepository";
 import { getHandlerSignatureStatus, type Handler, type Manifest } from "@/lib/rcrainfo/types";
 import { brand } from "@/lib/brandColors";
-import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
+import { inputStyle, primaryButtonStyle, primaryLinkButtonStyle } from "@/lib/formStyles";
 import { Card } from "@/components/ui/Card";
+import { BackButton } from "@/components/BackButton";
 import { SignManifestPanel } from "./SignManifestPanel";
 import { SendForSignature } from "@/components/SendForSignature";
 import { findActiveLdrNoticeAction } from "@/app/actions/ldrActions";
@@ -103,8 +104,8 @@ function ManifestLookupPageInner({ generatorSearchEnabled }: ManifestLookupPageC
   return (
     <div style={{ maxWidth: "600px", margin: "40px auto", fontFamily: "sans-serif" }}>
       <p className="no-print" style={{ display: "flex", justifyContent: "space-between" }}>
-        <Link href="/settings" style={{ color: brand.blue }}>← Settings</Link>
-        <Link href="/manifests/new" style={{ color: brand.blue }}>+ Create new manifest</Link>
+        <BackButton fallbackHref="/dashboard" />
+        <Link href="/manifests/new" style={primaryLinkButtonStyle}>+ Create manifest</Link>
       </p>
       <h1 className="no-print" style={{ color: brand.navy }}>Look up a manifest</h1>
 

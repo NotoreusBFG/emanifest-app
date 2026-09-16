@@ -18,6 +18,7 @@ import type { LdrManagementLetter, LdrNotice, LdrWasteLineEntry } from "@/lib/ld
 import { LDR_MANAGEMENT_LETTERS, LDR_MANAGEMENT_OPTIONS } from "@/lib/ldr/certificationText";
 import type { RecentManifestSearch } from "@/services/manifestRepository";
 import { brand } from "@/lib/brandColors";
+import { BackButton } from "@/components/BackButton";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 import { getWasteCodeInfo } from "@/lib/wasteCodeReference";
 import { getTreatmentStandardsForCode } from "@/lib/treatmentStandards";
@@ -240,9 +241,7 @@ function NewLdrNoticePageInner() {
   return (
     <div style={{ maxWidth: "760px", margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
       <p>
-        <Link href="/ldr/new" style={{ color: brand.blue }}>
-          ← Back
-        </Link>
+        <BackButton fallbackHref="/ldr/new" label="← Back" />
       </p>
       <h1 style={{ color: brand.navy }}>Prepare a new notice</h1>
       <p style={{ color: "#666" }}>

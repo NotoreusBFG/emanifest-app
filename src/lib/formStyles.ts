@@ -30,3 +30,18 @@ export function primaryButtonStyle(isPending: boolean) {
     cursor: isPending ? "not-allowed" : ("pointer" as const),
   };
 }
+
+/**
+ * Same gradient treatment as primaryButtonStyle, for a page-level primary
+ * CTA rendered as a <Link> (pure navigation, no pending/submit state) --
+ * e.g. "Create manifest" / "Make a BOL" in a page's top-right corner.
+ */
+export const primaryLinkButtonStyle = {
+  display: "inline-block",
+  padding: "8px 16px",
+  background: brandGradient,
+  color: "white",
+  borderRadius: "4px",
+  fontWeight: 600,
+  textDecoration: "none" as const,
+};

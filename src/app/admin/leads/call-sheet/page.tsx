@@ -8,6 +8,7 @@ import { saveCallScriptAction } from "@/app/actions/callScriptsActions";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_VARIANTS } from "@/lib/leadStatus";
 import { contactPriorityRank, categoryRank } from "@/lib/leadCallPriority";
 import { Card } from "@/components/ui/Card";
+import { BackButton } from "@/components/BackButton";
 import { Badge } from "@/components/ui/Badge";
 import { LeadActivityBadge } from "@/components/LeadActivityBadge";
 
@@ -59,9 +60,7 @@ export default async function CallSheetPage({
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
-      <Link href="/admin/leads" className="text-sm text-brand-blue hover:underline">
-        ← All leads
-      </Link>
+      <BackButton fallbackHref="/admin/leads" label="← All leads" className="text-sm hover:underline" />
       <h1 className="mt-3 text-2xl font-bold text-brand-navy">Call sheet</h1>
       <p className="mt-1 text-gray-600">
         Every callable lead ({callable.length} of {allLeads.length}, excludes converted/not-interested/do-not-contact),

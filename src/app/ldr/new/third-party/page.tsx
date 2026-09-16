@@ -2,7 +2,6 @@
 
 import { Suspense, useActionState, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import {
   createThirdPartyLdrNoticeAction,
   type CreateThirdPartyLdrNoticeState,
@@ -10,6 +9,7 @@ import {
 import { LockedGeneratorSelect } from "@/components/LockedGeneratorSelect";
 import { getMyAccountTypeAction } from "@/app/actions/accountActions";
 import { brand } from "@/lib/brandColors";
+import { BackButton } from "@/components/BackButton";
 import { inputStyle, primaryButtonStyle } from "@/lib/formStyles";
 
 // useSearchParams() (for the ?mtn= prefill deep link) requires a Suspense
@@ -51,9 +51,7 @@ function NewThirdPartyLdrNoticePageInner() {
   return (
     <div style={{ maxWidth: "600px", margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
       <p>
-        <Link href="/ldr/new" style={{ color: brand.blue }}>
-          ← Back
-        </Link>
+        <BackButton fallbackHref="/ldr/new" label="← Back" />
       </p>
       <h1 style={{ color: brand.navy }}>Upload a notice I already have</h1>
       <p style={{ color: "#666" }}>

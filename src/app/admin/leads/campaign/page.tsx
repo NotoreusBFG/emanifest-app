@@ -5,6 +5,7 @@ import { isAdminEmail } from "@/lib/admin";
 import { listLeads, listDistinctCategories, listDistinctCounties } from "@/services/leadsRepository";
 import { LEAD_STATUS_LABELS as STATUS_LABELS } from "@/lib/leadStatus";
 import { Card } from "@/components/ui/Card";
+import { BackButton } from "@/components/BackButton";
 import { CampaignComposer } from "@/components/CampaignComposer";
 
 export default async function CampaignPage({
@@ -51,9 +52,7 @@ export default async function CampaignPage({
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
-      <Link href="/admin/leads" className="text-sm text-brand-blue hover:underline">
-        ← All leads
-      </Link>
+      <BackButton fallbackHref="/admin/leads" label="← All leads" className="text-sm hover:underline" />
       <div className="mt-3 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-brand-navy">Email campaign</h1>

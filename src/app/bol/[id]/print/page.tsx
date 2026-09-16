@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { getBillOfLadingAction } from "@/app/actions/billOfLadingActions";
 import { PrintButton } from "@/app/labels/[id]/PrintButton";
+import { BackButton } from "@/components/BackButton";
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-");
@@ -50,9 +50,7 @@ export default async function BillOfLadingPrintPage({
       <div className="mx-auto max-w-md px-6 py-16 text-center">
         <h1 className="text-xl font-bold text-brand-navy">Bill of lading not found</h1>
         <p className="mt-2 text-sm text-gray-600">{result.error}</p>
-        <Link href="/bol" className="mt-4 inline-block text-brand-blue">
-          ← Bill of Lading
-        </Link>
+        <BackButton fallbackHref="/bol" label="← Bill of Lading" className="mt-4 inline-block" />
       </div>
     );
   }

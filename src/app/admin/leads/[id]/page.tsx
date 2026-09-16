@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { BackButton } from "@/components/BackButton";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { getLead, listActivitiesForLead, type LeadStatus } from "@/services/leadsRepository";
@@ -34,9 +34,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-10">
-      <Link href="/admin/leads" className="text-sm text-brand-blue hover:underline">
-        ← All leads
-      </Link>
+      <BackButton fallbackHref="/admin/leads" label="← All leads" className="text-sm hover:underline" />
 
       <div className="mt-3 flex items-start justify-between gap-4">
         <div>

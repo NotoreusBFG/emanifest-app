@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackButton } from "@/components/BackButton";
 
 export interface UniversitySource {
   label: string;
@@ -30,9 +31,7 @@ export function ArticleLayout({
       <main className="flex-1">
         <section className="px-6 py-16 sm:px-12 sm:py-20 bg-brand-tint">
           <div className="mx-auto max-w-3xl">
-            <Link href="/university" className="text-sm font-medium text-brand-blue hover:underline">
-              ← Haz Waste University
-            </Link>
+            <BackButton fallbackHref="/university" label="← Haz Waste University" className="text-sm font-medium hover:underline" />
             <h1 className="mt-4 text-4xl sm:text-5xl font-bold text-brand-navy leading-tight">{title}</h1>
             <p className="mt-6 text-lg text-gray-700">{dek}</p>
           </div>

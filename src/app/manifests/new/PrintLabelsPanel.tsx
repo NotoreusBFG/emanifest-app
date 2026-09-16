@@ -102,7 +102,7 @@ export function PrintLabelsPanel({
             >
               <span style={{ flex: "1 1 220px", fontSize: "13px", color: brand.navy }}>{description}</span>
               <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13px" }}>
-                Labels:
+                Number of Labels:
                 <input
                   type="number"
                   min={1}

@@ -142,8 +142,11 @@ export interface ProfileBatchPrintTimeInput {
  * their saved profiles" flow. Unlike createLabelPrint (one label, caller
  * types generator info and an optional MTN by hand), this always leaves
  * manifest_tracking_number blank (there's no manifest yet -- that's the
- * point of accumulation-time labeling) and supports multiple copies with
- * the same "N of M" auto-numbering as the manifest/BOL batch flows. */
+ * point of accumulation-time labeling). "Number of Labels" is just how many
+ * copies to print -- no auto "N of M" numbering on the label (removed
+ * 2026-09-16, per request: distinguishing container count on the label
+ * itself added nothing, and it wrongly implied labels always map 1:1 to
+ * containers when extra spare labels are often wanted). */
 export async function createLabelPrintsForProfile(
   supabase: SupabaseClient,
   userId: string,
@@ -152,7 +155,7 @@ export async function createLabelPrintsForProfile(
 ): Promise<{ success: true; labelPrints: LabelPrint[] } | { success: false; error: string }> {
   const copies = Math.max(1, Math.floor(input.copies));
 
-  const rows = Array.from({ length: copies }, (_, i) => ({
+  const rows = Array.from({ length: copies }, () => ({
     user_id: userId,
     waste_profile_id: profile.id,
     mm_profile_number: profile.mmProfileNumber,
@@ -177,7 +180,6 @@ export async function createLabelPrintsForProfile(
     generator_address: input.generatorAddress,
     generator_epa_id: input.generatorEpaId,
     manifest_tracking_number: "",
-    line_reference: `${i + 1} of ${copies}`,
     accumulation_start_date: input.accumulationStartDate,
   }));
 
@@ -228,7 +230,7 @@ export async function createLabelPrintsForManifestLine(
 ): Promise<{ success: true; labelPrints: LabelPrint[] } | { success: false; error: string }> {
   const copies = Math.max(1, Math.floor(input.copies));
 
-  const rows = Array.from({ length: copies }, (_, i) => ({
+  const rows = Array.from({ length: copies }, () => ({
     user_id: userId,
     waste_profile_id: null,
     mm_profile_number: null,
@@ -248,7 +250,6 @@ export async function createLabelPrintsForManifestLine(
     generator_address: input.generatorAddress,
     generator_epa_id: input.generatorEpaId,
     manifest_tracking_number: input.manifestTrackingNumber,
-    line_reference: `${i + 1} of ${copies}`,
     accumulation_start_date: input.accumulationStartDate,
   }));
 

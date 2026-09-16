@@ -168,7 +168,7 @@ export default function LabelsByGeneratorPage() {
                     </span>
                   </label>
                   <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13px" }}>
-                    Labels:
+                    Number of Labels:
                     <input
                       type="number"
                       min={1}

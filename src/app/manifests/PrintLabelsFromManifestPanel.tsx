@@ -127,7 +127,7 @@ export function PrintLabelsFromManifestPanel({ manifest }: { manifest: Manifest 
                 Line {line.lineNumber}: {lineDescription(line)}
               </span>
               <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13px" }}>
-                Labels:
+                Number of Labels:
                 <input
                   type="number"
                   min={1}

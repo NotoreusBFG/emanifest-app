@@ -342,21 +342,35 @@ function LabPackLinkedWasteLines({ manifest }: { manifest: Manifest }) {
   }, [manifest.manifestTrackingNumber]);
 
   return (
-    <ul>
-      {(manifest.wastes ?? []).map((w) => (
-        <li key={w.lineNumber}>
-          Line {w.lineNumber}: {w.dotInformation?.printedDotInformation ?? w.wasteDescription} —{" "}
-          {w.quantity.quantity} {w.quantity.unitOfMeasurement.description ?? w.quantity.unitOfMeasurement.code}
-          {labPackIdByLine[w.lineNumber] && (
-            <>
-              {" — "}
-              <Link href={`/lab-packs/${labPackIdByLine[w.lineNumber]}`} target="_blank" style={{ color: brand.blue }}>
+    <ul style={{ listStyle: "none", padding: 0 }}>
+      {(manifest.wastes ?? []).map((w) => {
+        const description = w.dotInformation?.printedDotInformation ?? w.wasteDescription;
+        const containerType = w.quantity.containerType?.description ?? w.quantity.containerType?.code ?? "—";
+        const unit = w.quantity.unitOfMeasurement.description ?? w.quantity.unitOfMeasurement.code;
+        const wasteCodes = [
+          ...(w.hazardousWaste?.federalWasteCodes ?? []),
+          ...(w.hazardousWaste?.generatorWasteCodes ?? []),
+        ]
+          .map((c) => c.code)
+          .join(", ");
+
+        return (
+          <li key={w.lineNumber} style={{ marginBottom: "10px" }}>
+            <div>
+              <strong>9.{w.lineNumber}</strong> {description}
+            </div>
+            <div style={{ fontSize: "13px", color: "#666" }}>
+              10. {w.quantity.containerNumber ?? "—"} {containerType} &nbsp;·&nbsp; 11. {w.quantity.quantity}{" "}
+              &nbsp;·&nbsp; 12. {unit} &nbsp;·&nbsp; 13. {wasteCodes || "—"}
+            </div>
+            {labPackIdByLine[w.lineNumber] && (
+              <Link href={`/lab-packs/${labPackIdByLine[w.lineNumber]}`} target="_blank" style={{ color: brand.blue, fontSize: "13px" }}>
                 Print packing slip
               </Link>
-            </>
-          )}
-        </li>
-      ))}
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

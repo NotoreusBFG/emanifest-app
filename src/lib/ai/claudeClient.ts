@@ -81,3 +81,58 @@ export async function extractStructuredFromPdf<T>(params: {
   }
   return toolUse.input as T;
 }
+
+/**
+ * Same forced-single-tool-call pattern as extractStructuredFromPdf above,
+ * but for plain text input instead of a PDF document -- used by the
+ * Segregation Wizard's local-first cascade (src/lib/labPack/wizardSchema.ts)
+ * to disambiguate the small leftover set of chemical names the app's own
+ * SRS/PubChem search couldn't resolve, where there's no document to attach,
+ * just a short text prompt.
+ */
+export async function extractStructuredFromText<T>(params: {
+  taskInstructions: string;
+  toolName: string;
+  toolDescription: string;
+  toolSchema: Record<string, unknown>;
+}): Promise<T> {
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  if (!apiKey) {
+    throw new AiGatewayNotConfiguredError();
+  }
+
+  const res = await fetch(AI_GATEWAY_MESSAGES_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 1024,
+      tool_choice: { type: "tool", name: params.toolName },
+      tools: [
+        {
+          name: params.toolName,
+          description: params.toolDescription,
+          input_schema: params.toolSchema,
+        },
+      ],
+      messages: [{ role: "user", content: params.taskInstructions }],
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`AI Gateway request failed (${res.status}): ${detail}`);
+  }
+
+  const data = (await res.json()) as {
+    content?: Array<{ type: string; name?: string; input?: unknown }>;
+  };
+  const toolUse = data.content?.find((block) => block.type === "tool_use" && block.name === params.toolName);
+  if (!toolUse || toolUse.input === undefined) {
+    throw new Error("AI Gateway response didn't include the expected structured tool call.");
+  }
+  return toolUse.input as T;
+}

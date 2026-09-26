@@ -1,0 +1,56 @@
+{
+  "_readme": "Extensible table of real-world lab-pack category conventions, provided incrementally by the client (South Lake Environmental) as industry packing-protocol knowledge, distinct from the CFR-derived compliance screens in SKILL.md Step 3. Each entry is a named category a non-RCRA (or, for hardSegregate categories, ANY) item can belong to, with a join rule the segregation step (SKILL.md Step 4) applies when deciding whether an item can share an existing drum or must start/join a category-specific one. Add new rows as the client shares more categories — do not invent categories not explicitly given.",
+  "categories": [
+    {
+      "key": "oxidizer_alone",
+      "label": "Class 5.1 oxidizers",
+      "hardSegregate": true,
+      "rule": "A DOT Class 5.1 (oxidizer) item is NEVER combined with any other material in any drum, regardless of RCRA status or general Appendix V compatibility. Contamination risk with organic material. Always its own drum, always.",
+      "joinCondition": "none — hard rule, no exceptions"
+    },
+    {
+      "key": "peroxide_by_un",
+      "label": "Class 5.2 organic peroxides",
+      "hardSegregate": true,
+      "rule": "A DOT Class 5.2 (organic peroxide) item is always segregated by its own DOT UN number specifically — two different UN numbers within 5.2 do not share a drum even with each other, let alone anything else.",
+      "joinCondition": "only an item sharing the exact same UN number, never combined across different UN numbers or with any other class"
+    },
+    {
+      "key": "toxic_organic_pg2_3",
+      "label": "Toxic (6.1) organic liquids, PG II/III",
+      "hardSegregate": false,
+      "rule": "Non-RCRA organic materials generally join a toxic (Division 6.1) PG II or PG III organic lab pack when one exists in the job.",
+      "joinCondition": "item is organic, non-RCRA (or RCRA-compatible per the normal Appendix V screen), and the job has an existing 6.1 PG II/III organic drum with room",
+      "example": "Methyl salicylate (2026-09-25 inventory) — non-RCRA organic ester; would join a toxic PG II/III organic drum if one existed in that job. None did, so it got its own drum by default, not because it's inherently un-poolable."
+    },
+    {
+      "key": "inorganic_acid",
+      "label": "Inorganic acids",
+      "hardSegregate": false,
+      "rule": "Non-regulated inorganic materials generally join an inorganic-acid-compatible lab pack.",
+      "joinCondition": "item is inorganic and acid-compatible, and the job has an existing inorganic-acids drum with room",
+      "example": "Iodine crystals (2026-09-25 inventory) — inorganic, acid-compatible; would join an inorganic-acids drum if one existed in that job. None did, so it got its own drum by default."
+    },
+    {
+      "key": "inorganic_base",
+      "label": "Inorganic bases / caustics",
+      "hardSegregate": false,
+      "rule": "Non-regulated inorganic materials generally join an acid/base-compatible lab pack (base side of the same general category as inorganic_acid — do not combine the acid and base sub-groups with each other, same as the existing Appendix V 1-A/1-B pairing already in Step 4).",
+      "joinCondition": "item is inorganic and base-compatible, and the job has an existing inorganic-base drum with room"
+    },
+    {
+      "key": "salts_flexible",
+      "label": "Common salts",
+      "hardSegregate": false,
+      "rule": "Common salts are flexible — generally placed in a toxic, acid, or non-haz lab pack depending on the specific salt's own hazard profile. Not a single fixed category; evaluate the specific salt against the other categories first (toxic_organic_pg2_3, inorganic_acid, inorganic_base, non_haz_general) and place accordingly.",
+      "joinCondition": "case-by-case per the salt's actual hazard characteristics; this row exists to flag salts as poolable rather than defaulting them to their own isolated drum"
+    },
+    {
+      "key": "non_haz_general",
+      "label": "Non-hazardous, general",
+      "hardSegregate": false,
+      "rule": "The fallback category: a non-RCRA item with no better-matching category above (no compatible inorganic-acid/base drum, no toxic-organic drum, not a salt with a clearer home) goes into a general non-haz lab pack alongside any other item that also has no better category match, subject to the normal compatible-and-room test.",
+      "joinCondition": "item is non-RCRA, no more specific category above applies, and the job has an existing non-haz-general drum with room"
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveEffectiveUserId } from "@/services/teamRepository";
 import { getAccountType } from "@/services/profileRepository";
 import { getFeatureFlag } from "@/services/featureFlagRepository";
+import { hasMinimumTier } from "@/services/entitlementRepository";
 import { createWasteProfile, type WasteProfile } from "@/services/wasteProfileRepository";
 import {
   uploadWasteProfileDocument,
@@ -25,6 +26,9 @@ function wizardFlagKeyFor(accountType: string): string {
   return accountType === "third_party" ? "manifestmate_wizard_third_party" : "manifestmate_wizard_generator";
 }
 
+// Requires 'plus' tier (2026-09-26 entitlement scaffold, client directive)
+// in addition to the dev/rollout feature flag -- the flag alone used to be
+// sufficient before this scaffold existed; both are now required.
 export async function isWizardEnabledForMeAction(): Promise<boolean> {
   const supabase = await createClient();
   const {
@@ -33,7 +37,11 @@ export async function isWizardEnabledForMeAction(): Promise<boolean> {
   if (!user) return false;
 
   const accountType = await getAccountType(supabase, user.id);
-  return getFeatureFlag(supabase, wizardFlagKeyFor(accountType));
+  const [flagOn, tierOk] = await Promise.all([
+    getFeatureFlag(supabase, wizardFlagKeyFor(accountType)),
+    hasMinimumTier(supabase, user.id, "plus"),
+  ]);
+  return flagOn && tierOk;
 }
 
 export type ExtractWasteProfileState =

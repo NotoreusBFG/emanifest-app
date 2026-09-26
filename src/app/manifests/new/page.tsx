@@ -235,6 +235,11 @@ export default function NewManifestPage() {
         <Link href="/profiles" style={{ color: brand.blue }}>Manage waste profiles →</Link>
       </p>
       <h1 style={{ color: brand.navy }}>Create a new manifest</h1>
+      <p>
+        <Link href="/manifests/new/wizard" style={{ color: brand.blue, fontWeight: 600 }}>
+          Prefer a guided, step-by-step setup? →
+        </Link>
+      </p>
       <p style={{ color: "#666" }}>
         Preprod sandbox only — this saves to EPA&apos;s RCRAInfo test environment, not the live
         production e-Manifest system. Fields are pre-filled with a known-good EPA test site — edit

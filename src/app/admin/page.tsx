@@ -10,7 +10,9 @@ import {
   listRejectedAccountsAction,
 } from "@/app/actions/accountApprovalActions";
 import { getMyAdminRole, listAdmins } from "@/services/adminRepository";
+import { listAccountsForTier } from "@/services/entitlementRepository";
 import { AdminsSection } from "./AdminsSection";
+import { TiersSection } from "./TiersSection";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -28,12 +30,22 @@ const FLAG_LABELS: Record<string, { label: string; description: string }> = {
   manifestmate_wizard_generator: {
     label: "ManifestMate Wizard — generator accounts",
     description:
-      "Upload approved waste profile PDFs and have the Wizard draft ManifestMate profiles from them, for generator-type accounts. Off hides the Wizard button on the Waste profiles dashboard for this audience. Requires AI_GATEWAY_API_KEY to actually extract anything — the button still appears when this is on even if that key is missing, but extraction will show a clear \"not configured\" error until it's set.",
+      "Upload approved waste profile PDFs and have the Wizard draft ManifestMate profiles from them, for generator-type accounts. Off hides the Wizard button on the Waste profiles dashboard for this audience. Requires AI_GATEWAY_API_KEY to actually extract anything — the button still appears when this is on even if that key is missing, but extraction will show a clear \"not configured\" error until it's set. Also requires the account to be at Plus tier or above (see Account tiers below) — this flag alone isn't enough as of 2026-09-26.",
   },
   manifestmate_wizard_third_party: {
     label: "ManifestMate Wizard — third-party accounts",
     description:
-      "Same as above, for third-party accounts (against their approved customer list instead of managed sites).",
+      "Same as above, for third-party accounts (against their approved customer list instead of managed sites). Also requires Plus tier or above.",
+  },
+  manifestmate_labpack_wizard_generator: {
+    label: "Segregation Wizard — lab packs",
+    description:
+      "Paste a chemical inventory on /lab-packs/wizard and get a reviewable, editable draft of drum groupings, DOT shipping descriptions, waste codes, and warnings, ported from the lab-pack-segregation Claude Code skill. Off hides the Wizard for generator accounts. Local-first: checks EPA/NLM databases before ever calling AI, and only for chemicals it can't resolve locally -- still requires AI_GATEWAY_API_KEY for that fallback path. Also requires the account to be at Pro tier (see Account tiers below) — the flag alone isn't enough.",
+  },
+  manifest_wizard: {
+    label: "Manifest Wizard — guided setup",
+    description:
+      "A series of pop-up steps (Generator → Transporter → Designated facility → waste lines, one at a time) at /manifests/new/wizard, then hands off to the same review screen and Save/Save & Sign buttons /manifests/new already uses. Purely manual UI, no AI involved -- free tier, no minimum tier required, unlike the two wizards above.",
   },
 };
 
@@ -62,6 +74,7 @@ export default async function AdminPage({
   const pendingAccounts = await listPendingAccounts(supabase);
   const rejectedAccounts = await listRejectedAccountsAction();
   const admins = await listAdmins(supabase);
+  const accountsForTier = await listAccountsForTier(supabase);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-10">
@@ -193,6 +206,10 @@ export default async function AdminPage({
             </Card>
           );
         })}
+      </div>
+
+      <div className="mt-10">
+        <TiersSection initialAccounts={accountsForTier} />
       </div>
 
       <div className="mt-10">

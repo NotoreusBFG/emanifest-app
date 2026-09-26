@@ -28,6 +28,7 @@ import { SendForSignature } from "@/components/SendForSignature";
 import { getDefaultEmergencyPhoneAction } from "@/app/actions/epaActions";
 import { getOnboardingProgressAction } from "@/app/actions/onboardingActions";
 import { getMyAccountTypeAction } from "@/app/actions/accountActions";
+import { isManifestWizardEnabledForMeAction } from "@/app/actions/manifestWizardActions";
 import { listWasteProfilesForUserAction } from "@/app/actions/wasteProfileActions";
 import { listLabPacksForUserAction, listLabPackJobsForUserAction } from "@/app/actions/labPackActions";
 import { SYSTEM_DEFAULT_EMERGENCY_PHONE } from "@/lib/constants";
@@ -82,6 +83,11 @@ export default function NewManifestPage() {
   const [accountType, setAccountType] = useState<string | null>(null);
   useEffect(() => {
     getMyAccountTypeAction().then(setAccountType);
+  }, []);
+
+  const [wizardEnabled, setWizardEnabled] = useState(false);
+  useEffect(() => {
+    isManifestWizardEnabledForMeAction().then(setWizardEnabled);
   }, []);
 
   useEffect(() => {
@@ -235,11 +241,13 @@ export default function NewManifestPage() {
         <Link href="/profiles" style={{ color: brand.blue }}>Manage waste profiles →</Link>
       </p>
       <h1 style={{ color: brand.navy }}>Create a new manifest</h1>
-      <p>
-        <Link href="/manifests/new/wizard" style={{ color: brand.blue, fontWeight: 600 }}>
-          Prefer a guided, step-by-step setup? →
-        </Link>
-      </p>
+      {wizardEnabled && (
+        <p>
+          <Link href="/manifests/new/wizard" style={{ color: brand.blue, fontWeight: 600 }}>
+            Prefer a guided, step-by-step setup? →
+          </Link>
+        </p>
+      )}
       <p style={{ color: "#666" }}>
         Preprod sandbox only — this saves to EPA&apos;s RCRAInfo test environment, not the live
         production e-Manifest system. Fields are pre-filled with a known-good EPA test site — edit

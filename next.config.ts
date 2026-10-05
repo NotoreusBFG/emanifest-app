@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 
 // Security headers, adapted from the CRMs' canonical block
-// (riverlock/pivot/web/next.config.ts, version 2026-09-25.1).
+// (riverlock/pivot/web/next.config.ts). Drift guard: run
+// riverlock/tools/check-security-headers.sh after changing this block; keep
+// SECURITY_HEADERS_VERSION equal to the CRMs'. connect-src may differ.
 // CSP is REPORT-ONLY on purpose: Next injects inline bootstrap scripts, so an
 // enforced policy would break the app until nonces/hashes are done. Watch the
 // browser console for violations, then flip to enforcing.
-const SECURITY_HEADERS_VERSION = "2026-10-04.1";
+const SECURITY_HEADERS_VERSION = "2026-09-25.1";
 
 const csp = [
   "default-src 'self'",

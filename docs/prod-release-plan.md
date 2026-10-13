@@ -163,3 +163,4 @@ Then decide, and record it in the log below:
 | Date | dev tip | main tip | Dev-only migrations | Notes |
 |---|---|---|---|---|
 | 2026-10-13 | `9e8dfaa` | `cba8cb8` | 32 | Initial plan. Prod DB == `main` files; dry-run lists the 32. |
+| 2026-10-13 | `fe00667` | `cba8cb8` | 32 | Plan commit only (docs + script); drift baseline moved to `fe00667`. Weekly check installed: cron Mon 08:00, output `~/prod-ops/reports/emanifest-drift-latest.txt`. |

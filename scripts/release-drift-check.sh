@@ -8,7 +8,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-BASE_DEV="${1:-9e8dfaa}"      # dev tip when the plan was written (2026-10-13)
+BASE_DEV="${1:-fe00667}"      # dev tip after the plan commit (code baseline 9e8dfaa, 2026-10-13)
 BASE_MAIN="cba8cb8"           # main tip when the plan was written
 BASE_MIGS=32                  # dev-only migrations at baseline
 

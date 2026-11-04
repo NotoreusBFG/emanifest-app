@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { SendForSignature } from "@/components/SendForSignature";
 import { AccountStatusCard } from "@/components/AccountStatusCard";
 import { deriveManifestBadge } from "@/lib/manifestStatusBadge";
+import { getExceptionReportAlert } from "@/lib/exceptionReportTiming";
 import { formatElapsedHours, getTransporterTimingInfo, TRANSPORTER_TIMING_COLOR } from "@/lib/transporterTiming";
 
 /**
@@ -55,12 +56,58 @@ export default async function DashboardPage() {
     (m) => deriveManifestBadge(m.generator_signed_at, m.transporter_signed_at, m.facility_signed_at)?.variant === "overdue"
   ).length;
   const activeCount = manifests.length - receivedCount;
+  const exceptionAlerts = manifests
+    .map((m) => ({
+      mtn: m.epa_mtn,
+      alert: getExceptionReportAlert(m.generator_signed_at, m.transporter_signed_at, m.facility_signed_at, m.epa_status),
+    }))
+    .filter((x): x is { mtn: string; alert: NonNullable<typeof x.alert> } => x.alert !== null);
+  const filingDueCount = exceptionAlerts.filter((x) => x.alert.stage === "file").length;
+  const searchCount = exceptionAlerts.length - filingDueCount;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-10">
       {user && onboardingProgress && (
         <div className="mb-6">
           <AccountStatusCard email={user.email ?? ""} progress={onboardingProgress} />
+        </div>
+      )}
+
+      {exceptionAlerts.length > 0 && (
+        <div
+          role="alert"
+          className="mb-6 rounded-md border px-4 py-3 text-sm"
+          style={{
+            backgroundColor: filingDueCount > 0 ? "#fdecea" : "#fff4e0",
+            borderColor: filingDueCount > 0 ? "#c0392b" : "#a15c00",
+            color: filingDueCount > 0 ? "#8a2a1f" : "#7a4600",
+          }}
+        >
+          <strong>
+            {filingDueCount > 0
+              ? `${filingDueCount} manifest${filingDueCount === 1 ? "" : "s"} past 60 days with no signed facility copy: Exception Report due.`
+              : ""}
+            {filingDueCount > 0 && searchCount > 0 ? " " : ""}
+            {searchCount > 0
+              ? `${searchCount} manifest${searchCount === 1 ? "" : "s"} past 45 days: find the signed copy before day 60.`
+              : ""}
+          </strong>{" "}
+          Since 12/1/2025, small and large quantity generators file Exception Reports electronically in e-Manifest
+          (Certifier role, no fee). Very small quantity generators are not required to file. Statuses here can lag
+          EPA, so confirm in e-Manifest before filing.{" "}
+          <Link href="/university/manifests-and-dot" className="underline">
+            How exception reports work
+          </Link>
+          <ul className="mt-2 list-disc pl-5">
+            {exceptionAlerts.map(({ mtn, alert }) => (
+              <li key={mtn}>
+                <Link href={`/manifests?mtn=${encodeURIComponent(mtn)}`} className="font-semibold underline">
+                  {mtn}
+                </Link>{" "}
+                — {alert.label}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -99,6 +146,12 @@ export default async function DashboardPage() {
             const driverInfo = driverSignInfoByMtn[m.epa_mtn];
             const generatorInfo = generatorSignInfoByMtn[m.epa_mtn];
             const mmin = decryptMmin(m.mmin_encrypted);
+            const exceptionAlert = getExceptionReportAlert(
+              m.generator_signed_at,
+              m.transporter_signed_at,
+              m.facility_signed_at,
+              m.epa_status
+            );
 
             return (
               <Card key={m.id} className="p-4">
@@ -179,6 +232,15 @@ export default async function DashboardPage() {
                       transporterSignedAt={m.transporter_signed_at}
                       facilitySignedAt={m.facility_signed_at}
                     />
+                    {exceptionAlert && (
+                      <span
+                        className="text-xs font-semibold"
+                        title={exceptionAlert.detail}
+                        style={{ color: exceptionAlert.stage === "file" ? "#c0392b" : "#a15c00" }}
+                      >
+                        ⚠ {exceptionAlert.label}
+                      </span>
+                    )}
                     {ldrNotice ? (
                       <Link
                         href={`/ldr/${ldrNotice.id}`}

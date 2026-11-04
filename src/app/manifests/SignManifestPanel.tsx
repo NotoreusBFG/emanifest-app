@@ -260,8 +260,28 @@ function SignConfirmationDialog({
             }}
           >
             You&apos;re signing on behalf of <strong>{delegationOwnerEmail}</strong>, using their
-            EPA credentials — EPA&apos;s own record will show them, not you, as the signer.
-            ManifestMate separately records that you were the one who triggered this signature.
+            EPA credentials — EPA&apos;s record will show them as the electronic signer and your
+            printed name as the person who made the signature. ManifestMate separately records
+            that you were the one who triggered this signature.
+          </p>
+        )}
+
+        {delegationOwnerEmail && (
+          <p style={{ fontSize: "13px", color: "#444", marginBottom: "12px" }}>
+            EPA&apos;s Remote Signer Policy only allows this if you are an employee or contractor
+            of the same company, you have direct, first-hand knowledge of this shipment, and the
+            signature is made within <strong>24 hours of receiving the waste or before you hand it
+            to another party, whichever comes first</strong>.
+          </p>
+        )}
+
+        {role.siteType === "Generator" && (
+          <p style={{ fontSize: "13px", color: "#444", marginBottom: "12px" }}>
+            The generator signature certifies the shipment is properly classified, described,
+            packaged, marked, and labeled. It must be made by the generator, the generator&apos;s
+            agent on site (for example a contractor working at the generator&apos;s facility), or
+            an offeror who prepared the shipment on site. A broker or office worker who is not
+            with the shipment cannot sign as the generator.
           </p>
         )}
 

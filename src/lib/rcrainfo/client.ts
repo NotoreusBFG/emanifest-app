@@ -40,7 +40,9 @@ import { extractBoundary, parseMultipartMixed, type MultipartOutputPart } from "
 
 const BASE_URLS: Record<RcrainfoEnvironment, string> = {
   preprod: "https://rcrainfopreprod.epa.gov/rcrainfo/rest/api/v1",
-  prod: "https://rcrainfo.epa.gov/rcrainfo/rest/api/v1", // confirm exact prod host before go-live
+  // Production path is /rcrainfoprod/ (not /rcrainfo/, which is the preprod app name). Per EPA's USEPA/e-manifest repo
+  // (rcrainfo.epa.gov/rcrainfoprod/rest/api/v1/...). Not yet exercised against live prod; confirm on first prod auth call.
+  prod: "https://rcrainfo.epa.gov/rcrainfoprod/rest/api/v1",
 };
 
 /** Refresh this many ms before actual expiration, to avoid edge-of-window failures. */

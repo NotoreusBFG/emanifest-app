@@ -16,6 +16,7 @@ export default function ManifestsAndDotArticle() {
         { label: "40 CFR 262.20-262.27 (manifest requirements)", href: "https://www.ecfr.gov/current/title-40/chapter-I/subchapter-I/part-262/subpart-B" },
         { label: "49 CFR 172.101 (DOT Hazardous Materials Table)", href: "https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-C/part-172/subpart-B/section-172.101" },
         { label: "EPA Form 8700-22 instructions" },
+        { label: "EPA e-Manifest FAQ: Exception Reports and timeframes (updated 2026)", href: "https://www.epa.gov/e-manifest/frequent-questions-about-e-manifest" },
         { label: "PHMSA Hazmat Interpretation Letter Ref. No. 22-0022 (net vs. gross weight on shipping papers)", href: "https://www.phmsa.dot.gov/regulations/title49/interp/22-0022" },
       ]}
     >
@@ -113,16 +114,28 @@ export default function ManifestsAndDotArticle() {
       <p>
         The generator&apos;s copy of the manifest is supposed to come back signed by the designated
         facility once the shipment actually arrives and is accepted. If it doesn&apos;t, 40 CFR
-        262.42 requires action on a clock:
+        262.42 requires action on a clock, counted from the day the initial transporter accepted
+        the waste:
       </p>
       <ul className="list-disc pl-6 space-y-2">
-        <li>At <strong>35 days</strong> after shipment, contact the designated facility to find out what happened.</li>
         <li>
-          At <strong>45 days</strong>, if you still don&apos;t have a signed copy, submit an
-          exception report to your state/EPA regional office — a letter describing the efforts made
-          to locate the waste, plus a copy of the manifest.
+          At <strong>45 days</strong> (large quantity generators only), if you still don&apos;t
+          have a signed copy, contact the transporter or the designated facility, search for the
+          shipment, and document your efforts.
+        </li>
+        <li>
+          At <strong>60 days</strong> (large and small quantity generators), if you still don&apos;t
+          have a signed copy, you must submit an Exception Report.
         </li>
       </ul>
+      <p>
+        Since December 1, 2025, generators submit Exception Reports{" "}
+        <strong>electronically through e-Manifest</strong> rather than by mailing a letter to the
+        state or EPA region. You need to be registered, with at least the Certifier role for your
+        site, and there is no fee. Very small quantity generators and PCB waste generators are not
+        required to use the electronic process. EPA also changed these deadlines on January 22,
+        2025, so older guidance that says 35 and 45 days is out of date.
+      </p>
 
       <SectionHeading>Keep records</SectionHeading>
       <p>

@@ -6,13 +6,16 @@ implementation detail. Intended as a source to pull from for the website, in-app
 help, and sales conversations, not necessarily to publish as-is verbatim.
 
 **Maintenance note:** only include things that are actually built and working.
-Several features discussed in engineering sessions (delegated Quick-Sign access,
-automated rejection/redirect workflows, multi-transporter timing tracking) are
-**not** in this FAQ yet because they aren't built — add them here once they
-ship, not before, so this document never overpromises. Update the "Last updated"
-line and the environment note below whenever the underlying product changes.
+Features discussed in engineering sessions that are **not** built yet (automated
+rejection/redirect workflows, multi-transporter timing tracking, Exception Report
+filing, paper/hybrid manifests) are not described as available — add them here
+once they ship, not before. Delegated Quick-Sign shipped and is covered below.
+EPA facts in this file were re-checked against EPA's e-Manifest FAQ, fact sheets,
+Remote Signer Policy and Oct 2025 webinar on 2026-11-03; re-check them when the
+Paper Manifest Sunset Rule is finalized or EPA publishes new FY fees (due by
+July 1, 2027). The public copy of this file is `src/app/faq/page.tsx` — keep them in sync.
 
-**Last updated:** 2026-07-26 (environment: EPA preprod/testing — see note below).
+**Last updated:** 2026-11-03 (environment: EPA preprod/testing — see note below).
 
 ---
 
@@ -39,12 +42,16 @@ and ManifestMate handles everything from there.
 
 ### Does every employee or driver need their own EPA account to use ManifestMate?
 
-No. EPA's system is built around company-level accounts with role-based
-permissions — a "Site Manager" at your company issues API access for the whole
-site, not one account per individual. In practice, your company holds one set
-of credentials, and any authorized ManifestMate user on your account can
-prepare and sign manifests. Individual drivers don't need to personally
-register with EPA.
+Not for ManifestMate. EPA gives each site's Site Manager the ability to create
+API credentials for the whole site (only a Site Manager can do this), and your
+company enters those credentials once in ManifestMate. People who log into
+RCRAInfo directly still need their own individual accounts, because EPA does
+not allow shared logins. Drivers and other field employees who can't or don't
+register can sign through EPA's "Remote Signer" policy, which ManifestMate's
+Quick-Sign delegation is built around (see the Signing section below). Note
+that EPA requires large and small quantity generators to be registered with
+e-Manifest, and that registrations on EPA's testing site do not carry over to
+production.
 
 ### Is ManifestMate connected to the real EPA system right now?
 
@@ -82,7 +89,10 @@ Preparing and saving a manifest doesn't require the same permission as
 signing it. An office administrator, broker, or anyone else with access to
 your account can enter and save the shipment details, and then the actual
 generator, transporter, and disposal facility each sign their own part when
-ready.
+ready. One limit worth knowing: EPA says a broker cannot sign the generator's
+part for the generator unless the broker is physically at the generator's site
+acting as the offeror who prepared the shipment there. Brokers also need their
+own EPA ID number.
 
 ### How do I make sure I'm using the right DOT hazard classification and EPA waste codes?
 
@@ -152,26 +162,43 @@ record, giving you independently verifiable proof of who authorized each
 signature and when — including in situations where EPA's own record alone
 can't tell the full story (see the next question).
 
-### If my company shares login credentials among employees, does EPA's record show which employee actually signed?
+### If my company uses one set of API credentials for several employees, does EPA's record show which employee actually signed?
 
-No — this is a nuance of how EPA's own system works, not a ManifestMate
-limitation. EPA's electronic signature system records whichever account's
-credentials were used, not necessarily the specific individual who clicked
-the button. If your company shares one set of credentials, EPA's record will
-show your company's registered account holder, not the individual employee.
-ManifestMate's own internal audit trail is what actually tracks which
-specific person triggered a given signature — which is exactly why it
-exists.
+Partly. EPA's electronic signature records the account whose credentials were
+used, so a company's signature made through its API credentials shows the
+registered account holder as the electronic signer. Under EPA's Remote Signer
+policy, the printed name of the person actually responsible for the shipment
+is also entered on the manifest, and ManifestMate sends the name you type when
+you sign. ManifestMate's own audit trail separately records which specific
+person triggered each signature, along with the certification text shown and a
+timestamp. Separately, EPA does not allow people to share personal RCRAInfo
+logins — the API credential route is the approved way for a company system to
+sign for field staff.
 
 ### Is a signature made through ManifestMate legally the same as signing the paper form?
 
 Yes, for the generator's, transporter's, and receiving facility's *initial*
 signatures — ManifestMate uses EPA's official "Quick Sign" electronic
 signature method, which EPA has confirmed is legally equivalent to signing
-the paper manifest for those steps. The one exception: the disposal
-facility's *final* certification submitted to EPA requires EPA's more
-rigorous identity-verification process, separate from everyday manifest
-signing.
+the paper manifest for those steps. Quick Sign needs only EPA's "Preparer"
+permission. The exceptions: the disposal facility's *final* certification
+submitted to EPA, and any post-receipt corrections, require EPA's more
+rigorous identity-verification (CROMERR) signature and a Certifier or Site
+Manager role.
+
+### Can my driver sign without registering with EPA?
+
+Yes, under EPA's Remote Signer policy, and ManifestMate's Quick-Sign delegation
+is built for it. The owner invites the driver in Settings; the driver signs
+using the owner's EPA credentials and types their own printed name. EPA's
+conditions: the signer must be an employee or contractor of the same company
+who has first-hand knowledge of the shipment, and must sign within 24 hours of
+receiving the waste or before handing it to another party, whichever comes
+first. Transporter signatures are the usual case, so delegation defaults to the
+transporter role. The generator signature (Box 15) is a DOT shipper
+certification, so it must be made by the generator, the generator's agent on
+site, or an offeror who prepared the shipment there — turn on generator-role
+delegation only for someone who fits that description.
 
 ---
 
@@ -195,17 +222,39 @@ defines chain of custody for hazardous waste shipments.
 
 ### What happens if the disposal facility rejects some or all of my waste shipment?
 
-The original manifest isn't left open or reopened. The facility notes the
-rejection on that manifest, and the redirected or returned waste has to be
-tracked on a **new** manifest that references the original tracking number.
-You can do this today in ManifestMate by creating a new manifest and noting
-the original tracking number in that manifest's special instructions —
-there isn't yet a dedicated guided workflow for this, but the underlying
-process works.
+It depends on how the rejection happens, under EPA's manifest rules. If the
+facility rejects the *entire* shipment immediately, while the transporter is
+still there, the original manifest keeps going: the facility signs it and
+forwards the waste to the alternate facility named on it, or returns it to the
+generator (who signs the rejection item on that same manifest). If the
+rejection is *partial*, or happens after the transporter has left, the rejected
+waste has to be tracked on a **new** manifest. ManifestMate doesn't yet have a
+guided workflow for either case: for a new manifest, create it and note the
+original tracking number in the special instructions.
 
 ---
 
 ## Tracking manifests & documents
+
+### What if the signed copy of my manifest never comes back?
+
+Generators have to watch for this. If a large or small quantity generator
+doesn't have a signed copy within 60 days of the day the initial transporter
+accepted the waste, it must submit an Exception Report (large quantity
+generators must also start looking for the shipment at 45 days). Since
+December 1, 2025, that report is filed electronically through EPA's e-Manifest
+system, with at least the Certifier role, and there is no fee. ManifestMate
+doesn't file Exception Reports for you yet — you file them in RCRAInfo.
+
+### Does EPA charge a fee, and who pays it?
+
+EPA does not charge generators, transporters, or brokers to register or to
+create, sign, or correct manifests. It charges the receiving facility (and
+exporters) a fee for each manifest submitted: for fiscal years 2026 and 2027,
+$5 for an electronic or hybrid manifest, $7 for data plus a scanned image, and
+$25 for a scanned paper image. Facilities may pass this cost back to
+generators in their contracts. EPA collects these fees through its own
+e-Manifest system, not through ManifestMate.
 
 ### Where can I see all my company's manifests in one place?
 

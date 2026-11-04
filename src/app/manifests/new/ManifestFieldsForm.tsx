@@ -881,7 +881,10 @@ export function ManifestFieldsForm({
               <input
                 name={`quantity_${line.id}`}
                 type="number"
-                step="any"
+                step="1"
+                min="0"
+                inputMode="numeric"
+                title="Whole numbers only: e-Manifest does not accept decimal quantities"
                 value={line.quantity}
                 onChange={(e) => updateWasteLine(line.id, { quantity: e.target.value })}
                 style={inputStyle}

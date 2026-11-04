@@ -31,8 +31,10 @@ export default function GettingRegisteredArticle() {
 
       <SectionHeading>1. Your EPA ID number</SectionHeading>
       <p>
-        Every generator needs an EPA ID before anything else — it&apos;s how EPA and your state
-        track a specific site, independent of who owns or operates it. You get one by filing the{" "}
+        Every large and small quantity generator needs an EPA ID before anything else —
+        it&apos;s how EPA and your state track a specific site, independent of who owns or
+        operates it. (Very small quantity generators are generally exempt unless their state or
+        an episodic event requires a manifest.) You get one by filing the{" "}
         <strong>Site Identification Form (EPA Form 8700-12)</strong>, either through your state
         hazardous waste agency or electronically via RCRAInfo&apos;s <strong>myRCRAid</strong>{" "}
         module, where available.
@@ -82,6 +84,15 @@ export default function GettingRegisteredArticle() {
         API — treat it like a password, since anyone holding it can sign on your site&apos;s
         behalf.
       </p>
+
+      <Callout>
+        <p className="text-sm">
+          Since January 22, 2025, large and small quantity generators are required to register
+          with e-Manifest so they can retrieve their final signed manifests. EPA&apos;s testing
+          (preproduction) site and production are separate systems: registering on one does not
+          register you on the other, and API credentials from one will not work on the other.
+        </p>
+      </Callout>
 
       <Callout>
         <p className="text-sm">

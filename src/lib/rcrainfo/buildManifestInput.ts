@@ -69,6 +69,14 @@ export function buildWasteLinesFromFormData(formData: FormData): BuildWasteLines
       );
       continue;
     }
+    // EPA's manifest schema defines Quantity.quantity as an integer (0 to 99,999,999,999) and EPA's FAQ states
+    // the system does not allow decimals. Catch it here with a usable message instead of a RCRAInfo rejection.
+    if (!Number.isInteger(quantity) || quantity < 0 || quantity > 99_999_999_999) {
+      lineErrors.push(
+        `Waste line ${displayLineNumber}: e-Manifest accepts whole-number quantities only (no decimals). Round to a whole number or switch to a smaller unit (for example pounds instead of tons).`
+      );
+      continue;
+    }
 
     const quantityField = {
       quantity,

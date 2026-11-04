@@ -1,0 +1,33 @@
+# Daily trigger for the Exception Report reminder emails.
+# Vercel only runs vercel.json crons from Production deployments, and the dev
+# site is a Preview build, so GitHub calls the route instead. GitHub runs
+# scheduled workflows only from the default branch (main).
+#
+# Repo secret needed: CRON_SECRET_DEV (the CRON_SECRET set on the
+# manifestmate-sandbox Vercel project, Preview scope). Add a production job
+# and secret when the feature ships to main.
+name: Exception Report reminders
+
+on:
+  schedule:
+    - cron: "0 13 * * *" # 13:00 UTC daily
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  dev:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call dev reminder route
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET_DEV }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET_DEV secret is not set"; exit 1; fi
+          code=$(curl -sS -o response.json -w "%{http_code}" --max-time 120 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://dev.hazwastemanifestmate.com/api/cron/exception-reports)
+          cat response.json; echo
+          [ "$code" = "200" ] || { echo "HTTP $code"; exit 1; }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isNonProductionEnvironment } from "@/lib/devEnvironment";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
@@ -137,6 +138,10 @@ export default async function RootLayout({
   const dbAdminRole = user ? await getMyAdminRole(supabase) : null;
   const myAdminRole = dbAdminRole ?? (isAdminEmail(user?.email) ? "admin" : null);
   const adminLink = myAdminRole ? [{ href: "/admin", label: "Admin" }] : [];
+  // Internal EPA-criteria coverage view: admins only, and never on production
+  // (the page itself also enforces both).
+  const devDashboardLink =
+    myAdminRole && isNonProductionEnvironment() ? [{ href: "/dev-dashboard", label: "Dev Dashboard" }] : [];
   // Previously only `transporter` was special-cased here, so `disposal`
   // and `third_party` silently inherited the full generator nav (including
   // "Create manifest", which third parties should only reach through their
@@ -150,6 +155,7 @@ export default async function RootLayout({
           ? THIRD_PARTY_NAV_LINKS
           : GENERATOR_NAV_LINKS),
     ...adminLink,
+    ...devDashboardLink,
   ];
 
   return (

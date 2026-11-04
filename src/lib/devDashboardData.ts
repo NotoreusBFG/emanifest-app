@@ -72,7 +72,7 @@ export const DEV_DASHBOARD_ROWS: DevDashboardRow[] = [
     reviewed: "Key sections",
     status: "partial",
     solution:
-      "Classic form, wizard (dev) and CSV import capture the revised form's data. Open item: confirm which paper form revision the paper-manifest overlay targets (4-copy form effective 1/22/2025 versus the older 5-copy form).",
+      "Classic form, wizard (dev) and CSV import capture the revised form's data. Waste-line quantities are now validated as whole numbers before submit (live on production 2026-11-04). Open item: confirm which paper form revision the paper-manifest overlay targets (4-copy form effective 1/22/2025 versus the older 5-copy form).",
     strengths: {
       solutions: "CSV import and DOT hazardous materials table lookup reduce data-entry errors on the manifest.",
     },
@@ -104,7 +104,7 @@ export const DEV_DASHBOARD_ROWS: DevDashboardRow[] = [
     strengths: {
       development: "Tokenized links let an unregistered driver sign with their own printed name, which is what the policy intends.",
       solutions: "Delegation stays inside the company's own credentials, avoiding the shared-login practice EPA prohibits.",
-      customer: "Dialog text states the delegate conditions (same company, first-hand knowledge, 24 hours) and the Box 15 rule for who may sign as generator.",
+      customer: "Fixed 2026-11-04 (live on production): the signing dialog now states the delegate conditions (same company, first-hand knowledge, 24 hours) and the Box 15 rule for who may sign as generator, replacing text that overstated what EPA records.",
     },
   },
   {
@@ -115,7 +115,7 @@ export const DEV_DASHBOARD_ROWS: DevDashboardRow[] = [
     reviewed: "Full",
     status: "covered",
     solution:
-      "ManifestMate's FAQ and University were reconciled with EPA's FAQ on 2026-11-03: permissions, shared credentials, rejections, missing signed copies, fees, registration scope and preprod versus production.",
+      "ManifestMate's FAQ and University were reconciled with EPA's FAQ on 2026-11-03: permissions, shared credentials, rejections, missing signed copies, fees, registration scope and preprod versus production. The corrections are live on production as of 2026-11-04.",
     strengths: {
       customer: "Plain-language FAQ plus Haz Waste University goes well beyond a link list; wrong or stale answers found in the review were corrected and the production site now serves them.",
     },
@@ -142,7 +142,7 @@ export const DEV_DASHBOARD_ROWS: DevDashboardRow[] = [
     solution:
       "Client uses save, update, search, get, attachments and quicker-sign only; no deprecated PATCH calls. Production host path corrected on 2026-11-03. Open: add the NotAssigned status to the status type; export consent numbers and foreign-address fields only matter if exports are ever added.",
     strengths: {
-      development: "Integer quantity rule from the schema is now enforced before submit, so users get a clear message instead of an EPA API rejection.",
+      development: "Fixed 2026-11-04 (production and dev): the schema's integer quantity rule (0 to 99,999,999,999) is enforced before submit, so users get a clear message instead of an EPA API rejection. Decimal quantities were previously accepted and sent.",
     },
   },
   // ---------------------------------------------------------------- Fact sheets
@@ -154,11 +154,11 @@ export const DEV_DASHBOARD_ROWS: DevDashboardRow[] = [
     reviewed: "Full",
     status: "partial",
     solution:
-      "Create and sign electronically works end to end. Exception Report overdue alerts (day 45 and day 60) are on the dashboard in production. Gaps: no Exception Report filing, no hybrid manifests, no handling for generators without an EPA ID, no post-receipt corrections.",
+      "Create and sign electronically works end to end. Added 2026-11-04: Exception Report overdue alerts (day 45 find the signed copy, day 60 report due) on the dashboard, live on production; a daily reminder email with a Settings opt-out, on dev only until the production database and variables are ready. Whole-number quantity validation and the corrected exception report article are live on production. Gaps: no Exception Report filing, no hybrid manifests, no handling for generators without an EPA ID, no post-receipt corrections.",
     strengths: {
       development: "Creates manifests through the API rather than only through RCRAInfo screens; CSV import from a generator's own systems.",
       solutions: "Waste profiles, labels, lab packs, bills of lading and LDR notices go beyond what e-Manifest collects (dev adds wizard and profiles).",
-      customer: "Tracked onboarding to API credentials with videos; DOT table and waste code search; overdue alerts tell users when the Exception Report clock matters.",
+      customer: "Tracked onboarding to API credentials with videos; DOT table and waste code search; overdue alerts and (on dev) reminder emails tell users when the Exception Report clock matters, which EPA's sheet leaves to the generator to track.",
     },
   },
   {
@@ -211,7 +211,7 @@ export const DEV_DASHBOARD_ROWS: DevDashboardRow[] = [
     reviewed: "Full",
     status: "covered",
     solution:
-      "Tracked onboarding checklist covers Site Manager role, ESA and API credential generation; credentials are stored encrypted. Open: onboarding links point at production RCRAInfo while the app runs on preprod.",
+      "Tracked onboarding checklist covers Site Manager role, ESA and API credential generation; credentials are stored encrypted. The University now carries a preprod-versus-production callout (live 2026-11-04). Still open: the onboarding links themselves point at production RCRAInfo while the app runs on preprod.",
     strengths: {
       customer: "A step-by-step tracked checklist with videos exceeds the sheet, which only lists duties.",
       development: "Encrypted credential storage and per-user credentials rather than shared logins.",
@@ -367,7 +367,7 @@ export const DEV_DASHBOARD_ROWS: DevDashboardRow[] = [
     url: "https://www.epa.gov/e-manifest/monthly-webinars-about-hazardous-waste-electronic-manifest-e-manifest",
     reviewed: "Full",
     status: "partial",
-    solution: "No ManifestMate user pays these fees and the FAQ explains who does. The electronic Exception Report is not supported beyond overdue alerts.",
+    solution: "No ManifestMate user pays these fees and the FAQ explains who does. The electronic Exception Report is not supported beyond overdue alerts (production) and reminder emails (dev only); filing in e-Manifest is not built.",
     strengths: {
       customer: "Fee amounts and who pays are in the FAQ.",
       development: "No dependence on the removed PATCH services.",
@@ -393,7 +393,7 @@ export const DEV_DASHBOARD_ROWS: DevDashboardRow[] = [
     reviewed: "Full",
     status: "partial",
     solution:
-      "Quantities must now be whole numbers within EPA's range. No plausibility check against vehicle weight limits. EPA's workflow widgets overlap University content, so linking is better than duplicating.",
+      "Quantities must now be whole numbers within EPA's range (fixed 2026-11-04 on production and dev). No plausibility check against vehicle weight limits. EPA's workflow widgets overlap University content, so linking is better than duplicating.",
     strengths: {
       development: "Quantity validation runs before submit with a plain-language message.",
     },

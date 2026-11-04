@@ -72,7 +72,8 @@ export async function GET(request: Request) {
     .in("user_id", [...byUser.keys()]);
   const optedOut = new Set((optouts ?? []).map((o) => o.user_id));
 
-  const base = "https://hazwastemanifestmate.com";
+  // Links point back at whichever site was called (dev vs production).
+  const base = new URL(request.url).origin;
   let emailed = 0;
   let failed = 0;
   for (const [userId, items] of byUser) {

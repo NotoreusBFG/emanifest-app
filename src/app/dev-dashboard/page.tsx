@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { getMyAdminRole } from "@/services/adminRepository";
 import { isNonProductionEnvironment } from "@/lib/devEnvironment";
+import { ALL_ROWS, FEED_NEWEST } from "@/lib/devDashboardRows";
 import {
   DEV_DASHBOARD_AS_OF,
-  DEV_DASHBOARD_ROWS,
   STATUS_LABELS,
   type CoverageStatus,
   type DevDashboardRow,
@@ -78,13 +78,13 @@ export default async function DevDashboardPage({ searchParams }: { searchParams:
   const role = (await getMyAdminRole(supabase)) ?? (isAdminEmail(user.email) ? "admin" : null);
   if (!role) notFound();
 
-  const counts = DEV_DASHBOARD_ROWS.reduce(
+  const counts = ALL_ROWS.reduce(
     (acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }),
     {} as Partial<Record<CoverageStatus, number>>
   );
-  const categories = [...new Set(DEV_DASHBOARD_ROWS.map((r) => r.category))];
-  const total = DEV_DASHBOARD_ROWS.length;
-  const fullyRead = DEV_DASHBOARD_ROWS.filter((r) => r.reviewed === "Full").length;
+  const categories = [...new Set(ALL_ROWS.map((r) => r.category))];
+  const total = ALL_ROWS.length;
+  const fullyRead = ALL_ROWS.filter((r) => r.reviewed === "Full").length;
   const openMilestones = MILESTONES.filter((m) => m.status === "planned" || m.status === "in-progress" || m.status === "blocked");
 
   return (
@@ -161,6 +161,30 @@ export default async function DevDashboardPage({ searchParams }: { searchParams:
             </ul>
             <Link href="/dev-dashboard?tab=benchmarks" className="mt-3 inline-block text-sm font-semibold text-brand-blue hover:underline">
               All benchmarks
+            </Link>
+          </Card>
+          <Card className="p-5">
+            <h2 className="font-bold text-brand-navy">New from the EPA watch</h2>
+            {FEED_NEWEST.length === 0 ? (
+              <p className="mt-1 text-sm text-gray-600">Nothing new since the baseline. The watch adds entries here automatically (weekly page watch, monthly deep dive).</p>
+            ) : (
+              <ul className="mt-2 flex flex-col gap-2 text-sm">
+                {FEED_NEWEST.slice(0, 5).map((e) => (
+                  <li key={e.id}>
+                    <span className="text-gray-500">{e.date}</span>{" "}
+                    {e.url ? (
+                      <a href={e.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-blue hover:underline">
+                        {e.title}
+                      </a>
+                    ) : (
+                      <span className="font-semibold text-brand-navy">{e.title}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link href="/dev-dashboard?tab=epa" className="mt-3 inline-block text-sm font-semibold text-brand-blue hover:underline">
+              Open the EPA coverage table
             </Link>
           </Card>
           <Card className="p-5">
@@ -315,7 +339,7 @@ export default async function DevDashboardPage({ searchParams }: { searchParams:
               </thead>
               <tbody>
                 {categories.map((category) => (
-                  <CategoryRows key={category} category={category} rows={DEV_DASHBOARD_ROWS.filter((r) => r.category === category)} />
+                  <CategoryRows key={category} category={category} rows={ALL_ROWS.filter((r) => r.category === category)} />
                 ))}
               </tbody>
             </table>

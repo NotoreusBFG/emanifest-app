@@ -162,7 +162,10 @@ export function WasteLineStepModal({
           <label style={label}>Quantity</label>
           <input
             type="number"
-            step="any"
+            step="1"
+            min="0"
+            inputMode="numeric"
+            title="Whole numbers only: e-Manifest does not accept decimal quantities"
             value={line.quantity}
             onChange={(e) => update({ quantity: e.target.value })}
             style={inputStyle}

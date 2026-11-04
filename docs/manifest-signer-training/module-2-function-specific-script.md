@@ -63,15 +63,24 @@ legal statement, depending entirely on generator status."
 **[VISUAL: An org chart — Owner/Operator at top, an "Authorized Representative" node beside it, a "Quick-Sign Delegate" node connected by a dotted line labeled "signs on behalf of"]**
 
 **NARRATION:**
-"The signer has to be someone authorized to bind the generator — the
-owner, the operator, or an authorized representative. This matters a lot
-if you're using ManifestMate's Quick-Sign delegation feature, for example
-as a driver signing on a generator's behalf. When you sign as a delegate,
-you are not making your own independent certification. You're signing on
-behalf of the account owner — the legal certification is theirs, made
-through you."
+"The Item 15 signature has to come from the right person: the generator,
+the generator's agent on site, such as a contractor working at the
+generator's facility, or an offeror who prepared the shipment there. A
+broker or office worker who isn't with the shipment can't sign as the
+generator. If you're using ManifestMate's Quick-Sign delegation, for
+example as a driver, EPA's Remote Signer policy lets the signature be
+executed with the account owner's credentials, but the person who types
+their name is you. EPA expects that person to be an employee or
+contractor of the same company who has first-hand knowledge of the
+shipment, and the signature has to be made within 24 hours of receiving
+the waste, or before you hand it to someone else, whichever comes first.
+So don't think of it as signing for somebody else. Your name goes on the
+certification, and you are vouching for what you personally know about
+the shipment."
 
-*Quiz tie-in (Q4): "If you sign as a delegate under a Quick-Sign delegation, whose certification are you legally making?" — the owner's/account holder's, not your own.*
+*Quiz tie-in (Q4): "Under EPA's Remote Signer policy, what must be true of the person whose name goes on a delegated signature?" — an employee or contractor of the same company with first-hand knowledge of the shipment, signing within 24 hours of receiving the waste or before transferring it.*
+
+> **Re-record needed (2026-11-03):** the recorded narration for this scene (Module 2 video) still says the delegate is "not making your own independent certification". That claim does not match EPA's Remote Signer policy (2023 memo, footnote on Box 15, and EPA's FAQ). Replace the audio for Scene 4 with the narration above.
 
 ---
 

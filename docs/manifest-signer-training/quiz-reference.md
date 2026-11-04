@@ -13,8 +13,8 @@ for exactly where. Keep this file in sync if a script's examples change.
 3. **True/False: A Large Quantity Generator's Item 15 signature also certifies a waste minimization program under 40 CFR 262.27(a).**
    Answer: True — *Module 2, Scenes 2-3*
 
-4. **If you sign as a delegate under a Quick-Sign delegation, whose certification are you legally making?**
-   Answer: The owner's/account holder's — not your own independent certification — *Module 2, Scene 4*
+4. **Under EPA's Remote Signer policy, what must be true of the person whose name goes on a delegated signature?**
+   Answer: An employee or contractor of the same company with first-hand knowledge of the shipment, who signs within 24 hours of receiving the waste or before transferring it — *Module 2, Scene 4* (revised 2026-11-03; the recorded video narration still needs updating)
 
 5. **What DOT regulation triggers hazmat employee training for anyone who signs the manifest?**
    Answer: 49 CFR 172.704 — *Module 1, Scene 1*

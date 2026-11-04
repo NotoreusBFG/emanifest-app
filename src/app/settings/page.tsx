@@ -8,6 +8,10 @@ import {
   saveDefaultEmergencyPhoneAction,
   getDefaultEmergencyPhoneAction,
 } from '@/app/actions/epaActions';
+import {
+  getExceptionRemindersEnabledAction,
+  setExceptionRemindersEnabledAction,
+} from '@/app/actions/exceptionReminderActions';
 import { signOutAction, changePasswordAction } from '@/app/actions/authActions';
 import {
   inviteDelegateAction,
@@ -167,6 +171,12 @@ export default function EpaSettingsPage() {
           {phoneState?.success && <p className="mt-2 text-sm text-green-700">✅ {phoneState.message}</p>}
           {phoneState?.error && <p className="mt-2 text-sm text-red-600">❌ {phoneState.error}</p>}
         </Card>
+
+        {!teamMembership && (
+          <Card className="p-6">
+            <ExceptionRemindersSection />
+          </Card>
+        )}
 
         <Card className="p-6">
           <PasswordChangeSection />
@@ -854,5 +864,50 @@ function DelegatesSection() {
       )}
       {revokeMessage && <p className="mt-1.5 text-sm text-gray-600">{revokeMessage}</p>}
     </div>
+  );
+}
+
+
+/**
+ * Opt in/out of the daily Exception Report reminder emails (sent when a
+ * manifest passes day 45 and day 60 with no signed facility copy).
+ */
+function ExceptionRemindersSection() {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getExceptionRemindersEnabledAction().then(setEnabled);
+  }, []);
+
+  const toggle = async (next: boolean) => {
+    setSaving(true);
+    setError('');
+    const result = await setExceptionRemindersEnabledAction(next);
+    if (result.success) setEnabled(next);
+    else setError(result.error ?? 'Could not save that change.');
+    setSaving(false);
+  };
+
+  return (
+    <>
+      <h2 className="text-lg font-bold text-brand-navy">Exception Report reminders</h2>
+      <p className="mt-1 text-sm text-gray-600">
+        Email me when a manifest has no signed facility copy after 45 days (find the copy) and after
+        60 days (Exception Report due). At most one email per manifest per stage. The same warnings
+        always appear on your dashboard.
+      </p>
+      <label className="mt-4 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={enabled ?? true}
+          disabled={enabled === null || saving}
+          onChange={(e) => toggle(e.target.checked)}
+        />
+        Send me Exception Report reminder emails
+      </label>
+      {error && <p className="mt-2 text-sm text-red-600">❌ {error}</p>}
+    </>
   );
 }

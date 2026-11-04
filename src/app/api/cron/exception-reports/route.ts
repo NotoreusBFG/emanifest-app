@@ -94,7 +94,7 @@ export async function GET(request: Request) {
       parts.push(
         `FIND THE SIGNED COPY (45+ days, Exception Report due at 60):\n${search.map(line).join("\n")}\n\nContact the transporter and the receiving facility now to get the signed copy.`
       );
-    const body = `${parts.join("\n\n")}\n\nThis list comes from ManifestMate's copy of your manifests and can lag EPA, so confirm in e-Manifest before filing. The clock is counted from the generator signature; EPA counts from the initial transporter's acceptance, which is the same day or later.\n\nSee your manifests: ${base}/dashboard\nHow exception reports work: ${base}/university/manifests-and-dot\n\nTo stop these reminders, reply to this email and ask us to turn them off.`;
+    const body = `${parts.join("\n\n")}\n\nThis list comes from ManifestMate's copy of your manifests and can lag EPA, so confirm in e-Manifest before filing. The clock is counted from the generator signature; EPA counts from the initial transporter's acceptance, which is the same day or later.\n\nSee your manifests: ${base}/dashboard\nHow exception reports work: ${base}/university/manifests-and-dot\n\nTo stop these reminders, turn them off in Settings: ${base}/settings`;
     const subject = file.length
       ? `Exception Report due: ${file.length} manifest${file.length === 1 ? "" : "s"} past 60 days`
       : `Find signed copy: ${search.length} manifest${search.length === 1 ? "" : "s"} past 45 days`;

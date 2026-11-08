@@ -14,7 +14,7 @@ Supabase for auth/storage/app data.
 
 ## Commands
 
-- `npm run dev` — start the dev server (this is the only way the app currently runs; no deployment yet, see `docs/deployment-and-email-setup.md`)
+- `npm run dev` — start the dev server (deployed environments exist now; see **Deployment & branches** below and `docs/deployment-and-email-setup.md`)
 - `npm run build` / `npm run start` — production build / serve
 - `npm run lint` — ESLint (flat config, `eslint-config-next`)
 - No automated test suite (no jest/vitest configured, `playwright` is an unused devDependency). `scripts/test-*.ts` are one-off manual integration scripts that hit the **live preprod RCRAInfo API** — run individually with `npx tsx scripts/<name>.ts`, not as a suite. Treat them as verification tools, not CI.
@@ -79,6 +79,25 @@ this project.
 `docs/waste-codes-reference.json`, `docs/un-waste-codes.json`): large generated
 lookup tables for DOT/EPA waste and hazmat codes — treat as data, not code to
 hand-edit.
+
+## Deployment & branches
+
+Two Vercel projects serve this codebase, and **which branch you push to decides which one updates**:
+
+| Host | Vercel project | Built from | Target |
+|---|---|---|---|
+| `hazwastemanifestmate.com` | `emanifest-app` | **`main`** (production branch tracking) | production |
+| `dev.hazwastemanifestmate.com` | `manifestmate-sandbox` | `dev` (per its `-git-dev-` alias) | preview |
+
+- **`dev` is the trunk** — all new work goes there. **`main` is the stable first production version**, and www advances only
+  when `dev` is deliberately merged into `main` (decided 2026-10-12, after production was found serving a build made from
+  `dev` for a week). Pushing to `dev` cannot publish to www; a change is only "live" on www once it is on `main`.
+- To see what is actually live, read the deployment's `githubCommitRef` in Vercel. The project overview shows the *live*
+  deployment, which can lag a promote or rollback — the newest deployment in a list is not necessarily the one serving.
+- Both deployed environments use EPA's **preprod** RCRAInfo sandbox (same as local — see Environment below). The difference
+  between them is code, not data source.
+- Not confirmed: whether `manifestmate-sandbox` is connected to this same repository or to a separate copy of it (its Vercel
+  git alias doesn't name the repo). Check that project's Git settings before relying on it.
 
 ## Environment
 

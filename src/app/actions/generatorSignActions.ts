@@ -261,12 +261,7 @@ export async function submitGeneratorSignAction(
     }
 
     await recordResult({ signSucceeded: true, epaReportId: result.reportId }, siteId);
-    await updateManifestGeneratorSignedAt(
-      supabase,
-      claimed.ownerUserId,
-      claimed.epaMtn,
-      new Date().toISOString()
-    );
+    await updateManifestGeneratorSignedAt(supabase, claimed.tokenId, new Date().toISOString());
 
     // Best-effort confirmation over every channel that was actually used
     // at link-creation time (returned directly by claimGeneratorSignToken

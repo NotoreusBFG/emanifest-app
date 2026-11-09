@@ -144,16 +144,16 @@ export async function recordGeneratorSignResult(
   if (error) console.error("recordGeneratorSignResult FAILED — audit trail gap:", error.message);
 }
 
+/** Sets generator_signed_at on the manifest of the generator sign link (or waste-line edit link with signing) that was
+ * JUST claimed (security fix 2026-11-09: the old function took any user id + MTN). */
 export async function updateManifestGeneratorSignedAt(
   supabase: SupabaseClient,
-  userId: string,
-  epaMtn: string,
+  tokenId: string,
   signedAt: string
 ): Promise<void> {
-  const { error } = await supabase.rpc("update_manifest_generator_signed_at", {
-    p_user_id: userId,
-    p_epa_mtn: epaMtn,
-    p_generator_signed_at: signedAt,
+  const { error } = await supabase.rpc("set_manifest_generator_signed_at_for_token", {
+    p_token_id: tokenId,
+    p_signed_at: signedAt,
   });
   if (error) console.error("updateManifestGeneratorSignedAt failed (non-fatal):", error.message);
 }

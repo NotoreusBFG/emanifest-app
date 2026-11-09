@@ -77,13 +77,15 @@ export interface TransporterCredentials {
   apiKey: string;
 }
 
-/** Decrypted transporter credentials for an already-claimed token's transporter — re-checks revoked_at live inside the SQL function. */
+/** Decrypted transporter credentials for the driver link that was JUST claimed — keyed on the claimed token id, not a bare
+ * transporter id (security fix 2026-11-09: get_transporter_credentials handed them to anyone who knew the id). The SQL
+ * function also re-checks revoked_at live and requires the claim to be under 10 minutes old. */
 export async function getTransporterCredentials(
   supabase: SupabaseClient,
-  transporterId: string
+  tokenId: string
 ): Promise<TransporterCredentials | null> {
-  const { data, error } = await supabase.rpc("get_transporter_credentials", {
-    p_transporter_id: transporterId,
+  const { data, error } = await supabase.rpc("get_transporter_credentials_for_token", {
+    p_token_id: tokenId,
   });
   if (error) throw new Error(error.message);
   const row = data?.[0];
@@ -163,16 +165,16 @@ export async function recordDriverSignResult(
   if (error) console.error("recordDriverSignResult FAILED — audit trail gap:", error.message);
 }
 
+/** Sets transporter_signed_at on the manifest of the driver link that was JUST claimed (security fix 2026-11-09: the old
+ * function took any user id + MTN). */
 export async function updateManifestTransporterSignedAt(
   supabase: SupabaseClient,
-  userId: string,
-  epaMtn: string,
+  tokenId: string,
   signedAt: string
 ): Promise<void> {
-  const { error } = await supabase.rpc("update_manifest_transporter_signed_at", {
-    p_user_id: userId,
-    p_epa_mtn: epaMtn,
-    p_transporter_signed_at: signedAt,
+  const { error } = await supabase.rpc("set_manifest_transporter_signed_at_for_token", {
+    p_token_id: tokenId,
+    p_signed_at: signedAt,
   });
   if (error) console.error("updateManifestTransporterSignedAt failed (non-fatal):", error.message);
 }

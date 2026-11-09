@@ -248,7 +248,7 @@ export async function submitDriverSignAction(
     });
 
   try {
-    const credentials = await getTransporterCredentials(supabase, claimed.transporterId);
+    const credentials = await getTransporterCredentials(supabase, claimed.tokenId);
     if (!credentials) {
       await releaseDriverSignToken(supabase, claimed.tokenId);
       await recordResult({ signSucceeded: false, epaError: "Transporter credentials revoked." }, "");
@@ -315,12 +315,7 @@ export async function submitDriverSignAction(
     }
 
     await recordResult({ signSucceeded: true, epaReportId: result.reportId }, credentials.epaSiteId);
-    await updateManifestTransporterSignedAt(
-      supabase,
-      claimed.createdByUserId,
-      claimed.epaMtn,
-      new Date().toISOString()
-    );
+    await updateManifestTransporterSignedAt(supabase, claimed.tokenId, new Date().toISOString());
 
     // Best-effort confirmation back to the same phone the original link
     // went to — signing already succeeded regardless of whether this

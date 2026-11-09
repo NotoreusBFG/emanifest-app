@@ -372,7 +372,7 @@ export async function submitWasteLineEditAction(
             epaReportId: signResult.reportId,
             mminVerified: true,
           });
-          await updateManifestGeneratorSignedAt(supabase, claimed.ownerUserId, claimed.epaMtn, new Date().toISOString());
+          await updateManifestGeneratorSignedAt(supabase, claimed.tokenId, new Date().toISOString());
         }
       } catch (signErr) {
         signError = formatRcrainfoError(signErr);

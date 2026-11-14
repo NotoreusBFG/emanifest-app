@@ -305,7 +305,7 @@ function NewLdrNoticePageInner() {
                 </p>
               )}
               {entry.manifestLineNumber !== null && (
-                <p style={{ margin: "0 0 6px", fontSize: "12px", color: "#888" }}>
+                <p style={{ margin: "0 0 6px", fontSize: "12px", color: "#6b6b6b" }}>
                   Manifest line {entry.manifestLineNumber}
                 </p>
               )}
@@ -359,7 +359,7 @@ function NewLdrNoticePageInner() {
               </label>
 
               <div style={{ marginTop: "8px" }}>
-                <label style={{ display: "block", fontSize: "12px", color: "#888", marginBottom: "3px" }}>
+                <label style={{ display: "block", fontSize: "12px", color: "#6b6b6b", marginBottom: "3px" }}>
                   How must this waste be managed? (40 CFR 268.7(a)(4))
                 </label>
                 <select
@@ -377,7 +377,7 @@ function NewLdrNoticePageInner() {
                     </option>
                   ))}
                 </select>
-                <p style={{ margin: "4px 0 0", fontSize: "11.5px", color: LDR_MANAGEMENT_OPTIONS[entry.howManaged].requiresCertification ? "#a15c00" : "#888" }}>
+                <p style={{ margin: "4px 0 0", fontSize: "11.5px", color: LDR_MANAGEMENT_OPTIONS[entry.howManaged].requiresCertification ? "#a15c00" : "#6b6b6b" }}>
                   {LDR_MANAGEMENT_OPTIONS[entry.howManaged].requiresCertification
                     ? "Requires a signed certification (below)."
                     : "Notice only — no certification needed."}
@@ -489,7 +489,7 @@ function NewLdrNoticePageInner() {
             required
             style={inputStyle}
           />
-          <p style={{ margin: "4px 0 0", fontSize: "11.5px", color: "#888" }}>
+          <p style={{ margin: "4px 0 0", fontSize: "11.5px", color: "#6b6b6b" }}>
             Every notice is named and dated, even when none of its waste lines require a signed
             certification below.
           </p>

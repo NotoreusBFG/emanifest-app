@@ -58,7 +58,7 @@ export function InviteRowActions({ invite, status }: { invite: TransporterInvite
         >
           {pending ? "Cancelling…" : "Cancel invite"}
         </button>
-        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+        {error && <p role="alert" className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
     );
   }
@@ -96,7 +96,7 @@ export function InviteRowActions({ invite, status }: { invite: TransporterInvite
             </button>
           </div>
         )}
-        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+        {error && <p role="alert" className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decrypt } from "@/lib/cryptoUtils";
+import { chunk } from "@/lib/batch";
 
 export interface GeneratorSignSession {
   epaMtn: string;
@@ -209,26 +210,32 @@ export async function listGeneratorSignInfoByMtn(
 ): Promise<Record<string, GeneratorSignInfo>> {
   if (epaMtns.length === 0) return {};
 
-  const { data, error } = await supabase
-    .from("signature_consents")
-    .select("epa_mtn, printed_signature_name, acknowledged_at")
-    .in("epa_mtn", epaMtns)
-    .eq("site_type", "Generator")
-    .eq("sign_succeeded", true)
-    .order("acknowledged_at", { ascending: false });
+  const results = await Promise.all(
+    chunk(epaMtns).map((batch) =>
+      supabase
+        .from("signature_consents")
+        .select("epa_mtn, printed_signature_name, acknowledged_at")
+        .in("epa_mtn", batch)
+        .eq("site_type", "Generator")
+        .eq("sign_succeeded", true)
+        .order("acknowledged_at", { ascending: false })
+    )
+  );
 
-  if (error) {
-    console.error("listGeneratorSignInfoByMtn failed:", error.message);
-    return {};
-  }
-
+  // Each MTN is in exactly one batch, so "newest row seen first wins" still holds per MTN.
   const map: Record<string, GeneratorSignInfo> = {};
-  for (const row of data ?? []) {
-    if (map[row.epa_mtn]) continue;
-    map[row.epa_mtn] = {
-      signerName: row.printed_signature_name,
-      signedAt: row.acknowledged_at,
-    };
+  for (const { data, error } of results) {
+    if (error) {
+      console.error("listGeneratorSignInfoByMtn failed:", error.message);
+      return {};
+    }
+    for (const row of data ?? []) {
+      if (map[row.epa_mtn]) continue;
+      map[row.epa_mtn] = {
+        signerName: row.printed_signature_name,
+        signedAt: row.acknowledged_at,
+      };
+    }
   }
   return map;
 }

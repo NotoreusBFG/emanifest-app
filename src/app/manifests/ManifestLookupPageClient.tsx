@@ -161,7 +161,7 @@ function ManifestLookupPageInner({ generatorSearchEnabled }: ManifestLookupPageC
           </form>
 
           {state && !state.success && (
-            <p style={{ color: "red" }}>❌ {state.error}</p>
+            <p role="alert" style={{ color: "red" }}>❌ {state.error}</p>
           )}
 
           <RecentSearches refreshKey={recentSearchesVersion} />
@@ -223,7 +223,7 @@ function RecentSearches({ refreshKey }: { refreshKey: number }) {
               }}
             >
               <span style={{ fontWeight: 600 }}>{r.epaMtn}</span>
-              <span style={{ color: "#888", fontWeight: 400, textAlign: "right" }}>
+              <span style={{ color: "#6b6b6b", fontWeight: 400, textAlign: "right" }}>
                 {r.generatorName ?? "—"} → {r.designatedFacilityName ?? "—"}
               </span>
             </Link>
@@ -313,7 +313,7 @@ function ManifestSummary({
       >
         Download attachments (PDF + docs, .zip)
       </a>
-      <p style={{ fontSize: "13px", color: "#888", marginTop: "2px" }}>
+      <p style={{ fontSize: "13px", color: "#6b6b6b", marginTop: "2px" }}>
         Live from EPA — always current, but re-fetches from RCRAInfo every time.
       </p>
 
@@ -434,7 +434,7 @@ function StoredDocumentsList({ manifestTrackingNumber }: { manifestTrackingNumbe
   if (documents === null) return null;
   if (documents.length === 0) {
     return (
-      <p style={{ fontSize: "13px", color: "#888", marginTop: "10px" }}>
+      <p style={{ fontSize: "13px", color: "#6b6b6b", marginTop: "10px" }}>
         No documents stored yet — these get saved automatically the next time this manifest is signed.
       </p>
     );

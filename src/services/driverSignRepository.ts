@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decrypt } from "@/lib/cryptoUtils";
+import { chunk } from "@/lib/batch";
 
 export interface DriverSignSession {
   epaMtn: string;
@@ -237,30 +238,36 @@ export async function listDriverSignInfoByMtn(
 ): Promise<Record<string, DriverSignInfo>> {
   if (epaMtns.length === 0) return {};
 
-  const { data, error } = await supabase
-    .from("signature_consents")
-    .select("epa_mtn, printed_signature_name, driver_id_number, truck_number, acknowledged_at")
-    .in("epa_mtn", epaMtns)
-    .not("driver_sign_token_id", "is", null)
-    .eq("sign_succeeded", true)
-    .order("acknowledged_at", { ascending: false });
-
-  if (error) {
-    console.error("listDriverSignInfoByMtn failed:", error.message);
-    return {};
-  }
+  const results = await Promise.all(
+    chunk(epaMtns).map((batch) =>
+      supabase
+        .from("signature_consents")
+        .select("epa_mtn, printed_signature_name, driver_id_number, truck_number, acknowledged_at")
+        .in("epa_mtn", batch)
+        .not("driver_sign_token_id", "is", null)
+        .eq("sign_succeeded", true)
+        .order("acknowledged_at", { ascending: false })
+    )
+  );
 
   const map: Record<string, DriverSignInfo> = {};
-  for (const row of data ?? []) {
-    // Rows arrive newest-first — keep only the first (most recent) one
-    // seen per MTN, in case of retries or (eventually) multiple drivers.
-    if (map[row.epa_mtn]) continue;
-    map[row.epa_mtn] = {
-      driverName: row.printed_signature_name,
-      driverIdNumber: row.driver_id_number,
-      truckNumber: row.truck_number,
-      signedAt: row.acknowledged_at,
-    };
+  for (const { data, error } of results) {
+    if (error) {
+      console.error("listDriverSignInfoByMtn failed:", error.message);
+      return {};
+    }
+    for (const row of data ?? []) {
+      // Rows arrive newest-first within a batch — keep only the first (most recent) one
+      // seen per MTN, in case of retries or (eventually) multiple drivers. An MTN is in
+      // exactly one batch, so that still holds across batches.
+      if (map[row.epa_mtn]) continue;
+      map[row.epa_mtn] = {
+        driverName: row.printed_signature_name,
+        driverIdNumber: row.driver_id_number,
+        truckNumber: row.truck_number,
+        signedAt: row.acknowledged_at,
+      };
+    }
   }
   return map;
 }

@@ -104,12 +104,12 @@ export function SiteSearchField({ siteType, placeholder, onSelect }: SiteSearchF
             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
-          {isLoading && <div style={{ padding: "8px", fontSize: "13px", color: "#888" }}>Searching…</div>}
+          {isLoading && <div style={{ padding: "8px", fontSize: "13px", color: "#6b6b6b" }}>Searching…</div>}
           {!isLoading && error && (
             <div style={{ padding: "8px", fontSize: "13px", color: "#c00" }}>{error}</div>
           )}
           {!isLoading && !error && results.length === 0 && (
-            <div style={{ padding: "8px", fontSize: "13px", color: "#888" }}>No matches.</div>
+            <div style={{ padding: "8px", fontSize: "13px", color: "#6b6b6b" }}>No matches.</div>
           )}
           {!isLoading &&
             results.map((site) => (

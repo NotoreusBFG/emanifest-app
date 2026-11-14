@@ -250,7 +250,7 @@ export function GeneratorSearchPanel({ onResolved }: GeneratorSearchPanelProps) 
         </div>
       )}
 
-      {error && <p style={{ color: "red", fontSize: "13px", marginTop: "8px" }}>❌ {error}</p>}
+      {error && <p role="alert" style={{ color: "red", fontSize: "13px", marginTop: "8px" }}>❌ {error}</p>}
     </div>
   );
 }

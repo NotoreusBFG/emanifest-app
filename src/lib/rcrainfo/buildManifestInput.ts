@@ -33,7 +33,7 @@ export interface BuildWasteLinesResult {
  * messages, same DOT-string field order (49 CFR 172.202(b)).
  */
 export function buildWasteLinesFromFormData(formData: FormData): BuildWasteLinesResult {
-  const wasteLineIds = (formData.get("wasteLineIds") as string).split(",").filter(Boolean);
+  const wasteLineIds = ((formData.get("wasteLineIds") as string | null) ?? "").split(",").filter(Boolean);
   const wastes: WasteLine[] = [];
   const lineErrors: string[] = [];
   const lineInstructionNotes: string[] = [];
@@ -51,7 +51,18 @@ export function buildWasteLinesFromFormData(formData: FormData): BuildWasteLines
     const properShippingName = w("properShippingName");
     const wasteDescription = w("wasteDescription");
     const description = isHazardous ? properShippingName : wasteDescription;
-    if (!description) continue; // unused slot
+    if (!description) {
+      // An empty slot is skipped, but a slot with real entries and no description is a mistake, not an unused slot:
+      // dropping it would submit the manifest to EPA without that waste. Unit code and container count are left out
+      // of this test because a prefilled line starts with defaults in both ("P" and "1").
+      const hasEntries = [w("quantity"), w("federalWasteCode"), w("idNumberCode"), w("hazardClass"), w("containerTypeCode")].some(Boolean);
+      if (hasEntries) {
+        lineErrors.push(
+          `Waste line ${wastes.length + 1}: add a description (the proper shipping name for a DOT-hazardous line), or clear the line, before submitting.`
+        );
+      }
+      continue;
+    }
 
     const displayLineNumber = wastes.length + 1;
     const specialInstructions = w("specialInstructions");
@@ -75,6 +86,11 @@ export function buildWasteLinesFromFormData(formData: FormData): BuildWasteLines
       lineErrors.push(
         `Waste line ${displayLineNumber}: e-Manifest accepts whole-number quantities only (no decimals). Round to a whole number or switch to a smaller unit (for example pounds instead of tons).`
       );
+      continue;
+    }
+
+    if (!Number.isInteger(containerNumber) || containerNumber < 1) {
+      lineErrors.push(`Waste line ${displayLineNumber}: container count must be a whole number of at least 1.`);
       continue;
     }
 
@@ -261,7 +277,7 @@ export function buildNewManifestInputFromFormData(formData: FormData): BuildMani
   // added via "+ Add another transporter"). `order` is the array position,
   // matching EPA's own "Transporter 1"/"Transporter 2"/... numbering
   // (Items 6/7 on the main form, Items 25/26 on continuation sheets).
-  const transporterIds = (formData.get("transporterIds") as string).split(",").filter(Boolean);
+  const transporterIds = ((formData.get("transporterIds") as string | null) ?? "").split(",").filter(Boolean);
   input.transporters = transporterIds.map((id, index) => ({
     epaSiteId: (formData.get(`transporterEpaSiteId_${id}`) as string)?.trim() ?? "",
     name: (formData.get(`transporterName_${id}`) as string)?.trim() ?? "",

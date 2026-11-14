@@ -71,8 +71,8 @@ export default function EpaSettingsPage() {
             </Button>
 
             {/* 5. Show a message to the user based on the 'state' returned by the Server Action */}
-            {state?.success && <p className="text-sm text-green-700">✅ {state.message}</p>}
-            {state?.error && <p className="text-sm text-red-600">❌ {state.error}</p>}
+            {state?.success && <p role="status" className="text-sm text-green-700">✅ {state.message}</p>}
+            {state?.error && <p role="alert" className="text-sm text-red-600">❌ {state.error}</p>}
           </form>
         </Card>
 
@@ -175,8 +175,8 @@ function PasswordChangeSection() {
         <Button type="submit" disabled={isPending} className="self-start">
           {isPending ? 'Updating...' : 'Update password'}
         </Button>
-        {state?.success && <p className="text-sm text-green-700">✅ {state.message}</p>}
-        {state?.success === false && <p className="text-sm text-red-600">❌ {state.error}</p>}
+        {state?.success && <p role="status" className="text-sm text-green-700">✅ {state.message}</p>}
+        {state?.success === false && <p role="alert" className="text-sm text-red-600">❌ {state.error}</p>}
       </form>
     </div>
   );
@@ -267,7 +267,7 @@ function DelegatesSection() {
         {inviteState?.success && (
           <p className="break-all text-sm text-green-700">✅ {inviteState.message}</p>
         )}
-        {inviteState?.success === false && <p className="text-sm text-red-600">❌ {inviteState.error}</p>}
+        {inviteState?.success === false && <p role="alert" className="text-sm text-red-600">❌ {inviteState.error}</p>}
       </form>
 
       {delegates && delegates.length > 0 && (

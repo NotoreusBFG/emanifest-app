@@ -119,7 +119,7 @@ function NewThirdPartyLdrNoticePageInner() {
             Manifest tracking number (MTN)
           </label>
           <input name="epaMtn" defaultValue={mtnFromQuery} placeholder="e.g. 123456789ELC" style={inputStyle} />
-          <p style={{ margin: "4px 0 0", fontSize: "11.5px", color: "#888" }}>
+          <p style={{ margin: "4px 0 0", fontSize: "11.5px", color: "#6b6b6b" }}>
             Optional — leave blank if you don&apos;t have it yet and add it later from the notice
             page. ManifestMate doesn&apos;t check this notice against the shipment; confirming they
             match is on you as the signer.

@@ -94,9 +94,9 @@ export function HazmatSearchField({ placeholder, onSelect }: HazmatSearchFieldPr
             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
-          {isLoading && <div style={{ padding: "8px", fontSize: "13px", color: "#888" }}>Searching…</div>}
+          {isLoading && <div style={{ padding: "8px", fontSize: "13px", color: "#6b6b6b" }}>Searching…</div>}
           {!isLoading && results.length === 0 && (
-            <div style={{ padding: "8px", fontSize: "13px", color: "#888" }}>No matches.</div>
+            <div style={{ padding: "8px", fontSize: "13px", color: "#6b6b6b" }}>No matches.</div>
           )}
           {!isLoading &&
             results.map((entry, i) => (

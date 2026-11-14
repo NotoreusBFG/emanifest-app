@@ -172,7 +172,7 @@ export function EditWasteLinesForm({ token, session }: { token: string; session:
             maxLength={4}
             style={inputStyle}
           />
-          <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
+          <p style={{ fontSize: "12px", color: "#6b6b6b", marginTop: "4px" }}>
             Ask whoever sent you this link for this manifest&apos;s 4-digit signing code (MMIN).
           </p>
         </div>
@@ -188,7 +188,7 @@ export function EditWasteLinesForm({ token, session }: { token: string; session:
           {isPending ? "Saving…" : session.allowSign ? "Save waste lines & sign" : "Save waste lines"}
         </button>
 
-        {state && !state.success && <p style={{ color: "red", marginTop: "10px" }}>❌ {state.error}</p>}
+        {state && !state.success && <p role="alert" style={{ color: "red", marginTop: "10px" }}>❌ {state.error}</p>}
       </form>
     </div>
   );

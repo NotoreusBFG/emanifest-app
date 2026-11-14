@@ -204,7 +204,7 @@ export default function NewManifestPage() {
 
       <ImportManifestData onImport={handleImport} />
 
-      {state && !state.success && <p style={{ color: "red" }}>❌ {state.error}</p>}
+      {state && !state.success && <p role="alert" style={{ color: "red" }}>❌ {state.error}</p>}
       {state && state.success && (
         <div style={{ border: "1px solid #cde9cd", borderRadius: "6px", padding: "12px", marginBottom: "10px" }}>
           <p style={{ color: "green", margin: 0 }}>
@@ -346,7 +346,7 @@ export default function NewManifestPage() {
             {isPending ? "Saving..." : "Save & sign"}
           </button>
         </div>
-        <p style={{ fontSize: "13px", color: "#888", marginTop: "8px" }}>
+        <p style={{ fontSize: "13px", color: "#6b6b6b", marginTop: "8px" }}>
           Both save the same way — &quot;Save & sign&quot; also shows sign options for this
           manifest right here afterward, instead of needing to look it up separately.
         </p>

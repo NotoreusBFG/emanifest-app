@@ -7,6 +7,7 @@ import {
   type LdrNoticeSource,
   type LdrWasteLineEntry,
 } from "@/lib/ldr/types";
+import { chunk } from "@/lib/batch";
 
 interface LdrNoticeRow {
   id: string;
@@ -94,21 +95,21 @@ export async function listActiveLdrNoticesByMtn(
 ): Promise<Record<string, LdrNotice>> {
   if (epaMtns.length === 0) return {};
 
-  const { data, error } = await supabase
-    .from("ldr_notices")
-    .select(SELECT_COLUMNS)
-    .eq("user_id", userId)
-    .in("epa_mtn", epaMtns)
-    .is("superseded_at", null);
-
-  if (error) {
-    console.error("listActiveLdrNoticesByMtn failed:", describePostgrestError(error));
-    return {};
-  }
+  const results = await Promise.all(
+    chunk(epaMtns).map((batch) =>
+      supabase.from("ldr_notices").select(SELECT_COLUMNS).eq("user_id", userId).in("epa_mtn", batch).is("superseded_at", null)
+    )
+  );
 
   const map: Record<string, LdrNotice> = {};
-  for (const row of data as LdrNoticeRow[]) {
-    if (row.epa_mtn) map[row.epa_mtn] = fromRow(row);
+  for (const { data, error } of results) {
+    if (error) {
+      console.error("listActiveLdrNoticesByMtn failed:", describePostgrestError(error));
+      return {};
+    }
+    for (const row of data as LdrNoticeRow[]) {
+      if (row.epa_mtn) map[row.epa_mtn] = fromRow(row);
+    }
   }
   return map;
 }

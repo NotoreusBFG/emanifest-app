@@ -242,7 +242,7 @@ function ReadOnlyHandlerFieldset({ title, name, epaSiteId }: { title: string; na
       <p style={{ fontSize: "14px", color: "#333", margin: 0 }}>
         {name || "—"} ({epaSiteId || "—"})
       </p>
-      <p style={{ fontSize: "12px", color: "#888", margin: "4px 0 0" }}>Set by whoever created this manifest — not editable here.</p>
+      <p style={{ fontSize: "12px", color: "#6b6b6b", margin: "4px 0 0" }}>Set by whoever created this manifest — not editable here.</p>
     </fieldset>
   );
 }
@@ -871,7 +871,7 @@ export function ManifestFieldsForm({
             </div>
           )}
 
-          <p style={{ fontSize: "13px", color: "#888", margin: "0 0 8px" }}>
+          <p style={{ fontSize: "13px", color: "#6b6b6b", margin: "0 0 8px" }}>
             Quantity, unit, container count, and container type are all required once this line has
             a description.
           </p>
@@ -904,6 +904,9 @@ export function ManifestFieldsForm({
               <input
                 name={`containerNumber_${line.id}`}
                 type="number"
+                step="1"
+                min="1"
+                inputMode="numeric"
                 value={line.containerNumber}
                 onChange={(e) => updateWasteLine(line.id, { containerNumber: e.target.value })}
                 style={inputStyle}

@@ -27,7 +27,7 @@ export function AttachMtnForm({ noticeId }: { noticeId: string }) {
     >
       <input type="hidden" name="noticeId" value={noticeId} />
       <div>
-        <label style={{ display: "block", fontSize: "12px", color: "#888", marginBottom: "4px" }}>MTN</label>
+        <label style={{ display: "block", fontSize: "12px", color: "#6b6b6b", marginBottom: "4px" }}>MTN</label>
         <input name="epaMtn" required placeholder="e.g. 123456789ELC" style={{ ...inputStyle, fontSize: "13px" }} />
       </div>
       <button

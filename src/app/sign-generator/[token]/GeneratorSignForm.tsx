@@ -57,24 +57,27 @@ export function GeneratorSignForm({ token, session }: { token: string; session: 
       )}
 
       <div style={{ marginTop: "16px" }}>
-        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+        <label htmlFor="signer-name" style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
           Your name (required)
         </label>
-        <input value={signerName} onChange={(e) => setSignerName(e.target.value)} style={inputStyle} />
+        <input id="signer-name" autoComplete="name" value={signerName} onChange={(e) => setSignerName(e.target.value)} style={inputStyle} />
       </div>
 
       <div style={{ marginTop: "10px" }}>
-        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+        <label htmlFor="signing-code" style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
           4-digit signing code (required)
         </label>
         <input
+          id="signing-code"
+          aria-describedby="signing-code-help"
+          autoComplete="one-time-code"
           value={mmin}
           onChange={(e) => setMmin(e.target.value)}
           inputMode="numeric"
           maxLength={4}
           style={inputStyle}
         />
-        <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
+        <p id="signing-code-help" style={{ fontSize: "12px", color: "#6b6b6b", marginTop: "4px" }}>
           Ask {generatorName} for this manifest&apos;s 4-digit signing code (MMIN) before signing. This
           confirms the link reached the right person for this specific shipment.
         </p>
@@ -104,7 +107,7 @@ export function GeneratorSignForm({ token, session }: { token: string; session: 
         {submitting ? "Signing…" : "Confirm & sign"}
       </button>
 
-      {result && !result.success && <p style={{ color: "red", marginTop: "10px" }}>❌ {result.message}</p>}
+      {result && !result.success && <p role="alert" style={{ color: "red", marginTop: "10px" }}>❌ {result.message}</p>}
     </div>
   );
 }

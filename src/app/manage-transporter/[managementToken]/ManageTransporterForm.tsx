@@ -33,7 +33,7 @@ export function ManageTransporterForm({
       <p style={{ fontSize: "14px", color: "#333" }}>
         <strong>{session.companyName ?? session.epaSiteId}</strong> ({session.epaSiteId})
       </p>
-      <p style={{ fontSize: "12px", color: "#888" }}>
+      <p style={{ fontSize: "12px", color: "#6b6b6b" }}>
         Anyone holding this link can act on it — there&apos;s no login involved. Don&apos;t share it outside
         your company.
       </p>
@@ -59,7 +59,7 @@ export function ManageTransporterForm({
         >
           {toggling ? "Working…" : revoked ? "Reactivate" : "Revoke access"}
         </button>
-        {toggleError && <p style={{ color: "red", fontSize: "13px", marginTop: "8px" }}>❌ {toggleError}</p>}
+        {toggleError && <p role="alert" style={{ color: "red", fontSize: "13px", marginTop: "8px" }}>❌ {toggleError}</p>}
       </div>
     </div>
   );

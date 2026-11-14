@@ -67,7 +67,7 @@ export function TransporterRegistrationForm({
       <div style={{ marginTop: "10px" }}>
         <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>EPA Site ID</label>
         <input value={session.epaSiteId} disabled style={{ ...inputStyle, background: "#f5f5f5", color: "#666" }} />
-        <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
+        <p style={{ fontSize: "12px", color: "#6b6b6b", marginTop: "4px" }}>
           This comes from the shipment that invited you. If it looks wrong, contact the company that invited
           you before registering — ManifestMate can&apos;t verify this on its own.
         </p>
@@ -140,7 +140,7 @@ export function TransporterRegistrationForm({
         {submitting ? "Registering…" : "Register"}
       </button>
 
-      {result && !result.success && <p style={{ color: "red", marginTop: "10px" }}>❌ {result.message}</p>}
+      {result && !result.success && <p role="alert" style={{ color: "red", marginTop: "10px" }}>❌ {result.message}</p>}
     </div>
   );
 }

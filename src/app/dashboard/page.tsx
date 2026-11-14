@@ -32,22 +32,19 @@ export default async function DashboardPage() {
 
   const manifests = user ? await listManifestsForUser(supabase, user.id) : [];
 
-  // Both batched (one query each, not one per row) so the dashboard stays
+  // Each is batched by id list (not one query per row) so the dashboard stays
   // fast and local-only regardless of list length -- see each function's
-  // own comment for why.
-  const manifestIdsWithDocuments = user
-    ? await listManifestIdsWithDocuments(supabase, manifests.map((m) => m.id))
-    : new Set<string>();
-  const ldrNoticesByMtn = user
-    ? await listActiveLdrNoticesByMtn(supabase, user.id, manifests.map((m) => m.epa_mtn))
-    : {};
-  const driverSignInfoByMtn = user
-    ? await listDriverSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn))
-    : {};
-  const generatorSignInfoByMtn = user
-    ? await listGeneratorSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn))
-    : {};
-  const onboardingProgress = user ? await getOnboardingProgress(supabase, user.id) : null;
+  // own comment for why. They are independent of each other, so they run
+  // together rather than one after another.
+  // With no user `manifests` is empty, and each id-keyed lookup returns early on an empty list.
+  const [manifestIdsWithDocuments, ldrNoticesByMtn, driverSignInfoByMtn, generatorSignInfoByMtn, onboardingProgress] =
+    await Promise.all([
+      listManifestIdsWithDocuments(supabase, manifests.map((m) => m.id)),
+      listActiveLdrNoticesByMtn(supabase, user?.id ?? "", manifests.map((m) => m.epa_mtn)),
+      listDriverSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn)),
+      listGeneratorSignInfoByMtn(supabase, manifests.map((m) => m.epa_mtn)),
+      user ? getOnboardingProgress(supabase, user.id) : Promise.resolve(null),
+    ]);
 
   const receivedCount = manifests.filter(
     (m) => deriveManifestBadge(m.generator_signed_at, m.transporter_signed_at, m.facility_signed_at)?.variant === "received"

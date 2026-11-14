@@ -328,7 +328,7 @@ function StepCard({
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '12px', color: '#999', fontWeight: 600 }}>STEP {number}</span>
+          <span style={{ fontSize: '12px', color: '#6b6b6b', fontWeight: 600 }}>STEP {number}</span>
           <span
             aria-hidden
             title={status === 'done' ? 'Done' : status === 'failed' ? 'Needs attention' : 'Not started'}
@@ -343,7 +343,7 @@ function StepCard({
           />
         </div>
         <span style={{ fontWeight: 600, color: brand.navy, fontSize: '14px' }}>{title}</span>
-        <span style={{ fontSize: '12px', color: '#888' }}>{description}</span>
+        <span style={{ fontSize: '12px', color: '#6b6b6b' }}>{description}</span>
       </button>
       {expanded && (
         <div style={{ padding: '0 14px 14px', borderTop: '1px solid #f0f0f0', paddingTop: '12px' }}>
@@ -526,7 +526,7 @@ function EpaIdForm({
         I&apos;ve submitted my Site ID request
       </label>
       <div>
-        <label htmlFor="epaIdNumber" style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '4px' }}>
+        <label htmlFor="epaIdNumber" style={{ display: 'block', fontSize: '12px', color: '#6b6b6b', marginBottom: '4px' }}>
           EPA ID number (once you have it)
         </label>
         <input
@@ -560,7 +560,7 @@ function EpaIdForm({
       >
         {isPending ? 'Saving…' : 'Save'}
       </button>
-      {state?.error && <p style={{ color: '#c0392b', fontSize: '12px' }}>{state.error}</p>}
+      {state?.error && <p role="alert" style={{ color: '#c0392b', fontSize: '12px' }}>{state.error}</p>}
     </form>
   );
 }
@@ -575,7 +575,7 @@ function CredentialsForm({ onDone }: { onDone: () => void }) {
   return (
     <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
       <div>
-        <label htmlFor="ob-apiId" style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '4px' }}>
+        <label htmlFor="ob-apiId" style={{ display: 'block', fontSize: '12px', color: '#6b6b6b', marginBottom: '4px' }}>
           API ID
         </label>
         <input
@@ -587,7 +587,7 @@ function CredentialsForm({ onDone }: { onDone: () => void }) {
         />
       </div>
       <div>
-        <label htmlFor="ob-apiKey" style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '4px' }}>
+        <label htmlFor="ob-apiKey" style={{ display: 'block', fontSize: '12px', color: '#6b6b6b', marginBottom: '4px' }}>
           API Key
         </label>
         <input
@@ -615,8 +615,8 @@ function CredentialsForm({ onDone }: { onDone: () => void }) {
       >
         {isPending ? 'Verifying…' : 'Save & verify'}
       </button>
-      {state?.success && <p style={{ color: brand.green, fontSize: '12px' }}>✅ {state.message}</p>}
-      {state?.success === false && <p style={{ color: '#c0392b', fontSize: '12px' }}>❌ {state.error}</p>}
+      {state?.success && <p role="status" style={{ color: brand.green, fontSize: '12px' }}>✅ {state.message}</p>}
+      {state?.success === false && <p role="alert" style={{ color: '#c0392b', fontSize: '12px' }}>❌ {state.error}</p>}
     </form>
   );
 }

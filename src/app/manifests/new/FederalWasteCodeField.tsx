@@ -145,7 +145,7 @@ export function FederalWasteCodeField({ name, value, onChange, fetchFn = getFede
         }}
       />
 
-      {loadError && <p style={{ color: "red", fontSize: "13px", marginTop: "4px" }}>{loadError}</p>}
+      {loadError && <p role="alert" style={{ color: "red", fontSize: "13px", marginTop: "4px" }}>{loadError}</p>}
 
       {isOpen && q.length >= MIN_QUERY_LENGTH && !loadError && (
         <div
@@ -165,10 +165,10 @@ export function FederalWasteCodeField({ name, value, onChange, fetchFn = getFede
           }}
         >
           {allCodes === null && (
-            <div style={{ padding: "8px", fontSize: "13px", color: "#888" }}>Loading codes…</div>
+            <div style={{ padding: "8px", fontSize: "13px", color: "#6b6b6b" }}>Loading codes…</div>
           )}
           {allCodes !== null && matches.length === 0 && (
-            <div style={{ padding: "8px", fontSize: "13px", color: "#888" }}>No matching codes.</div>
+            <div style={{ padding: "8px", fontSize: "13px", color: "#6b6b6b" }}>No matching codes.</div>
           )}
           {matches.map((c) => (
             <button

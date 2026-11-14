@@ -68,39 +68,43 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
       )}
 
       <div style={{ marginTop: "16px" }}>
-        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+        <label htmlFor="driver-name" style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
           Driver name (required)
         </label>
-        <input value={driverName} onChange={(e) => setDriverName(e.target.value)} style={inputStyle} />
+        <input id="driver-name" autoComplete="name" value={driverName} onChange={(e) => setDriverName(e.target.value)} style={inputStyle} />
       </div>
       <div style={{ marginTop: "10px" }}>
-        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+        <label htmlFor="driver-id-number" style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
           Driver ID # (optional)
         </label>
         <input
+          id="driver-id-number"
           value={driverIdNumber}
           onChange={(e) => setDriverIdNumber(e.target.value)}
           style={inputStyle}
         />
       </div>
       <div style={{ marginTop: "10px" }}>
-        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+        <label htmlFor="truck-number" style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
           Truck # (optional)
         </label>
-        <input value={truckNumber} onChange={(e) => setTruckNumber(e.target.value)} style={inputStyle} />
+        <input id="truck-number" value={truckNumber} onChange={(e) => setTruckNumber(e.target.value)} style={inputStyle} />
       </div>
       <div style={{ marginTop: "10px" }}>
-        <label style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
+        <label htmlFor="signing-code" style={{ display: "block", marginBottom: "5px", fontSize: "14px" }}>
           4-digit signing code (required)
         </label>
         <input
+          id="signing-code"
+          aria-describedby="signing-code-help"
+          autoComplete="one-time-code"
           value={mmin}
           onChange={(e) => setMmin(e.target.value)}
           inputMode="numeric"
           maxLength={4}
           style={inputStyle}
         />
-        <p style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
+        <p id="signing-code-help" style={{ fontSize: "12px", color: "#6b6b6b", marginTop: "4px" }}>
           Ask your dispatcher for this manifest&apos;s 4-digit signing code (MMIN) before signing. This
           confirms the text reached the right company for this specific shipment — it isn&apos;t tied to you
           personally, and it doesn&apos;t replace the name and ID above.
@@ -131,7 +135,7 @@ export function DriverSignForm({ token, session }: { token: string; session: Dri
         {submitting ? "Signing…" : "Confirm & sign"}
       </button>
 
-      {result && !result.success && <p style={{ color: "red", marginTop: "10px" }}>❌ {result.message}</p>}
+      {result && !result.success && <p role="alert" style={{ color: "red", marginTop: "10px" }}>❌ {result.message}</p>}
     </div>
   );
 }

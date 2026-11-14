@@ -38,7 +38,7 @@ export function AcceptInviteButton({ token }: { token: string }) {
         {isPending ? "Accepting…" : "Accept invite"}
       </button>
       {state?.success === false && (
-        <p style={{ color: "red", marginTop: "10px" }}>❌ {state.error}</p>
+        <p role="alert" style={{ color: "red", marginTop: "10px" }}>❌ {state.error}</p>
       )}
     </form>
   );

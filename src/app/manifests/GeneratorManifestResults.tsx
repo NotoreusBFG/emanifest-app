@@ -100,12 +100,12 @@ export function GeneratorManifestResults({ resolved }: GeneratorManifestResultsP
       </Card>
 
       {total === 0 && (
-        <p style={{ color: "#888", fontSize: "14px" }}>
+        <p style={{ color: "#6b6b6b", fontSize: "14px" }}>
           No manifests found for this generator with the current filters.
         </p>
       )}
 
-      {isLoading && <p className="no-print" style={{ color: "#888", fontSize: "13px", marginBottom: "12px" }}>Loading…</p>}
+      {isLoading && <p className="no-print" style={{ color: "#6b6b6b", fontSize: "13px", marginBottom: "12px" }}>Loading…</p>}
 
       {!isLoading && hasMore && (
         <button

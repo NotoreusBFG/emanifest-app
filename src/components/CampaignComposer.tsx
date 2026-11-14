@@ -143,7 +143,7 @@ export function CampaignComposer({ leads }: { leads: Lead[] }) {
               </button>
             )}
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
             {result && (
               <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
                 Sent {result.sent}. {result.skipped > 0 && `Skipped ${result.skipped} (no email/unsubscribed). `}

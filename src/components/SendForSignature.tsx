@@ -107,7 +107,7 @@ export function SendForSignature({ mtn }: { mtn: string }) {
             setOpen(false);
             setPanel(null);
           }}
-          style={{ background: "none", border: "none", color: "#888", cursor: "pointer", fontSize: "12px" }}
+          style={{ background: "none", border: "none", color: "#6b6b6b", cursor: "pointer", fontSize: "12px" }}
         >
           Close
         </button>
@@ -169,7 +169,7 @@ function SharePanel({
         <code
           style={{
             fontSize: "11px",
-            color: "#888",
+            color: "#6b6b6b",
             wordBreak: "break-all",
             background: "#f5f5f5",
             padding: "2px 5px",
@@ -372,13 +372,13 @@ function InviteTransporterPanel({ mtn }: { mtn: string }) {
   };
 
   if (loading) {
-    return <p style={{ fontSize: "12px", color: "#888", marginTop: "10px" }}>Loading transporters…</p>;
+    return <p style={{ fontSize: "12px", color: "#6b6b6b", marginTop: "10px" }}>Loading transporters…</p>;
   }
   if (loadError) {
     return <p style={{ fontSize: "12px", color: "red", marginTop: "10px" }}>{loadError}</p>;
   }
   if (transporters.length === 0) {
-    return <p style={{ fontSize: "12px", color: "#888", marginTop: "10px" }}>No transporters on this manifest.</p>;
+    return <p style={{ fontSize: "12px", color: "#6b6b6b", marginTop: "10px" }}>No transporters on this manifest.</p>;
   }
 
   return (
@@ -481,7 +481,7 @@ function RegisterTransporterCta({
   return (
     <div style={{ marginTop: "10px", padding: "8px", background: "#fff8ec", borderRadius: "4px" }}>
       {checking ? (
-        <p style={{ fontSize: "12px", color: "#888" }}>Checking registration status…</p>
+        <p style={{ fontSize: "12px", color: "#6b6b6b" }}>Checking registration status…</p>
       ) : pending && !result?.success ? (
         <p style={{ fontSize: "12px", color: "#666" }}>
           A registration invite to <strong>{name}</strong> is already pending — waiting for them to complete
@@ -566,7 +566,7 @@ function ResultDisplay({ result }: { result: { success: boolean; message: string
           style={{
             display: "block",
             fontSize: "11px",
-            color: "#888",
+            color: "#6b6b6b",
             wordBreak: "break-all",
             background: "#f5f5f5",
             padding: "4px 6px",

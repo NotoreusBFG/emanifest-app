@@ -55,7 +55,7 @@ export default async function RegisterTransporterWithAccountPage({
     <Shell>
       {state.success ? (
         <>
-          <p style={{ fontSize: "12px", color: "#888" }}>
+          <p style={{ fontSize: "12px", color: "#6b6b6b" }}>
             Signed in as {user.email} — completing this will link the registration to your
             ManifestMate account.
           </p>

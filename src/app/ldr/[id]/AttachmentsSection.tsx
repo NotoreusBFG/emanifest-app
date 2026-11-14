@@ -60,9 +60,9 @@ export function AttachmentsSection({ ldrNoticeId }: { ldrNoticeId: string }) {
       </p>
 
       {attachments === null ? (
-        <p style={{ fontSize: "13px", color: "#888" }}>Loading…</p>
+        <p style={{ fontSize: "13px", color: "#6b6b6b" }}>Loading…</p>
       ) : attachments.length === 0 ? (
-        <p style={{ fontSize: "13px", color: "#888" }}>No documents uploaded yet.</p>
+        <p style={{ fontSize: "13px", color: "#6b6b6b" }}>No documents uploaded yet.</p>
       ) : (
         <ul style={{ listStyle: "none", margin: "0 0 14px", padding: 0 }}>
           {attachments.map((a) => (
@@ -90,7 +90,7 @@ export function AttachmentsSection({ ldrNoticeId }: { ldrNoticeId: string }) {
                 ) : (
                   <span style={{ fontSize: "13px", fontWeight: 600 }}>{a.label || a.filename}</span>
                 )}
-                <p style={{ margin: "2px 0 0", fontSize: "11.5px", color: "#999" }}>
+                <p style={{ margin: "2px 0 0", fontSize: "11.5px", color: "#6b6b6b" }}>
                   {a.label ? `${a.filename} · ` : ""}
                   {formatFileSize(a.fileSizeBytes)} · {new Date(a.uploadedAt).toLocaleDateString()}
                 </p>
@@ -121,7 +121,7 @@ export function AttachmentsSection({ ldrNoticeId }: { ldrNoticeId: string }) {
       >
         <input type="hidden" name="ldrNoticeId" value={ldrNoticeId} />
         <div style={{ flex: "1 1 160px" }}>
-          <label style={{ display: "block", fontSize: "12px", color: "#888", marginBottom: "4px" }}>
+          <label style={{ display: "block", fontSize: "12px", color: "#6b6b6b", marginBottom: "4px" }}>
             Label (optional)
           </label>
           <input
@@ -132,7 +132,7 @@ export function AttachmentsSection({ ldrNoticeId }: { ldrNoticeId: string }) {
           />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "12px", color: "#888", marginBottom: "4px" }}>PDF file</label>
+          <label style={{ display: "block", fontSize: "12px", color: "#6b6b6b", marginBottom: "4px" }}>PDF file</label>
           <input name="file" type="file" accept="application/pdf" required style={{ fontSize: "13px" }} />
         </div>
         <button

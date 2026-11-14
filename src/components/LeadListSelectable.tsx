@@ -99,7 +99,7 @@ export function LeadListSelectable({
         {confirming && !isPending && mode === "active" && (
           <span className="text-gray-500">Removed leads can be restored later from the Removed view.</span>
         )}
-        {error && <span className="text-red-600">{error}</span>}
+        {error && <span role="alert" className="text-red-600">{error}</span>}
       </div>
 
       {leads.map((lead) => (

@@ -4,6 +4,7 @@ import { getHandlerSignatureStatus, type Manifest, type ManifestStatus } from "@
 import type { RcrainfoClient } from "@/lib/rcrainfo/client";
 import { encrypt, decrypt } from "@/lib/cryptoUtils";
 import { generateVerificationCode } from "@/lib/verificationCode";
+import { chunk } from "@/lib/batch";
 
 /**
  * Next.js forwards server-side `console.error` calls to the browser's dev
@@ -432,16 +433,19 @@ export async function listManifestIdsWithDocuments(
 ): Promise<Set<string>> {
   if (manifestIds.length === 0) return new Set();
 
-  const { data, error } = await supabase
-    .from("manifest_documents")
-    .select("manifest_id")
-    .in("manifest_id", manifestIds);
-
-  if (error) {
-    console.error("listManifestIdsWithDocuments failed:", describePostgrestError(error));
-    return new Set();
+  // One request per batch: a single `.in(...)` over every manifest id fails outright once the list is long (see lib/batch.ts).
+  const results = await Promise.all(
+    chunk(manifestIds).map((batch) => supabase.from("manifest_documents").select("manifest_id").in("manifest_id", batch))
+  );
+  const ids = new Set<string>();
+  for (const { data, error } of results) {
+    if (error) {
+      console.error("listManifestIdsWithDocuments failed:", describePostgrestError(error));
+      return new Set();
+    }
+    for (const row of data) ids.add(row.manifest_id as string);
   }
-  return new Set(data.map((row) => row.manifest_id as string));
+  return ids;
 }
 
 export async function listDocumentsForManifest(

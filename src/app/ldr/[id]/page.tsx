@@ -64,7 +64,7 @@ export default async function LdrNoticeDetailPage({ params }: { params: Promise<
       </div>
 
       {notice.supersededAt && (
-        <p className="no-print" style={{ background: "#f5f5f5", color: "#999", padding: "8px 12px", borderRadius: "6px", fontSize: "13px" }}>
+        <p className="no-print" style={{ background: "#f5f5f5", color: "#6b6b6b", padding: "8px 12px", borderRadius: "6px", fontSize: "13px" }}>
           This notice was superseded on {new Date(notice.supersededAt).toLocaleDateString()} — a newer notice
           replaced it for this generator/facility/waste combination.
         </p>
@@ -116,7 +116,7 @@ export default async function LdrNoticeDetailPage({ params }: { params: Promise<
               </tr>
             </tbody>
           </table>
-          <p style={{ fontSize: "12px", color: "#888", marginTop: "6px" }}>
+          <p style={{ fontSize: "12px", color: "#6b6b6b", marginTop: "6px" }}>
             This notice was prepared by a third party, not ManifestMate — the attached PDF below is
             the actual record. Confirming it matches this shipment is on you as the signer.
           </p>
@@ -158,7 +158,7 @@ export default async function LdrNoticeDetailPage({ params }: { params: Promise<
           {notice.wasteLines.map((w, i) => (
             <div key={i} style={{ borderTop: i > 0 ? "1px solid #eee" : undefined, paddingTop: i > 0 ? "10px" : 0, marginTop: i > 0 ? "10px" : 0 }}>
               {w.manifestLineNumber !== null && (
-                <p style={{ margin: "0 0 4px", fontSize: "12px", color: "#888" }}>Manifest line {w.manifestLineNumber}</p>
+                <p style={{ margin: "0 0 4px", fontSize: "12px", color: "#6b6b6b" }}>Manifest line {w.manifestLineNumber}</p>
               )}
               <p style={{ margin: "4px 0" }}>
                 <strong>EPA Hazardous Waste Number(s):</strong> {w.epaHazardousWasteNumbers.join(", ") || "—"}
@@ -204,13 +204,13 @@ export default async function LdrNoticeDetailPage({ params }: { params: Promise<
             Prepared by {notice.preparedByName || "—"} on {notice.preparedDate}
           </p>
 
-          <p style={{ fontSize: "10.5px", color: "#999", marginTop: "10px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+          <p style={{ fontSize: "10.5px", color: "#6b6b6b", marginTop: "10px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
             {LDR_DISCLAIMER}
           </p>
         </div>
       )}
 
-      <p className="no-print" style={{ fontSize: "12px", color: "#888", marginTop: "10px" }}>
+      <p className="no-print" style={{ fontSize: "12px", color: "#6b6b6b", marginTop: "10px" }}>
         Retain a copy on-site for 3 years from the date this waste was last sent (40 CFR 268.7(a)(8)).
       </p>
 
